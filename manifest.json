@@ -1,0 +1,51 @@
+{
+  "name": "Cash Split",
+  "short_name": "Split",
+  "description": "Confidential Finance management tool",
+  "start_url": "./",
+  "id": "./manage",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f2027",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["mathematics", "income", "manage"],
+  "icons": [
+    {
+      "src": "./maskable_icon_x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./maskable_icon_x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./maskable_icon_x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./maskable_icon_x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+ 
+  "screenshots": [
+    {
+      "src": "./maskable_icon_x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Cash split tool"
+    }
+  ],
+  "prefer_related_applications": false
+}
