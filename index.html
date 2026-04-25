@@ -757,6 +757,7 @@ body.light-mode #actions-btn {
       document.getElementById('new-amount').value = '';
       saveData();
       renderAll();
+      updateBalanceNotification();
       showToast(`KSh ${amount.toFixed(2)} added and redistributed`);
     }
 
@@ -1071,6 +1072,8 @@ body.light-mode #actions-btn {
 
       saveData();
       renderAll();
+      updateBalanceNotification();
+
       showToast(`KSh ${amount.toFixed(2)} deducted from ${categoryName}`);
     }
 
@@ -1367,61 +1370,65 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ===== NOTIFICATIONS =====
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}
+// Call this once after user grants permission — and after every balance change
+function updateBalanceNotification() {
+  if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
 
-function scheduleBalanceNotification() {
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-
-  const now = new Date();
-  const lastNotif = localStorage.getItem('cashsplit_last_notif');
-
-  // Only fire once per day
-  if (lastNotif) {
-    const last = new Date(lastNotif);
-    if (now.toDateString() === last.toDateString()) return;
-  }
-
-  // Only notify if balance is zero
-  if (actualAmount > 0) return;
-
-  localStorage.setItem('cashsplit_last_notif', now.toISOString());
-
-  navigator.serviceWorker.ready.then(reg => {
-    reg.showNotification('CashSplit 💰', {
-      body: 'Your balance is KSh 0.00 — time to add money and plan your budget!',
-      icon: './maskable_icon_x192.png',
-      badge: './maskable_icon_x192.png',
-      tag: 'balance-reminder',        // prevents duplicate notifications
-      renotify: false,
-      data: { url: './index.html' }
+  navigator.serviceWorker.ready.then((reg) => {
+    // Post message to SW to show/update the persistent notification
+    reg.active.postMessage({
+      type: 'UPDATE_BALANCE_NOTIFICATION',
+      balance: actualAmount
     });
   });
 }
 
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        console.log('SW registered:', reg.scope);
-      })
-      .catch(err => console.warn('SW registration failed:', err));
+
+function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    updateBalanceNotification();
+    return;
+  }
+  if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then((permission) => {
+      if (permission === 'granted') {
+        showToast('Notifications enabled! Balance will show in your tray.', 'success');
+        updateBalanceNotification();
+      }
+    });
   }
 }
 
-   window.onload = () => {
-  registerServiceWorker();
-  loadData();
-  loadSettings();
-  requestNotificationPermission();
-  // Small delay so data is loaded before we check balance
-  setTimeout(scheduleBalanceNotification, 1500);
-};
+// Listen for SW telling us to focus the Add Money input (when user taps "Add Money" on notification)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'FOCUS_ADD_MONEY') {
+      const input = document.getElementById('new-amount');
+      if (input) {
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => input.focus(), 400);
+      }
+    }
+  });
+}
+
+// Handle ?action=addmoney in URL (fallback for when app was closed)
+window.addEventListener('load', () => {
+  if (location.search.includes('action=addmoney')) {
+    setTimeout(() => {
+      const input = document.getElementById('new-amount');
+      if (input) {
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.focus();
+      }
+      // Clean URL without reload
+      history.replaceState({}, '', location.pathname);
+    }, 600);
+  }
+});
+
+   window.onload = () => { loadData(); loadSettings(); requestNotificationPermission();};
   </script>
 </body>
 </html>

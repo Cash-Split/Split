@@ -1,17 +1,19 @@
 /**
- * Service Worker for CashSplit PWA
- * Handles: Offline caching + Daily balance notifications
+ * Service Worker for Split-in PWA
+ * Focus: Perfect Offline Use & Fast Loading
  */
 
-const CACHE_NAME = 'split-in-v2';
+const CACHE_NAME = 'split-in-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/maskable_icon_x192.png'
+  // Add your CSS and JS files here, for example:
+  // '/style.css',
+  // '/app.js',
+  // '/manifest.json'
 ];
 
-// ===== INSTALL =====
+// 1. Install Event: Cache all essential assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -19,17 +21,16 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // Force activation
 });
 
-// ===== ACTIVATE =====
+// 2. Activate Event: Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('Deleting old cache:', key);
             return caches.delete(key);
           }
         })
@@ -39,18 +40,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ===== FETCH — Stale-While-Revalidate =====
+// 3. Fetch Event: "Stale-While-Revalidate" Strategy
+// This serves from cache immediately for speed, then updates cache in background
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchedResponse = fetch(event.request).then((networkResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
+          // Update cache with new version from network
           cache.put(event.request, networkResponse.clone());
           return networkResponse;
         });
       });
+
+      // Return cached version if available, otherwise wait for network
       return cachedResponse || fetchedResponse;
     }).catch(() => {
+      // Fallback for when both cache and network fail (offline and not cached)
       if (event.request.mode === 'navigate') {
         return caches.match('/index.html');
       }
@@ -58,60 +64,51 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ===== NOTIFICATION CLICK =====
-// When user taps the notification, open the app
+// ── NOTIFICATION CLICK HANDLER ──────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/index.html';
+  const action = event.action;
+  const urlToOpen = self.registration.scope + 'index.html' + (action === 'add' ? '?action=addmoney' : '');
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If app is already open, focus it
+      // If app is already open, focus it and send message
       for (const client of clientList) {
         if (client.url.includes('index.html') && 'focus' in client) {
-          return client.focus();
+          client.focus();
+          if (action === 'add') client.postMessage({ type: 'FOCUS_ADD_MONEY' });
+          return;
         }
       }
-      // Otherwise open a new window
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      // Otherwise open the app
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
     })
   );
 });
 
-// ===== PERIODIC BACKGROUND SYNC (Android Chrome PWA) =====
-// Fires daily when PWA is installed on Android
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'daily-balance-check') {
-    event.waitUntil(checkAndNotify());
-  }
-});
-
-async function checkAndNotify() {
-  // Read balance from all open clients
-  const clientList = await clients.matchAll({ type: 'window' });
-
-  // We can't read localStorage directly in SW
-  // So we post a message to the client to check and respond
-  for (const client of clientList) {
-    client.postMessage({ type: 'CHECK_BALANCE_FOR_NOTIF' });
-  }
-}
-
-// ===== MESSAGE HANDLER =====
-// Receives balance info from the app page
+// ── RECEIVE MESSAGE FROM PAGE TO UPDATE NOTIFICATION ────────
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'BALANCE_IS_ZERO') {
-    const now = new Date();
-    self.registration.showNotification('CashSplit 💰', {
-      body: 'Your balance is KSh 0.00 — tap to add money and plan your budget!',
-      icon: '/maskable_icon_x192.png',
-      badge: '/maskable_icon_x192.png',
-      tag: 'balance-reminder',
-      renotify: false,
-      data: { url: '/index.html' }
-    });
+  if (event.data && event.data.type === 'UPDATE_BALANCE_NOTIFICATION') {
+    showBalanceNotification(event.data.balance);
   }
 });
+
+function showBalanceNotification(balance) {
+  const formatted = `KSh ${parseFloat(balance).toFixed(2)}`;
+  self.registration.showNotification('💰 CashSplit Balance', {
+    body: `Current balance: ${formatted}\nTap "Add Money" to record income`,
+    icon: './maskable_icon_x192.png',
+    badge: './maskable_icon_x192.png',
+    tag: 'cashsplit-balance',   // same tag = replaces previous, always 1 notification
+    renotify: false,
+    sticky: true,               // keeps it in tray (Android)
+    requireInteraction: true,   // won't auto-dismiss on desktop
+    silent: true,               // no sound/vibration on updates
+    actions: [
+      { action: 'add', title: '➕ Add Money' },
+      { action: 'open', title: '📊 Open App' }
+    ],
+    data: { balance }
+  });
+}
