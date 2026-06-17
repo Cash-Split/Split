@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>CashSplit — Money Tracker</title>
+<link rel="manifest" href="./manifest.json">
 <style>
 :root {
   --bg: #060a12;
@@ -436,9 +437,12 @@ select option{background:var(--bg2);color:var(--text);}
     <div class="nav-item" data-page="shortcuts" onclick="showPage('shortcuts')"><span class="nav-icon">⚡</span> Shortcuts</div>
     <div class="nav-item" data-page="recurring" onclick="showPage('recurring')"><span class="nav-icon">🔁</span> Recurring</div>
     <div class="nav-item" data-page="settings" onclick="showPage('settings')"><span class="nav-icon">⚙️</span> Settings</div>
+    <div class="nav-item" data-page="community" onclick="showPage('community')"><span class="nav-icon">🌐</span> Community</div>
   </nav>
 
   <div id="content">
+
+
 
     <!-- HOME -->
     <div id="page-home" class="page active">
@@ -528,6 +532,8 @@ select option{background:var(--bg2);color:var(--text);}
       </div>
     </div>
 
+    
+
     <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div class="card">
@@ -599,6 +605,16 @@ select option{background:var(--bg2);color:var(--text);}
       </div>
     </div>
 
+<!-- COMMUNITY WALL -->
+<div id="page-community" class="page">
+  <div class="card">
+    <div class="card-title flex-between" style="margin-bottom:12px;">
+      <span>🌐 Community Wall</span>
+      <button class="btn btn-ghost btn-sm" onclick="showPostComposer()">＋ Post</button>
+    </div>
+    <div id="community-feed"></div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -610,6 +626,7 @@ select option{background:var(--bg2);color:var(--text);}
   <div class="bnav-item" data-page="shortcuts" onclick="showPage('shortcuts')"><span class="bni">⚡</span>Quick</div>
   <div class="bnav-item" data-page="recurring" onclick="showPage('recurring')"><span class="bni">🔁</span>Recur</div>
   <div class="bnav-item" data-page="settings" onclick="showPage('settings')"><span class="bni">⚙️</span>Settings</div>
+  <div class="bnav-item" data-page="community" onclick="showPage('community')"><span class="bni">🌐</span>Wall</div>
 </div>
 
 <!-- FLOATING +/- (visible on non-home pages) -->
@@ -755,6 +772,24 @@ select option{background:var(--bg2);color:var(--text);}
   </div>
 </div>
 
+<div class="modal-overlay" id="post-modal">
+  <div class="modal-box">
+    <div class="modal-title">🌐 New Post</div>
+    <div class="form-group mb-8">
+      <label class="form-label">Message</label>
+      <textarea id="post-text-inp" rows="3" placeholder="What's on your mind?" style="resize:none;"></textarea>
+    </div>
+    <div class="form-group mb-8">
+      <label class="form-label">Image (optional)</label>
+      <input type="file" id="post-image-inp" accept="image/*" style="padding:6px;">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('post-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitPost()">Post</button>
+    </div>
+  </div>
+</div>
+
 </body>
 <script>
 // ============================================================
@@ -766,6 +801,9 @@ const GOALS_KEY = 'cashsplit_goals';
 const SC_KEY = 'cashsplit_shortcuts';
 const REC_KEY = 'cashsplit_recurring';
 const PROFILES_KEY = 'cashsplit_profiles';
+const DEVICE_ID_KEY = 'cashsplit_device_id';
+const COMMUNITY_KEY = 'cashsplit_community_cache';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwVmNxBWc5aRg2w2j8UGX2AB6xx2g-EoYUjiQcF7gSdzjTVJjIiRQdxtWbvvMSj2zCU/exec'; // paste after deploying
 
 const CURRENCY_PRESETS = [
   {code:'USD',symbol:'$',name:'US Dollar'},
@@ -883,6 +921,72 @@ function loadAll(){
   }catch(e){ console.warn('Load error', e); }
 }
 
+function getOrCreateDeviceId() {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
+function generateAvatar(nickname, size = 40) {
+  const initials = nickname ? nickname.slice(0,2).toUpperCase() : '??';
+  const colors = ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
+  const color = colors[nickname.charCodeAt(0) % colors.length];
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${size*0.38}px system-ui`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(initials, size/2, size/2);
+  return canvas.toDataURL();
+}
+
+function resizeImageBeforeUpload(file, maxPx = 800, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (w > maxPx || h > maxPx) {
+          const ratio = Math.min(maxPx/w, maxPx/h);
+          w = Math.round(w * ratio); h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function registerUserOnFirstLaunch() {
+  const deviceId = getOrCreateDeviceId();
+  const alreadyRegistered = localStorage.getItem('cashsplit_registered');
+  if (alreadyRegistered) return;
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'registerUser', deviceId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('cashsplit_registered', '1');
+      localStorage.setItem('cashsplit_nickname', data.nickname);
+    }
+  } catch(e) { console.warn('Register failed', e); }
+}
+
 function saveAll(){
   state.widget = { balance: state.balance, lastUpdated: new Date().toISOString() };
   try{
@@ -964,7 +1068,7 @@ function confirmDeleteProfile(){
 // ============================================================
 // PAGE NAVIGATION
 // ============================================================
-const PAGE_ORDER = ['home','analytics','goals','shortcuts','recurring','settings'];
+const PAGE_ORDER = ['home','analytics','goals','shortcuts','recurring','settings','community'];
 
 function showPage(name){
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -978,6 +1082,7 @@ function showPage(name){
   if(name === 'shortcuts') renderShortcuts();
   if(name === 'recurring') renderRecurring();
   if(name === 'settings') renderCurrencySettings();
+  if(name === 'community') loadCommunityFeed();
 }
 
 // ============================================================
@@ -2069,6 +2174,120 @@ function dismissInstallBanner(){
   document.getElementById('install-banner').classList.add('hidden');
 }
 
+
+async function loadCommunityFeed() {
+  const feed = document.getElementById('community-feed');
+  feed.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const res = await fetch(`${BACKEND_URL}?action=getComments&deviceId=${getOrCreateDeviceId()}`);
+    const data = await res.json();
+    renderCommunityFeed(data.comments || []);
+    localStorage.setItem(COMMUNITY_KEY, JSON.stringify(data.comments || []));
+  } catch(e) {
+    const cached = localStorage.getItem(COMMUNITY_KEY);
+    renderCommunityFeed(cached ? JSON.parse(cached) : []);
+  }
+}
+
+function renderCommunityFeed(comments) {
+  const feed = document.getElementById('community-feed');
+  if (!comments.length) { feed.innerHTML = '<div class="empty">No posts yet. Be the first!</div>'; return; }
+  feed.innerHTML = comments.map(c => {
+    const avatarSrc = generateAvatar(c.nickname || '??');
+    const seenBadge = c.seen
+      ? '<span style="font-size:0.7rem;color:var(--green);">✓ seen</span>'
+      : '<span style="font-size:0.7rem;color:var(--text3);">● new</span>';
+    const imgHtml = c.imageUrl
+      ? `<img src="${escHtml(c.imageUrl)}" style="width:100%;border-radius:8px;margin-top:8px;max-height:220px;object-fit:cover;" loading="lazy">`
+      : '';
+    const repliesHtml = (c.replies || []).map(r => `
+      <div style="display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--border);">
+        <img src="${generateAvatar(r.nickname||'??')}" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;">
+        <div>
+          <div style="font-size:0.78rem;color:var(--blue-light);font-weight:700;">${escHtml(r.nickname||'Anonymous')}</div>
+          <div style="font-size:0.84rem;">${escHtml(r.text)}</div>
+          <div style="font-size:0.7rem;color:var(--text3);">${new Date(r.timestamp).toLocaleString()}</div>
+        </div>
+      </div>`).join('');
+    return `
+      <div style="padding:14px 0;border-bottom:1px solid var(--border);" data-comment-id="${c.id}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <img src="${avatarSrc}" style="width:36px;height:36px;border-radius:50%;">
+          <div style="flex:1;">
+            <div style="font-size:0.88rem;font-weight:700;color:var(--blue-light);">${escHtml(c.nickname||'Anonymous')}</div>
+            <div style="font-size:0.7rem;color:var(--text3);">${new Date(c.timestamp).toLocaleString()}</div>
+          </div>
+          ${seenBadge}
+        </div>
+        <div style="font-size:0.9rem;line-height:1.5;">${escHtml(c.text)}</div>
+        ${imgHtml}
+        <div style="margin-top:10px;">${repliesHtml}</div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" placeholder="Reply…" id="reply-inp-${c.id}" style="flex:1;padding:7px 10px;font-size:0.82rem;">
+          <button class="btn btn-ghost btn-xs" onclick="submitReply('${c.id}')">↩ Reply</button>
+        </div>
+      </div>`;
+  }).join('');
+  // Mark all visible as seen
+  markCommentsSeen(comments.filter(c => !c.seen).map(c => c.id));
+}
+
+async function markCommentsSeen(ids) {
+  if (!ids.length) return;
+  try {
+    await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'markSeen', ids, deviceId: getOrCreateDeviceId() })
+    });
+  } catch(e) {}
+}
+
+function showPostComposer() {
+  document.getElementById('post-text-inp').value = '';
+  document.getElementById('post-image-inp').value = '';
+  openModal('post-modal');
+}
+
+async function submitPost() {
+  const text = document.getElementById('post-text-inp').value.trim();
+  if (!text) return showToast('Write something first', 'error');
+  const deviceId = getOrCreateDeviceId();
+  const nickname = localStorage.getItem('cashsplit_nickname') || 'Anonymous';
+  let imageBase64 = null;
+  const imgFile = document.getElementById('post-image-inp').files[0];
+  if (imgFile) {
+    showToast('Resizing image…');
+    imageBase64 = await resizeImageBeforeUpload(imgFile);
+  }
+  closeModal('post-modal');
+  showToast('Posting…');
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'addComment', deviceId, nickname, text, imageBase64 })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Posted!'); loadCommunityFeed(); }
+    else showToast('Failed to post', 'error');
+  } catch(e) { showToast('Could not reach server', 'error'); }
+}
+
+async function submitReply(commentId) {
+  const inp = document.getElementById(`reply-inp-${commentId}`);
+  const text = inp?.value?.trim();
+  if (!text) return;
+  const deviceId = getOrCreateDeviceId();
+  const nickname = localStorage.getItem('cashsplit_nickname') || 'Anonymous';
+  try {
+    await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'addReply', commentId, deviceId, nickname, text })
+    });
+    inp.value = '';
+    loadCommunityFeed();
+  } catch(e) { showToast('Reply failed', 'error'); }
+}
+
 // ============================================================
 // DELEGATED CLICK EVENTS (survive innerHTML re-renders)
 // ============================================================
@@ -2132,6 +2351,8 @@ window.onload = () => {
   initInstallBanner();
   initDelegatedEvents();
   checkMonthlySummary();
+  registerUserOnFirstLaunch();
+  
 
   if(settings.pinEnabled && settings.pinHash) showPINOverlay();
 };
