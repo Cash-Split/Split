@@ -417,6 +417,12 @@ select option{background:var(--bg2);color:var(--text);}
   <div class="logo"><div class="logo-dot"></div>CashSplit</div>
   <div class="topbar-right">
     <div style="position:relative;">
+
+      <!-- inside #topbar .topbar-right, before the profile button div -->
+<button class="icon-btn" id="kadere-btn" onclick="goToKadere()" title="Kadere — Driver Mode" style="width:auto;padding:0 12px;gap:6px;">
+  🚖 <span style="font-family:var(--font-display);font-weight:700;font-size:0.8rem;">Kadere</span>
+</button>
+
       <button class="icon-btn" id="profile-btn" onclick="toggleProfileMenu()">
         <span id="profile-name-label">🧑</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 6.5L1 2.5h8z"/></svg>
@@ -2291,6 +2297,15 @@ async function submitReply(commentId) {
 // ============================================================
 // DELEGATED CLICK EVENTS (survive innerHTML re-renders)
 // ============================================================
+
+function goToKadere(){
+  // graceful page-transition using the View Transitions API where supported
+  document.body.style.transition = 'transform .28s ease, opacity .28s ease';
+  document.body.style.transform = 'translateX(-8%)';
+  document.body.style.opacity = '0';
+  setTimeout(()=>{ window.location.href = 'dere.html'; }, 220);
+}
+
 function initDelegatedEvents(){
   document.getElementById('entry-suggestions').addEventListener('click', e=>{
     const chip = e.target.closest('.sugg-chip');
