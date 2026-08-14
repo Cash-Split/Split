@@ -351,6 +351,10 @@ select option{background:var(--bg2);color:var(--text);}
 .kbd-hint kbd{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:var(--font-mono);font-size:0.68rem;}
 @media(max-width:640px){#kbd-hints{display:none;}}
 
+@media(max-width:640px){
+  #kadere-btn span{ display:none; } /* keep just the 🚖 icon to save space */
+}
+
 /* ===== RECURRING ===== */
 .recurring-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
 .rec-info{flex:1;}
@@ -416,7 +420,7 @@ select option{background:var(--bg2);color:var(--text);}
 <div id="topbar">
   <div class="logo"><div class="logo-dot"></div>CashSplit</div>
   <div class="topbar-right">
-    <div style="position:relative;">
+   <div style="position:relative;display:flex;align-items:center;gap:8px;">
 
       <!-- inside #topbar .topbar-right, before the profile button div -->
 <button class="icon-btn" id="kadere-btn" onclick="goToKadere()" title="Kadere — Driver Mode" style="width:auto;padding:0 12px;gap:6px;">
