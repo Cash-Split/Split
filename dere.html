@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>Kadere — Driver Mode</title>
+<title>Driver Earnings Calculator</title>
 <style>
 :root {
   --bg: #060a12;
@@ -21,6 +21,8 @@
   --red-dim: rgba(239,68,68,0.13);
   --yellow: #fbbf24;
   --amber-dim: rgba(251,191,36,0.13);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.13);
   --text: #e2e8f0;
   --text2: #94a3b8;
   --text3: #64748b;
@@ -37,16 +39,11 @@ body.light {
   --text: #0f172a; --text2: #334155; --text3: #64748b; --glow: 0 4px 24px rgba(37,99,235,0.08);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;}
 body{
   font-family:var(--font-mono); background:var(--bg); color:var(--text);
-  display:flex; flex-direction:column;
-  transform:translateX(6%); opacity:0;
-  animation:slideIn .32s ease forwards;
+  display:flex; flex-direction:column; min-height:100%;
 }
-@keyframes slideIn{ to{ transform:translateX(0); opacity:1; } }
-body.leaving{ animation:slideOut .22s ease forwards; }
-@keyframes slideOut{ to{ transform:translateX(-6%); opacity:0; } }
 body::before{
   content:''; position:fixed; inset:0;
   background: radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59,130,246,0.07) 0%, transparent 60%),
@@ -63,662 +60,830 @@ body::before{
   display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
 }
 body.light #topbar{background:rgba(240,244,255,0.95);}
-.back-btn{
-  width:36px;height:36px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);
-  color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;
-}
-.back-btn:hover{border-color:var(--blue-light);color:var(--blue-light);}
-.logo{font-family:var(--font-display);font-weight:800;font-size:1.1rem;color:var(--blue-light);display:flex;align-items:center;gap:8px;}
-.logo-sub{font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);}
-.edit-profile-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--font-mono);font-size:0.75rem;padding:6px 10px;border-radius:8px;cursor:pointer;}
-.edit-profile-btn:hover{border-color:var(--blue-light);color:var(--blue-light);}
+.logo{font-family:var(--font-display);font-weight:800;font-size:1.05rem;color:var(--blue-light);display:flex;align-items:center;gap:8px;}
+.logo-sub{font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);}
+.icon-btn{width:36px;height:36px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.icon-btn:hover{border-color:var(--blue-light);color:var(--blue-light);}
+.topbar-actions{display:flex;gap:8px;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
 
-.banner{padding:8px 20px;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
-.banner.hidden{display:none;}
-.banner.warn{background:var(--amber-dim);border-bottom:1px solid rgba(251,191,36,0.25);color:#fbbf24;}
-.banner.crit{background:var(--red-dim);border-bottom:1px solid rgba(239,68,68,0.25);color:#f87171;}
-.banner-x{cursor:pointer;opacity:0.7;font-size:1rem;padding:0 4px;}
-.banner-x:hover{opacity:1;}
-
-#content{flex:1;overflow-y:auto;padding:18px 16px 40px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;max-width:640px;margin:0 auto;width:100%;}
+#content{flex:1;overflow-y:auto;padding:18px 16px 90px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;max-width:640px;margin:0 auto;width:100%;}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;backdrop-filter:blur(8px);box-shadow:var(--glow);}
-.card-title{font-family:var(--font-display);font-weight:700;font-size:0.9rem;color:var(--blue-light);margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:0.02em;text-transform:uppercase;}
+.card-title{font-family:var(--font-display);font-weight:700;font-size:0.9rem;color:var(--blue-light);margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:0.02em;}
+.card-title .ct-badge{margin-left:auto;font-size:0.62rem;color:var(--text3);font-weight:600;background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:9999px;}
 
-/* status chips (license / insurance / service) */
-.chip-row{display:flex;gap:8px;flex-wrap:wrap;}
-.status-chip{
-  flex:1;min-width:110px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;
-  padding:10px 12px;display:flex;flex-direction:column;gap:2px;
-}
-.status-chip.ok{border-color:rgba(34,197,94,0.35);}
-.status-chip.warn{border-color:rgba(251,191,36,0.5);background:var(--amber-dim);}
-.status-chip.crit{border-color:rgba(239,68,68,0.5);background:var(--red-dim);}
-.chip-label{font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
-.chip-value{font-family:var(--font-display);font-weight:800;font-size:1rem;}
-.status-chip.ok .chip-value{color:var(--green);}
-.status-chip.warn .chip-value{color:var(--yellow);}
-.status-chip.crit .chip-value{color:var(--red);}
-
-/* service gauge ring */
-.gauge-wrap{display:flex;align-items:center;gap:16px;}
-.gauge-ring{width:92px;height:92px;border-radius:50%;flex-shrink:0;position:relative;}
-.gauge-center{position:absolute;inset:9px;background:var(--bg2);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
-.gauge-num{font-family:var(--font-display);font-weight:800;font-size:1rem;}
-.gauge-unit{font-size:0.62rem;color:var(--text3);}
-.gauge-copy .gc-title{font-family:var(--font-display);font-weight:700;font-size:0.95rem;margin-bottom:2px;}
-.gauge-copy .gc-sub{font-size:0.78rem;color:var(--text3);}
-
-/* you & vehicle snapshot */
-.snap-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-@media(max-width:460px){.snap-grid{grid-template-columns:1fr;}}
-.snap-col-title{font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;font-family:var(--font-display);font-weight:700;}
-.snap-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
-.snap-row:last-child{border-bottom:none;}
-.snap-row .sr-label{font-size:0.82rem;color:var(--text2);}
-.snap-row .sr-val{font-family:var(--font-display);font-weight:700;font-size:0.9rem;}
-
-/* target card */
-.target-hero{
-  background:linear-gradient(135deg,#0f2a6e 0%,#1e3a8a 40%,#1d4ed8 100%);
-  border:1px solid rgba(96,165,250,0.25);border-radius:var(--radius);padding:22px 20px;text-align:center;position:relative;overflow:hidden;
-}
-.target-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 0%, rgba(96,165,250,0.15) 0%, transparent 70%);}
-.target-label{font-size:0.72rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-display);position:relative;z-index:1;}
-.target-amount{font-family:var(--font-display);font-size:1.9rem;font-weight:700;color:#fff;margin:4px 0;position:relative;z-index:1;}
-.target-trips{font-size:0.85rem;color:#dbeafe;position:relative;z-index:1;}
-.target-bar-bg{height:8px;background:rgba(255,255,255,0.15);border-radius:9999px;overflow:hidden;margin-top:14px;position:relative;z-index:1;}
-.target-bar{height:100%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:9999px;transition:width .4s;}
-
-.action-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.action-btn{
-  height:64px;border-radius:16px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  font-family:var(--font-display);font-weight:800;font-size:0.85rem;color:#fff;transition:transform .15s;
-}
-.action-btn:active{transform:scale(0.96);}
-.action-btn.trip{background:linear-gradient(135deg,#16a34a,#22c55e);box-shadow:0 8px 20px rgba(34,197,94,0.3);}
-.action-btn.expense{background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 8px 20px rgba(239,68,68,0.3);}
-.action-btn span:first-child{font-size:1.3rem;}
-
-.history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
-.history-item:last-child{border-bottom:none;}
-.hi-label{font-size:0.87rem;}
-.hi-time{font-size:0.7rem;color:var(--text3);}
-.hi-amount{font-family:var(--font-display);font-weight:700;font-size:0.9rem;}
-.hi-amount.pos{color:var(--green);}
-.hi-amount.neg{color:var(--red);}
-.empty{text-align:center;padding:30px 20px;color:var(--text3);font-size:0.85rem;}
-
-input,select{
+input,select,textarea{
   font-family:var(--font-mono);background:var(--bg3);color:var(--text);border:1px solid var(--border);
   border-radius:var(--radius-sm);padding:10px 13px;font-size:0.88rem;width:100%;outline:none;
 }
-input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
 select{appearance:none;cursor:pointer;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592c.86 0 1.32 1.013.753 1.658l-4.796 5.482a1 1 0 01-1.506 0z'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;background-size:11px;padding-right:32px;}
 .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-.form-label{font-size:0.72rem;color:var(--text2);letter-spacing:0.04em;text-transform:uppercase;}
+.form-group:last-child{margin-bottom:0;}
+.form-label{font-size:0.72rem;color:var(--text2);letter-spacing:0.02em;}
 .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hint{font-size:0.72rem;color:var(--text3);margin-top:-6px;margin-bottom:10px;line-height:1.4;}
+.toggle-row{display:flex;gap:8px;}
+.toggle-opt{flex:1;text-align:center;padding:9px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:0.82rem;cursor:pointer;}
+.toggle-opt.active{border-color:var(--blue);color:var(--blue-light);background:var(--blue-dim);font-weight:700;}
 
-.btn{font-family:var(--font-mono);padding:11px 18px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:0.86rem;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.big-input{font-family:var(--font-display);font-size:1.6rem;font-weight:800;padding:14px 16px;text-align:center;}
+
+.btn{font-family:var(--font-mono);padding:12px 18px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:0.87rem;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
 .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-light));color:#fff;}
 .btn-ghost{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
 .btn-ghost:hover{border-color:var(--blue-light);color:var(--blue-light);}
 .btn-block{width:100%;}
+.btn-sm{padding:8px 12px;font-size:0.78rem;}
+.btn:disabled{opacity:0.55;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;z-index:500;padding:0;}
+.link-toggle{background:none;border:none;color:var(--blue-light);font-family:var(--font-mono);font-size:0.78rem;cursor:pointer;text-align:left;padding:2px 0;}
+
+/* ===== SETUP BANNER (first run) ===== */
+.setup-banner{
+  background:linear-gradient(135deg,#0f2a6e 0%,#1e3a8a 40%,#1d4ed8 100%);
+  border:1px solid rgba(96,165,250,0.25);border-radius:var(--radius);padding:22px 20px;text-align:center;position:relative;overflow:hidden;
+}
+.setup-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 0%, rgba(96,165,246,0.15) 0%, transparent 70%);}
+.setup-banner h2{font-family:var(--font-display);font-weight:800;font-size:1.1rem;color:#fff;position:relative;z-index:1;margin-bottom:4px;}
+.setup-banner p{font-size:0.82rem;color:#dbeafe;position:relative;z-index:1;margin-bottom:14px;}
+.setup-banner .btn{position:relative;z-index:1;}
+
+/* ===== SNAPSHOT ===== */
+.snap-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.snap-mini .sm-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 8px;text-align:center;}
+.snap-mini .sm-val{font-family:var(--font-display);font-weight:800;font-size:1rem;}
+.snap-mini .sm-lbl{font-size:0.62rem;color:var(--text3);margin-top:2px;}
+
+/* ===== RESULTS / BREAKDOWN ===== */
+.result-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.86rem;}
+.result-line:last-child{border-bottom:none;}
+.result-line.neg .rl-val{color:var(--red);}
+.result-line.pos .rl-val{color:var(--green);}
+.result-line.sub{font-weight:700;font-family:var(--font-display);border-bottom:1px solid var(--border-bright);padding-top:9px;padding-bottom:9px;}
+.result-line .rl-note{font-size:0.68rem;color:var(--text3);display:block;}
+.takehome-box{text-align:center;padding:18px 10px;border-radius:var(--radius);margin-top:10px;}
+.takehome-box.profitable{background:var(--green-dim);border:1px solid rgba(34,197,94,0.35);}
+.takehome-box.low{background:var(--amber-dim);border:1px solid rgba(251,191,36,0.4);}
+.takehome-box.loss{background:var(--red-dim);border:1px solid rgba(239,68,68,0.4);}
+.th-label{font-size:0.7rem;letter-spacing:0.04em;color:var(--text3);}
+.th-amount{font-family:var(--font-display);font-weight:800;font-size:1.7rem;margin:2px 0;}
+.takehome-box.profitable .th-amount{color:var(--green);}
+.takehome-box.low .th-amount{color:var(--yellow);}
+.takehome-box.loss .th-amount{color:var(--red);}
+.th-sub{font-size:0.78rem;color:var(--text2);}
+.th-badge{display:inline-block;margin-top:8px;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:9999px;}
+.th-badge.profitable{background:rgba(34,197,94,0.2);color:#4ade80;}
+.th-badge.low{background:rgba(251,191,36,0.2);color:#fbbf24;}
+.th-badge.loss{background:rgba(239,68,68,0.2);color:#f87171;}
+
+.split-bar{display:flex;height:10px;border-radius:9999px;overflow:hidden;margin:10px 0 8px;background:var(--bg3);}
+.split-bar span{height:100%;}
+.split-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:0.68rem;color:var(--text2);}
+.split-legend .lg{display:flex;align-items:center;gap:5px;}
+.split-legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.assumptions{margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);font-size:0.72rem;color:var(--text3);line-height:1.6;}
+
+.history-item{padding:12px 0;border-bottom:1px solid var(--border);}
+.history-item:last-child{border-bottom:none;}
+.hi-top{display:flex;justify-content:space-between;align-items:center;}
+.hi-label{font-size:0.87rem;font-weight:600;}
+.hi-time{font-size:0.7rem;color:var(--text3);}
+.hi-amount{font-family:var(--font-display);font-weight:700;font-size:0.95rem;}
+.hi-amount.pos{color:var(--green);}
+.hi-amount.neg{color:var(--red);}
+.hi-sub{font-size:0.72rem;color:var(--text3);margin-top:4px;}
+.hi-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem;padding:4px;}
+.hi-del:hover{color:var(--red);}
+.empty{text-align:center;padding:30px 20px;color:var(--text3);font-size:0.85rem;}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.stat-box .sv{font-family:var(--font-display);font-weight:800;font-size:1.05rem;}
+.stat-box .sl{font-size:0.66rem;color:var(--text3);margin-top:2px;}
+
+/* ===== BOTTOM NAV ===== */
+#bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(6,10,18,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));}
+body.light #bottomnav{background:rgba(240,244,255,0.96);}
+.nav-btn{flex:1;background:none;border:none;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;cursor:pointer;font-family:var(--font-mono);font-size:0.62rem;border-radius:10px;}
+.nav-btn .nb-icon{font-size:1.15rem;}
+.nav-btn.active{color:var(--blue-light);}
+.nav-btn.active .nb-icon{filter:drop-shadow(0 0 6px rgba(96,165,250,0.5));}
+
+.view{display:none;flex-direction:column;gap:16px;}
+.view.active{display:flex;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;z-index:500;}
 .modal-overlay.open{display:flex;}
 @media(min-width:641px){.modal-overlay{align-items:center;padding:16px;}}
-.modal-box{background:var(--bg2);border:1px solid var(--border);width:100%;max-width:420px;padding:22px 20px 26px;box-shadow:0 -10px 40px rgba(0,0,0,0.5);max-height:88vh;overflow-y:auto;border-top-left-radius:20px;border-top-right-radius:20px;}
-@media(min-width:641px){.modal-box{border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,0.6);}}
+.modal-box{background:var(--bg2);border:1px solid var(--border);width:100%;max-width:420px;padding:22px 20px 26px;max-height:88vh;overflow-y:auto;border-top-left-radius:20px;border-top-right-radius:20px;}
+@media(min-width:641px){.modal-box{border-radius:16px;}}
 .modal-title{font-family:var(--font-display);font-weight:700;font-size:1.05rem;color:var(--blue-light);margin-bottom:16px;}
 .modal-btns{display:flex;gap:10px;margin-top:16px;}
 .modal-btns .btn{flex:1;}
-.hint{font-size:0.72rem;color:var(--text3);margin-top:-6px;margin-bottom:10px;}
+.modal-section{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.modal-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.modal-section-title{font-size:0.72rem;color:var(--text3);letter-spacing:0.04em;margin-bottom:10px;}
 
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:0.85rem;font-family:var(--font-mono);box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:9000;white-space:nowrap;animation:toastIn .3s ease;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:0.85rem;font-family:var(--font-mono);box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:9000;white-space:nowrap;animation:toastIn .3s ease;}
 @keyframes toastIn{from{transform:translate(-50%,20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
 
-.setup-empty{text-align:center;padding:40px 20px;}
-.setup-empty .se-icon{font-size:2.4rem;margin-bottom:10px;}
-.setup-empty .se-title{font-family:var(--font-display);font-weight:800;font-size:1.1rem;margin-bottom:6px;}
-.setup-empty .se-sub{font-size:0.85rem;color:var(--text3);margin-bottom:18px;line-height:1.5;}
+.loading-screen{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.85rem;gap:8px;padding:60px 20px;}
 </style>
 </head>
 <body id="body">
 
+<!-- ============ APP SHELL ============ -->
 <div id="topbar">
-  <button class="back-btn" onclick="goBack()">←</button>
-  <div class="logo">🚖 Kadere <span class="logo-sub" style="margin-left:4px;">Driver Mode</span></div>
-  <button class="edit-profile-btn" onclick="openSetupModal()">⚙️ Vehicle</button>
-</div>
-
-<div id="banner-service" class="banner crit hidden">
-  <span id="banner-service-text"></span>
-  <span class="banner-x" onclick="dismissBanner('banner-service')">✕</span>
-</div>
-<div id="banner-license" class="banner hidden">
-  <span id="banner-license-text"></span>
-  <span class="banner-x" onclick="dismissBanner('banner-license')">✕</span>
-</div>
-<div id="banner-insurance" class="banner hidden">
-  <span id="banner-insurance-text"></span>
-  <span class="banner-x" onclick="dismissBanner('banner-insurance')">✕</span>
+  <div class="topbar-left">
+    <button class="icon-btn" onclick="location.href='index.html'" title="Back">←</button>
+    <div class="logo">🚕 Driver Earnings <span class="logo-sub" style="margin-left:4px;">Calculator</span></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+    <button class="icon-btn" onclick="openPrefs()">⚙️</button>
+  </div>
 </div>
 
 <div id="content">
+  <div class="loading-screen" id="loading-screen">Loading your data…</div>
+</div>
 
-  <!-- FIRST-RUN EMPTY STATE -->
-  <div id="setup-empty-card" class="card" style="display:none;">
-    <div class="setup-empty">
-      <div class="se-icon">🚗</div>
-      <div class="se-title">Set up your vehicle</div>
-      <div class="se-sub">Odometer, service interval, license & insurance dates — takes 30 seconds, then Kadere tracks the rest for you.</div>
-      <button class="btn btn-primary" onclick="openSetupModal()">Set Up Vehicle Profile</button>
+<!-- ===== BOTTOM NAV ===== -->
+<div id="bottomnav" style="display:none;">
+  <button class="nav-btn active" id="nav-trip" onclick="showView('trip')"><span class="nb-icon">🚕</span>Trip</button>
+  <button class="nav-btn" id="nav-setup" onclick="showView('setup')"><span class="nb-icon">⚙️</span>Setup</button>
+  <button class="nav-btn" id="nav-history" onclick="showView('history')"><span class="nb-icon">📊</span>History</button>
+  <button class="nav-btn" id="nav-insights" onclick="showView('insights')"><span class="nb-icon">📈</span>Insights</button>
+</div>
+
+<!-- ===== PREFERENCES MODAL ===== -->
+<div class="modal-overlay" id="prefs-modal">
+  <div class="modal-box">
+    <div class="modal-title">⚙️ Preferences &amp; Data</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">DISPLAY</div>
+      <div class="form-group"><label class="form-label">Currency Symbol</label><input type="text" id="s-currency" placeholder="KSh"></div>
+      <div class="form-group"><label class="form-label">Low-Profit Threshold (per hour)</label><input type="number" id="s-threshold" placeholder="150"></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">YOUR DATA</div>
+      <div class="hint" style="margin-top:0;">Your setup and trip history are saved automatically. Export a backup any time, or move it to another device.</div>
+      <div class="btn-row" style="margin-bottom:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="exportBackup()">⬇ Backup (JSON)</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ History (CSV)</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm btn-block" onclick="document.getElementById('import-file').click()">⬆ Restore Backup</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" style="display:none;" onchange="importBackup(event)">
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('prefs-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePrefs()">Save</button>
     </div>
   </div>
+</div>
 
-  <!-- MAIN DASHBOARD (hidden until profile exists) -->
-  <div id="dashboard" style="display:none;">
+<!-- ===== TEMPLATES (cloned into #content by JS) ===== -->
+<template id="tpl-trip">
+  <div class="view active" id="view-trip">
+    <div class="setup-banner" id="trip-setup-banner" style="display:none;">
+      <h2>Set up your cost profile first</h2>
+      <p>Takes about a minute. Once it's done, every trip is a two-number entry.</p>
+      <button class="btn btn-primary" onclick="showView('setup')">Start Setup</button>
+    </div>
 
-    <!-- service gauge -->
     <div class="card">
-      <div class="card-title"><span>🔧</span> Service Countdown</div>
-      <div class="gauge-wrap">
-        <div class="gauge-ring" id="gauge-ring"><div class="gauge-center"><div class="gauge-num" id="gauge-num">—</div><div class="gauge-unit">km left</div></div></div>
-        <div class="gauge-copy">
-          <div class="gc-title" id="gauge-title">—</div>
-          <div class="gc-sub" id="gauge-sub">—</div>
-        </div>
+      <div class="card-title"><span>📅</span> Today <span class="ct-badge" id="today-badge">0 trips</span></div>
+      <div class="snap-mini">
+        <div class="sm-box"><div class="sm-val" id="today-takehome" style="color:var(--green);">—</div><div class="sm-lbl">Take-Home</div></div>
+        <div class="sm-box"><div class="sm-val" id="today-app" style="color:var(--red);">—</div><div class="sm-lbl">To App</div></div>
+        <div class="sm-box"><div class="sm-val" id="today-hourly">—</div><div class="sm-lbl">Per Hour</div></div>
       </div>
     </div>
 
-    <!-- license / insurance chips -->
-    <div class="chip-row">
-      <div class="status-chip" id="chip-license"><div class="chip-label">License</div><div class="chip-value" id="chip-license-val">—</div></div>
-      <div class="status-chip" id="chip-insurance"><div class="chip-label">Insurance</div><div class="chip-value" id="chip-insurance-val">—</div></div>
-    </div>
-
-    <!-- you & the vehicle -->
     <div class="card">
-      <div class="card-title"><span>📊</span> You &amp; The Vehicle — Today</div>
-      <div class="snap-grid">
-        <div>
-          <div class="snap-col-title">You</div>
-          <div class="snap-row"><span class="sr-label">Income so far</span><span class="sr-val" style="color:var(--green);" id="snap-income">—</span></div>
-          <div class="snap-row"><span class="sr-label">Fuel spent</span><span class="sr-val" style="color:var(--red);" id="snap-fuel">—</span></div>
-          <div class="snap-row"><span class="sr-label">Net so far</span><span class="sr-val" id="snap-net">—</span></div>
+      <div class="card-title"><span>💵</span> Amount Collected</div>
+      <div class="form-group">
+        <input type="number" id="t-amount" class="big-input" placeholder="0" inputmode="decimal" oninput="calc()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Is this amount before or after the App's cut?</label>
+        <div class="toggle-row">
+          <div class="toggle-opt active" id="t-pay-gross" onclick="setPaymentType('gross')">Before (cash / gross fare)</div>
+          <div class="toggle-opt" id="t-pay-net" onclick="setPaymentType('net')">After (wallet / net payout)</div>
         </div>
-        <div>
-          <div class="snap-col-title">Vehicle</div>
-          <div class="snap-row"><span class="sr-label">Km to service</span><span class="sr-val" id="snap-km">—</span></div>
-          <div class="snap-row"><span class="sr-label">Days to license</span><span class="sr-val" id="snap-lic">—</span></div>
-          <div class="snap-row"><span class="sr-label">Days to insurance</span><span class="sr-val" id="snap-ins">—</span></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Distance Driven (km)</label><input type="number" id="t-distance" placeholder="12" oninput="calc()"></div>
+        <div class="form-group"><label class="form-label">Time Taken (min)</label><input type="number" id="t-time" placeholder="25" oninput="calc()"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Returning empty afterward?</label>
+        <div class="toggle-row">
+          <div class="toggle-opt active" id="t-return-no" onclick="setReturnEmpty(false)">No</div>
+          <div class="toggle-opt" id="t-return-yes" onclick="setReturnEmpty(true)">Yes, roughly the same distance back</div>
         </div>
+      </div>
+      <button type="button" class="link-toggle" id="t-adj-toggle" onclick="toggleAdjustment()">＋ Add a one-off adjustment (tip, cancellation fee, promo)</button>
+      <div class="form-group" id="t-adj-group" style="display:none;margin-top:10px;">
+        <label class="form-label">Adjustment (use − for a deduction)</label>
+        <input type="number" id="t-adjustment" placeholder="0" oninput="calc()">
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">Platform</label>
+        <select id="t-platform" onchange="calc()"><option>Uber</option><option>Bolt</option><option>Other</option></select>
       </div>
     </div>
 
-    <!-- target -->
-    <div class="target-hero">
-      <div class="target-label">Daily Target</div>
-      <div class="target-amount" id="target-amount">—</div>
-      <div class="target-trips" id="target-trips">—</div>
-      <div class="target-bar-bg"><div class="target-bar" id="target-bar" style="width:0%;"></div></div>
+    <div class="card" id="trip-result-card" style="display:none;">
+      <div class="card-title"><span>🧮</span> Where the money goes</div>
+      <div id="result-body"></div>
+      <div class="split-bar" id="split-bar"></div>
+      <div class="split-legend" id="split-legend"></div>
+      <div class="assumptions" id="result-assumptions"></div>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="saveTrip()">💾 Save This Trip</button>
     </div>
+  </div>
+</template>
 
-    <!-- actions -->
-    <div class="action-row">
-      <button class="action-btn trip" onclick="openTripModal()"><span>🚕</span><span>Log Trip</span></button>
-      <button class="action-btn expense" onclick="openExpenseModal()"><span>💸</span><span>Log Expense</span></button>
-    </div>
-
-    <!-- recent kadere activity -->
+<template id="tpl-setup">
+  <div class="view active" id="view-setup">
     <div class="card">
-      <div class="card-title"><span>📋</span> Recent Kadere Activity</div>
-      <div id="kadere-history"></div>
+      <div class="card-title"><span>📲</span> How the App Charges</div>
+      <div class="form-group"><label class="form-label">App Commission (%)</label><input type="number" id="c-commission" placeholder="18"></div>
+      <div class="form-group"><label class="form-label">Extra Fixed App Fee per Trip (booking / safety fee)</label><input type="number" id="c-appfee" placeholder="0"></div>
+      <div class="hint">This is used to work out the App's cut automatically, whichever way you enter the amount you collected.</div>
     </div>
 
-  </div>
-</div>
+    <div class="card">
+      <div class="card-title"><span>⛽</span> Fuel</div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Fuel Price (per litre)</label><input type="number" id="c-fuelprice" placeholder="214"></div>
+        <div class="form-group"><label class="form-label">Consumption (km per litre)</label><input type="number" id="c-kml" placeholder="15"></div>
+      </div>
+    </div>
 
-<!-- SETUP MODAL -->
-<div class="modal-overlay" id="setup-modal">
-  <div class="modal-box">
-    <div class="modal-title">⚙️ Vehicle Profile</div>
-    <div class="form-2col">
-      <div class="form-group"><label class="form-label">Current Odometer (km)</label><input type="number" id="vp-current-odo" placeholder="45000"></div>
-      <div class="form-group"><label class="form-label">Last Service Odo (km)</label><input type="number" id="vp-last-service-odo" placeholder="43000"></div>
+    <div class="card">
+      <div class="card-title"><span>🔧</span> Vehicle Running Costs</div>
+      <div class="form-group"><label class="form-label">Wear &amp; Tear (per kilometre)</label><input type="number" id="c-weartear" placeholder="6"></div>
+      <div class="hint" style="margin-top:-2px;">Covers servicing, tyres, brakes, oil, repairs and depreciation.</div>
+      <div class="form-group"><label class="form-label">Running Cost (per minute)</label><input type="number" id="c-permin" placeholder="0"></div>
+      <div class="hint">Optional — a cost for time itself, e.g. idling, AC, or your own time value.</div>
     </div>
-    <div class="form-group"><label class="form-label">Service Interval (km)</label><input type="number" id="vp-interval" placeholder="3000"></div>
-    <div class="form-2col">
-      <div class="form-group"><label class="form-label">License Expiry</label><input type="date" id="vp-license"></div>
-      <div class="form-group"><label class="form-label">Insurance Expiry</label><input type="date" id="vp-insurance"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Daily Income Target</label><input type="number" id="vp-target" placeholder="2000"></div>
-    <div class="form-group"><label class="form-label">Average Fare (optional)</label><input type="number" id="vp-avgfare" placeholder="auto-learned from your trips"></div>
-    <div class="hint">Leave average fare blank and Kadere will learn it from your logged trips.</div>
-    <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="closeModal('setup-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveVehicleProfile()">Save Profile</button>
-    </div>
-  </div>
-</div>
 
-<!-- LOG TRIP MODAL -->
-<div class="modal-overlay" id="trip-modal">
-  <div class="modal-box">
-    <div class="modal-title">🚕 Log Trip</div>
-    <div class="form-group"><label class="form-label">Fare Received</label><input type="number" id="trip-fare" placeholder="300" step="0.01"></div>
-    <div class="form-group"><label class="form-label">Odometer Now (optional)</label><input type="number" id="trip-odo" placeholder="leave blank if unchanged"></div>
-    <div class="hint">Updating the odometer here is what powers the service countdown.</div>
-    <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="closeModal('trip-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitTrip()">Save Trip</button>
+    <div class="card">
+      <div class="card-title"><span>🛡️</span> Insurance</div>
+      <div class="form-group">
+        <label class="form-label">Billing Period</label>
+        <select id="c-insmode"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="perkm">Per Kilometre</option><option value="pertrip">Per Trip</option></select>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Amount</label><input type="number" id="c-insamount" placeholder="150"></div>
+        <div class="form-group"><label class="form-label">Avg Trips / Day</label><input type="number" id="c-tripsperday" placeholder="15"></div>
+      </div>
+      <div class="hint">Trips/day spreads daily, weekly or monthly insurance across each trip.</div>
     </div>
-  </div>
-</div>
 
-<!-- LOG EXPENSE MODAL -->
-<div class="modal-overlay" id="expense-modal">
-  <div class="modal-box">
-    <div class="modal-title">💸 Log Expense</div>
-    <div class="form-group">
-      <label class="form-label">Category</label>
-      <select id="exp-category" onchange="onExpenseCategoryChange()">
-        <option value="Fuel">⛽ Fuel</option>
-        <option value="Service">🔧 Service</option>
-        <option value="License">🪪 License</option>
-        <option value="Insurance">🛡️ Insurance</option>
-        <option value="Other">📎 Other</option>
-      </select>
+    <div class="card">
+      <div class="card-title"><span>📎</span> Other Flat Costs (per trip)</div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Parking</label><input type="number" id="c-parking" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Tolls</label><input type="number" id="c-tolls" placeholder="0"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Car Wash</label><input type="number" id="c-carwash" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Phone / Data</label><input type="number" id="c-phone" placeholder="0"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Financing Allocation</label><input type="number" id="c-financing" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Other</label><input type="number" id="c-other" placeholder="0"></div>
+      </div>
+      <div class="hint">Applied automatically to every trip — no need to re-enter it each time.</div>
     </div>
-    <div class="form-group"><label class="form-label">Name / Note</label><input type="text" id="exp-name" placeholder="Fuel"></div>
-    <div class="form-group"><label class="form-label">Amount</label><input type="number" id="exp-amount" placeholder="500" step="0.01"></div>
-    <div class="form-group" id="exp-newdate-group" style="display:none;">
-      <label class="form-label" id="exp-newdate-label">New Expiry Date</label>
-      <input type="date" id="exp-newdate">
+
+    <div class="card">
+      <div class="card-title"><span>🤝</span> Partner</div>
+      <div class="form-group">
+        <label class="form-label">Do you split earnings with a partner?</label>
+        <div class="toggle-row">
+          <div class="toggle-opt active" id="c-partner-off" onclick="setPartnerEnabled(false)">OFF</div>
+          <div class="toggle-opt" id="c-partner-on" onclick="setPartnerEnabled(true)">ON</div>
+        </div>
+      </div>
+      <div id="c-partner-fields" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Split Type</label>
+          <select id="c-partner-mode" onchange="renderPartnerModeFields()"><option value="percent">Percentage of Profit</option><option value="fixed">Fixed Amount per Trip</option><option value="custom">Custom Agreement</option></select>
+        </div>
+        <div class="form-group" id="c-partner-percent-group"><label class="form-label">Partner Share (%)</label><input type="number" id="c-partner-pct" placeholder="40"></div>
+        <div class="form-group" id="c-partner-fixed-group" style="display:none;"><label class="form-label">Fixed Amount per Trip</label><input type="number" id="c-partner-fixed" placeholder="0"></div>
+        <div class="form-group" id="c-partner-custom-group" style="display:none;"><label class="form-label">Agreement Note</label><input type="text" id="c-partner-note" placeholder="e.g. 30% after fuel only"></div>
+      </div>
     </div>
-    <div class="hint" id="exp-service-hint" style="display:none;">This will reset your service countdown to today's odometer reading.</div>
-    <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="closeModal('expense-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitExpense()">Save Expense</button>
+
+    <button class="btn btn-primary btn-block" onclick="saveCosts()">Save Setup</button>
+  </div>
+</template>
+
+<template id="tpl-history">
+  <div class="view active" id="view-history">
+    <div class="card">
+      <div class="card-title"><span>📊</span> Earnings History <span class="ct-badge" id="history-count">0 trips</span></div>
+      <div id="history-list"></div>
     </div>
   </div>
-</div>
+</template>
+
+<template id="tpl-insights">
+  <div class="view active" id="view-insights">
+    <div class="card">
+      <div class="card-title"><span>📈</span> Your Totals</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="sv" id="ins-trips">0</div><div class="sl">Trips Logged</div></div>
+        <div class="stat-box"><div class="sv" id="ins-distance">0</div><div class="sl">Total KM</div></div>
+        <div class="stat-box"><div class="sv" id="ins-collected">—</div><div class="sl">Total Collected</div></div>
+        <div class="stat-box"><div class="sv" id="ins-app">—</div><div class="sl">Total to App</div></div>
+        <div class="stat-box"><div class="sv" id="ins-expenses">—</div><div class="sl">Total Expenses</div></div>
+        <div class="stat-box"><div class="sv" id="ins-partner">—</div><div class="sl">Total to Partner</div></div>
+        <div class="stat-box"><div class="sv" id="ins-takehome" style="color:var(--green);">—</div><div class="sl">Total Take-Home</div></div>
+        <div class="stat-box"><div class="sv" id="ins-hourly">—</div><div class="sl">Avg Take-Home / Hour</div></div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <script>
 // ============================================================
-// SHARED STORAGE (same keys as CashSplit index.html)
+// STORAGE (persistent, per-user — never localStorage)
 // ============================================================
-const STORE = 'cashsplit_data_v12';
-const SET_KEY = 'cashsplit_settings_v1';
-const PROFILES_KEY = 'cashsplit_profiles';
-
-let state = { balance: 0, history: [], dailyBalanceHistory: {} };
-let settings = { currencies: [{code:'KSH',symbol:'KSh',name:'Kenyan Shilling'}], activeCurrency:'KSH' };
-let profiles = { active: 'default', list: [{ id:'default', name:'👤 Personal' }] };
-let vehicle = null; // vehicle profile object, or null if not set up
-
-function getProfileStoreKey(id){ return `cashsplit_profile_${id}`; }
-function getVehicleKey(id){ return `cashsplit_vehicle_${id}`; }
-
-function normalizeState(parsed){
-  const out = { balance:0, history:[], dailyBalanceHistory:{} };
-  if(!parsed) return out;
-  if(typeof parsed.balance==='number') out.balance = parsed.balance;
-  if(Array.isArray(parsed.history)) out.history = parsed.history;
-  if(parsed.dailyBalanceHistory) out.dailyBalanceHistory = parsed.dailyBalanceHistory;
-  return out;
-}
-
-function loadShared(){
+async function storeGet(key, fallback){
   try{
-    const praw = localStorage.getItem(PROFILES_KEY);
-    if(praw) profiles = JSON.parse(praw);
-  }catch(e){}
-  try{
-    const key = profiles.active==='default' ? STORE : getProfileStoreKey(profiles.active);
-    const raw = localStorage.getItem(key) || localStorage.getItem(STORE);
-    if(raw) state = normalizeState(JSON.parse(raw));
-  }catch(e){}
-  try{
-    const sraw = localStorage.getItem(SET_KEY);
-    if(sraw) Object.assign(settings, JSON.parse(sraw));
-  }catch(e){}
-  try{
-    const vraw = localStorage.getItem(getVehicleKey(profiles.active));
-    if(vraw) vehicle = JSON.parse(vraw);
-  }catch(e){}
+    const r = await window.storage.get(key, false);
+    if(!r || r.value===undefined || r.value===null) return fallback;
+    return JSON.parse(r.value);
+  }catch(e){ return fallback; }
 }
-
-function saveState(){
-  const key = profiles.active==='default' ? STORE : getProfileStoreKey(profiles.active);
-  state.widget = { balance: state.balance, lastUpdated: new Date().toISOString() };
-  localStorage.setItem(key, JSON.stringify(state));
-  if(profiles.active==='default') localStorage.setItem(STORE, JSON.stringify(state));
-}
-function saveVehicle(){
-  localStorage.setItem(getVehicleKey(profiles.active), JSON.stringify(vehicle));
-}
-
-function getActiveCurrency(){
-  return settings.currencies.find(c=>c.code===settings.activeCurrency) || settings.currencies[0] || {symbol:'KSh'};
-}
-function fmt(amount){
-  const c = getActiveCurrency();
-  return `${c.symbol} ${(Number(amount)||0).toFixed(2)}`;
-}
-function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function getTodayKey(){ return new Date().toISOString().split('T')[0]; }
-
-// ============================================================
-// NAVIGATION (slide transition back to CashSplit)
-// ============================================================
-function goBack(){
-  document.getElementById('body').classList.add('leaving');
-  setTimeout(()=>{ window.location.href = 'index.html'; }, 200);
+async function storeSet(key, val){
+  try{ return await window.storage.set(key, JSON.stringify(val), false); }
+  catch(e){ console.error('Storage error', e); return null; }
 }
 
 // ============================================================
-// TRANSACTION LOGGING (writes straight into the shared ledger)
+// STATE
 // ============================================================
-function logShared(type, name, amount, extra){
-  const entry = Object.assign({ id: Date.now()+Math.random(), type, name, amount, timestamp: new Date().toISOString() }, extra||{});
-  if(type==='income') state.balance += amount; else state.balance -= amount;
-  state.history.unshift(entry);
-  state.dailyBalanceHistory[getTodayKey()] = state.balance;
-  saveState();
+const DEFAULT_SETTINGS = { CURRENCY_SYMBOL:'KSh', LOW_PROFIT_HOURLY_THRESHOLD:150, lightMode:false };
+function defaultCosts(){
+  return {
+    commissionPct:18, appFee:0,
+    fuelPricePerL:214, kmPerL:15,
+    wearTearPerKm:6, costPerMinute:0,
+    insuranceMode:'daily', insuranceAmount:150, tripsPerDay:15,
+    other:{ parking:0, tolls:0, carwash:0, phone:0, financing:0, other:0 },
+    partnerEnabled:false, partnerMode:'percent', partnerPct:40, partnerFixed:0, partnerNote:''
+  };
+}
+
+let settings = Object.assign({}, DEFAULT_SETTINGS);
+let costs = defaultCosts();
+let history = [];
+let setupComplete = false;
+
+let currentView = 'trip';
+let paymentType = 'gross';
+let returnEmpty = false;
+let adjustmentOpen = false;
+let lastComputed = null;
+
+function fmt(n){ return `${settings.CURRENCY_SYMBOL} ${(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:2})}`; }
+function fmtShort(n){
+  const v = Number(n)||0;
+  if(Math.abs(v)>=1000) return `${settings.CURRENCY_SYMBOL} ${(v/1000).toFixed(1)}k`;
+  return `${settings.CURRENCY_SYMBOL} ${v.toFixed(0)}`;
 }
 
 // ============================================================
-// VEHICLE PROFILE SETUP
+// THEME
 // ============================================================
-function openSetupModal(){
-  if(vehicle){
-    document.getElementById('vp-current-odo').value = vehicle.currentOdometer ?? '';
-    document.getElementById('vp-last-service-odo').value = vehicle.lastServiceOdometer ?? '';
-    document.getElementById('vp-interval').value = vehicle.serviceInterval ?? 3000;
-    document.getElementById('vp-license').value = vehicle.licenseExpiry ?? '';
-    document.getElementById('vp-insurance').value = vehicle.insuranceExpiry ?? '';
-    document.getElementById('vp-target').value = vehicle.dailyTarget ?? '';
-    document.getElementById('vp-avgfare').value = vehicle.manualAvgFare ?? '';
+function applyTheme(){ document.body.classList.toggle('light', !!settings.lightMode); }
+async function toggleTheme(){ settings.lightMode = !settings.lightMode; await storeSet('settings', settings); applyTheme(); }
+
+// ============================================================
+// BOOT
+// ============================================================
+async function boot(){
+  settings = Object.assign({}, DEFAULT_SETTINGS, await storeGet('settings', {}));
+  costs = Object.assign(defaultCosts(), await storeGet('costs', {}));
+  if(costs.other) costs.other = Object.assign(defaultCosts().other, costs.other);
+  history = await storeGet('history', []);
+  setupComplete = await storeGet('setup_complete', false);
+  applyTheme();
+  document.getElementById('bottomnav').style.display = 'flex';
+  showView(setupComplete ? 'trip' : 'setup');
+}
+
+// ============================================================
+// VIEW / NAVIGATION
+// ============================================================
+const TEMPLATES = { trip:'tpl-trip', setup:'tpl-setup', history:'tpl-history', insights:'tpl-insights' };
+
+function showView(name){
+  currentView = name;
+  const content = document.getElementById('content');
+  const tpl = document.getElementById(TEMPLATES[name]);
+  content.innerHTML = '';
+  content.appendChild(tpl.content.cloneNode(true));
+
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const navBtn = document.getElementById('nav-'+name);
+  if(navBtn) navBtn.classList.add('active');
+
+  if(name==='trip'){
+    document.getElementById('trip-setup-banner').style.display = setupComplete ? 'none' : 'block';
+    setPaymentType(paymentType, true);
+    setReturnEmpty(returnEmpty, true);
+    if(adjustmentOpen) toggleAdjustment(true);
+    renderToday();
+    calc();
+  }
+  if(name==='setup') loadCostsIntoForm();
+  if(name==='history') renderHistory();
+  if(name==='insights') renderInsights();
+}
+
+// ============================================================
+// TRIP FORM STATE
+// ============================================================
+function setPaymentType(mode, silent){
+  paymentType = mode;
+  const g = document.getElementById('t-pay-gross'), n = document.getElementById('t-pay-net');
+  if(g && n){ g.classList.toggle('active', mode==='gross'); n.classList.toggle('active', mode==='net'); }
+  if(!silent) calc();
+}
+function setReturnEmpty(v, silent){
+  returnEmpty = v;
+  const no = document.getElementById('t-return-no'), yes = document.getElementById('t-return-yes');
+  if(no && yes){ no.classList.toggle('active', !v); yes.classList.toggle('active', v); }
+  if(!silent) calc();
+}
+function toggleAdjustment(silent){
+  adjustmentOpen = silent===true ? adjustmentOpen : !adjustmentOpen;
+  const grp = document.getElementById('t-adj-group'), t = document.getElementById('t-adj-toggle');
+  if(grp){ grp.style.display = adjustmentOpen ? 'flex' : 'none'; }
+  if(t){ t.textContent = adjustmentOpen ? '− Remove adjustment' : '＋ Add a one-off adjustment (tip, cancellation fee, promo)'; }
+}
+
+function otherCostsDefault(){
+  const o = costs.other;
+  return (Number(o.parking)||0)+(Number(o.tolls)||0)+(Number(o.carwash)||0)+(Number(o.phone)||0)+(Number(o.financing)||0)+(Number(o.other)||0);
+}
+function insuranceAllocation(distance){
+  const amt = Number(costs.insuranceAmount)||0;
+  const tpd = Math.max(1, Number(costs.tripsPerDay)||1);
+  switch(costs.insuranceMode){
+    case 'perkm': return amt * distance;
+    case 'pertrip': return amt;
+    case 'weekly': return (amt/7)/tpd;
+    case 'monthly': return (amt/30)/tpd;
+    case 'daily':
+    default: return amt/tpd;
+  }
+}
+
+// ============================================================
+// CALCULATION ENGINE
+// ============================================================
+function computeTrip(){
+  const amountEl = document.getElementById('t-amount');
+  if(!amountEl) return null;
+  const amount = Number(amountEl.value)||0;
+  let distance = Math.max(0, Number(document.getElementById('t-distance').value)||0);
+  let timeMin = Math.max(0, Number(document.getElementById('t-time').value)||0);
+  const adjustment = adjustmentOpen ? (Number(document.getElementById('t-adjustment').value)||0) : 0;
+  const platform = document.getElementById('t-platform').value;
+
+  if(amount<=0 && distance<=0 && timeMin<=0) return null;
+
+  const pct = Math.min(95, Math.max(0, Number(costs.commissionPct)||0));
+  const appFee = Number(costs.appFee)||0;
+
+  let grossFare, appCommission, netEarnings;
+  if(paymentType==='gross'){
+    grossFare = amount;
+    appCommission = grossFare*(pct/100) + appFee;
+    netEarnings = grossFare - appCommission;
   } else {
-    ['vp-current-odo','vp-last-service-odo','vp-license','vp-insurance','vp-target','vp-avgfare'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('vp-interval').value = 3000;
+    const denom = 1 - (pct/100);
+    grossFare = denom>0.0001 ? (amount + appFee)/denom : amount + appFee;
+    appCommission = grossFare - amount;
+    netEarnings = amount;
   }
-  openModal('setup-modal');
-}
+  netEarnings += adjustment;
 
-function saveVehicleProfile(){
-  const currentOdometer = parseFloat(document.getElementById('vp-current-odo').value);
-  const lastServiceOdometer = parseFloat(document.getElementById('vp-last-service-odo').value);
-  const serviceInterval = parseFloat(document.getElementById('vp-interval').value) || 3000;
-  const licenseExpiry = document.getElementById('vp-license').value;
-  const insuranceExpiry = document.getElementById('vp-insurance').value;
-  const dailyTarget = parseFloat(document.getElementById('vp-target').value) || 0;
-  const manualAvgFareRaw = document.getElementById('vp-avgfare').value;
-  const manualAvgFare = manualAvgFareRaw ? parseFloat(manualAvgFareRaw) : null;
+  let effDistance = distance, effTime = timeMin;
+  if(returnEmpty){ effDistance = distance*2; effTime = timeMin*2; }
 
-  if(isNaN(currentOdometer) || isNaN(lastServiceOdometer)){
-    showToast('Enter both odometer values', 'error'); return;
+  const fuelCost = costs.kmPerL>0 ? (effDistance/costs.kmPerL)*(Number(costs.fuelPricePerL)||0) : 0;
+  const wearTear = effDistance * (Number(costs.wearTearPerKm)||0);
+  const timeCost = effTime * (Number(costs.costPerMinute)||0);
+  const insurance = insuranceAllocation(effDistance);
+  const otherCosts = otherCostsDefault();
+  const totalExpenses = fuelCost+wearTear+timeCost+insurance+otherCosts;
+  const operatingProfit = netEarnings - totalExpenses;
+
+  let partnerShare = 0;
+  if(costs.partnerEnabled){
+    if(costs.partnerMode==='percent') partnerShare = Math.max(0, operatingProfit) * ((Number(costs.partnerPct)||0)/100);
+    else partnerShare = Number(costs.partnerFixed)||0;
   }
-  vehicle = Object.assign({}, vehicle, {
-    currentOdometer, lastServiceOdometer, serviceInterval,
-    licenseExpiry, insuranceExpiry, dailyTarget, manualAvgFare
-  });
-  saveVehicle();
-  closeModal('setup-modal');
-  showToast('Vehicle profile saved');
-  renderAll();
+  const takeHome = operatingProfit - partnerShare;
+  const timeHours = effTime/60;
+  const kmRate = effDistance>0 ? takeHome/effDistance : 0;
+  const hourlyRate = timeHours>0 ? takeHome/timeHours : 0;
+
+  let status = 'profitable';
+  if(takeHome<=0) status='loss'; else if(hourlyRate<settings.LOW_PROFIT_HOURLY_THRESHOLD) status='low';
+
+  return {
+    platform, amount, paymentType, adjustment, distance, timeMin, returnEmpty, effDistance, effTime,
+    grossFare, appCommission, netEarnings,
+    fuelCost, wearTear, timeCost, insurance, otherCosts, totalExpenses,
+    operatingProfit, partnerShare, takeHome, kmRate, hourlyRate, status
+  };
+}
+
+function statusLabel(s){ return s==='profitable' ? '🟢 PROFITABLE' : (s==='low' ? '🟡 LOW PROFIT' : '🔴 LOSS'); }
+
+function calc(){
+  const card = document.getElementById('trip-result-card');
+  if(!card) return;
+  lastComputed = computeTrip();
+  if(!lastComputed){ card.style.display='none'; return; }
+  card.style.display='block';
+  const d = lastComputed;
+
+  document.getElementById('result-body').innerHTML = `
+    <div class="result-line"><span>Amount Collected</span><span class="rl-val">${fmt(d.amount)}${d.paymentType==='net'?' <span class="rl-note" style="display:inline;">(net)</span>':''}</span></div>
+    <div class="result-line neg"><span>App Commission &amp; Fees</span><span class="rl-val">− ${fmt(d.appCommission)}</span></div>
+    ${d.adjustment!==0 ? `<div class="result-line ${d.adjustment>0?'pos':'neg'}"><span>Adjustment</span><span class="rl-val">${d.adjustment>0?'+':'−'} ${fmt(Math.abs(d.adjustment))}</span></div>` : ''}
+    <div class="result-line sub"><span>Net Earnings</span><span class="rl-val">${fmt(d.netEarnings)}</span></div>
+    <div class="result-line neg"><span>Fuel</span><span class="rl-val">− ${fmt(d.fuelCost)}</span></div>
+    <div class="result-line neg"><span>Wear &amp; Tear</span><span class="rl-val">− ${fmt(d.wearTear)}</span></div>
+    ${costs.costPerMinute>0 ? `<div class="result-line neg"><span>Running Time Cost</span><span class="rl-val">− ${fmt(d.timeCost)}</span></div>` : ''}
+    <div class="result-line neg"><span>Insurance</span><span class="rl-val">− ${fmt(d.insurance)}</span></div>
+    <div class="result-line neg"><span>Other Costs</span><span class="rl-val">− ${fmt(d.otherCosts)}</span></div>
+    <div class="result-line sub"><span>Operating Profit</span><span class="rl-val">${fmt(d.operatingProfit)}</span></div>
+    ${costs.partnerEnabled ? `<div class="result-line neg"><span>Partner Share</span><span class="rl-val">− ${fmt(d.partnerShare)}</span></div>` : ''}
+    <div class="takehome-box ${d.status}">
+      <div class="th-label">YOUR TAKE-HOME</div>
+      <div class="th-amount">${fmt(d.takeHome)}</div>
+      <div class="th-sub">${fmt(d.kmRate)}/km · ${fmt(d.hourlyRate)}/hour</div>
+      <div class="th-badge ${d.status}">${statusLabel(d.status)}</div>
+    </div>
+  `;
+
+  const base = Math.max(0.01, d.amount>0 ? d.amount : d.grossFare);
+  const segs = [
+    { label:'Take-Home', val:Math.max(0,d.takeHome), color:'var(--green)' },
+    { label:'Expenses', val:d.totalExpenses, color:'var(--yellow)' },
+    { label:'App', val:d.appCommission, color:'var(--red)' },
+  ];
+  if(costs.partnerEnabled) segs.push({ label:'Partner', val:d.partnerShare, color:'var(--purple)' });
+  const total = segs.reduce((a,s)=>a+Math.max(0,s.val),0) || 1;
+  document.getElementById('split-bar').innerHTML = segs.map(s=>`<span style="width:${(Math.max(0,s.val)/total*100).toFixed(1)}%;background:${s.color};"></span>`).join('');
+  document.getElementById('split-legend').innerHTML = segs.map(s=>`<span class="lg"><span class="dot" style="background:${s.color};"></span>${s.label} · ${fmtShort(s.val)}</span>`).join('');
+
+  document.getElementById('result-assumptions').innerHTML =
+    `Fuel at ${costs.kmPerL} km/L × ${fmt(costs.fuelPricePerL)}/L · Wear &amp; tear at ${fmt(costs.wearTearPerKm)}/km`+
+    (costs.costPerMinute>0 ? ` · Running cost ${fmt(costs.costPerMinute)}/min` : '')+
+    (d.returnEmpty ? ` · Includes an estimated empty return leg (${d.effDistance.toFixed(1)} km total)` : ` · ${d.effDistance.toFixed(1)} km over ${Math.round(d.effTime)} min`)+
+    (costs.partnerEnabled ? ` · Partner: ${costs.partnerMode}` : '');
+}
+
+async function saveTrip(){
+  if(!lastComputed){ showToast('Enter an amount and trip details first', 'error'); return; }
+  const entry = Object.assign({ id: Date.now()+Math.random(), timestamp: new Date().toISOString() }, lastComputed);
+  history.unshift(entry);
+  await storeSet('history', history);
+  showToast('Trip saved');
+  document.getElementById('t-amount').value='';
+  document.getElementById('t-adjustment') && (document.getElementById('t-adjustment').value='');
+  showView('history');
 }
 
 // ============================================================
-// TRIP LOGGING
+// SETUP / COSTS
 // ============================================================
-function openTripModal(){
-  document.getElementById('trip-fare').value = '';
-  document.getElementById('trip-odo').value = '';
-  openModal('trip-modal');
+function loadCostsIntoForm(){
+  document.getElementById('c-commission').value = costs.commissionPct;
+  document.getElementById('c-appfee').value = costs.appFee;
+  document.getElementById('c-fuelprice').value = costs.fuelPricePerL;
+  document.getElementById('c-kml').value = costs.kmPerL;
+  document.getElementById('c-weartear').value = costs.wearTearPerKm;
+  document.getElementById('c-permin').value = costs.costPerMinute;
+  document.getElementById('c-insmode').value = costs.insuranceMode;
+  document.getElementById('c-insamount').value = costs.insuranceAmount;
+  document.getElementById('c-tripsperday').value = costs.tripsPerDay;
+  document.getElementById('c-parking').value = costs.other.parking;
+  document.getElementById('c-tolls').value = costs.other.tolls;
+  document.getElementById('c-carwash').value = costs.other.carwash;
+  document.getElementById('c-phone').value = costs.other.phone;
+  document.getElementById('c-financing').value = costs.other.financing;
+  document.getElementById('c-other').value = costs.other.other;
+  setPartnerEnabled(costs.partnerEnabled, true);
+  document.getElementById('c-partner-mode').value = costs.partnerMode;
+  document.getElementById('c-partner-pct').value = costs.partnerPct;
+  document.getElementById('c-partner-fixed').value = costs.partnerFixed;
+  document.getElementById('c-partner-note').value = costs.partnerNote;
+  renderPartnerModeFields();
 }
-function submitTrip(){
-  const fare = parseFloat(document.getElementById('trip-fare').value);
-  const odoRaw = document.getElementById('trip-odo').value;
-  if(!fare || fare<=0){ showToast('Enter a fare amount', 'error'); return; }
-  logShared('income', 'Trip Fare', fare, { kadereTrip:true });
-  if(odoRaw){
-    const odo = parseFloat(odoRaw);
-    if(!isNaN(odo) && odo >= (vehicle.currentOdometer||0)){
-      vehicle.currentOdometer = odo;
-      saveVehicle();
-    } else if(!isNaN(odo)){
-      showToast('Odometer reading looks lower than current — ignored', 'error');
-    }
-  }
-  closeModal('trip-modal');
-  showToast(`+ ${fmt(fare)} · Trip logged`);
-  renderAll();
+function setPartnerEnabled(on, silent){
+  costs.partnerEnabled = on;
+  const off = document.getElementById('c-partner-off'), onEl = document.getElementById('c-partner-on'), f = document.getElementById('c-partner-fields');
+  if(off && onEl){ off.classList.toggle('active', !on); onEl.classList.toggle('active', on); }
+  if(f) f.style.display = on ? 'block':'none';
 }
+function renderPartnerModeFields(){
+  const modeEl = document.getElementById('c-partner-mode');
+  if(!modeEl) return;
+  const mode = modeEl.value;
+  document.getElementById('c-partner-percent-group').style.display = mode==='percent' ? 'flex':'none';
+  document.getElementById('c-partner-fixed-group').style.display = mode==='fixed' ? 'flex':'none';
+  document.getElementById('c-partner-custom-group').style.display = mode==='custom' ? 'flex':'none';
+}
+function num(id, fallback){ const el = document.getElementById(id); const v = el ? Number(el.value) : NaN; return isNaN(v) ? fallback : v; }
 
-// ============================================================
-// EXPENSE LOGGING
-// ============================================================
-function onExpenseCategoryChange(){
-  const cat = document.getElementById('exp-category').value;
-  const nameInp = document.getElementById('exp-name');
-  if(['Fuel','Service','License','Insurance','Other'].includes(cat) && (!nameInp.value || ['Fuel','Service','License','Insurance','Other'].includes(nameInp.value))){
-    nameInp.value = cat;
-  }
-  const dateGroup = document.getElementById('exp-newdate-group');
-  const dateLabel = document.getElementById('exp-newdate-label');
-  const serviceHint = document.getElementById('exp-service-hint');
-  dateGroup.style.display = (cat==='License' || cat==='Insurance') ? 'flex' : 'none';
-  if(cat==='License') dateLabel.textContent = 'New License Expiry';
-  if(cat==='Insurance') dateLabel.textContent = 'New Insurance Expiry';
-  serviceHint.style.display = cat==='Service' ? 'block' : 'none';
-}
-function openExpenseModal(){
-  document.getElementById('exp-category').value = 'Fuel';
-  document.getElementById('exp-name').value = 'Fuel';
-  document.getElementById('exp-amount').value = '';
-  document.getElementById('exp-newdate').value = '';
-  onExpenseCategoryChange();
-  openModal('expense-modal');
-}
-function submitExpense(){
-  const category = document.getElementById('exp-category').value;
-  let name = document.getElementById('exp-name').value.trim() || category;
-  const amount = parseFloat(document.getElementById('exp-amount').value);
-  if(!amount || amount<=0){ showToast('Enter an amount', 'error'); return; }
-
-  logShared('expense', name, amount, { kadereCategory: category });
-
-  if(category==='Service' && vehicle){
-    vehicle.lastServiceOdometer = vehicle.currentOdometer;
-    saveVehicle();
-  }
-  if((category==='License' || category==='Insurance') && vehicle){
-    const newDate = document.getElementById('exp-newdate').value;
-    if(newDate){
-      if(category==='License') vehicle.licenseExpiry = newDate;
-      else vehicle.insuranceExpiry = newDate;
-      saveVehicle();
-    }
-  }
-  closeModal('expense-modal');
-  showToast(`− ${fmt(amount)} · ${category}`);
-  renderAll();
+async function saveCosts(){
+  costs = {
+    commissionPct: Math.min(95, Math.max(0, num('c-commission', 18))),
+    appFee: Math.max(0, num('c-appfee', 0)),
+    fuelPricePerL: Math.max(0, num('c-fuelprice', 0)),
+    kmPerL: Math.max(0.1, num('c-kml', 1)),
+    wearTearPerKm: Math.max(0, num('c-weartear', 0)),
+    costPerMinute: Math.max(0, num('c-permin', 0)),
+    insuranceMode: document.getElementById('c-insmode').value,
+    insuranceAmount: Math.max(0, num('c-insamount', 0)),
+    tripsPerDay: Math.max(1, num('c-tripsperday', 1)),
+    other: {
+      parking: Math.max(0, num('c-parking', 0)),
+      tolls: Math.max(0, num('c-tolls', 0)),
+      carwash: Math.max(0, num('c-carwash', 0)),
+      phone: Math.max(0, num('c-phone', 0)),
+      financing: Math.max(0, num('c-financing', 0)),
+      other: Math.max(0, num('c-other', 0))
+    },
+    partnerEnabled: costs.partnerEnabled,
+    partnerMode: document.getElementById('c-partner-mode').value,
+    partnerPct: Math.min(100, Math.max(0, num('c-partner-pct', 0))),
+    partnerFixed: Math.max(0, num('c-partner-fixed', 0)),
+    partnerNote: document.getElementById('c-partner-note').value
+  };
+  await storeSet('costs', costs);
+  const wasComplete = setupComplete;
+  setupComplete = true;
+  await storeSet('setup_complete', true);
+  showToast(wasComplete ? 'Setup updated' : 'Setup complete — start logging trips');
+  showView('trip');
 }
 
 // ============================================================
-// COMPUTATIONS
+// HISTORY + INSIGHTS
 // ============================================================
-function todaysHistory(){
-  const today = getTodayKey();
-  return state.history.filter(h => h.timestamp && h.timestamp.slice(0,10)===today);
-}
-function todayIncome(){ return todaysHistory().filter(h=>h.type==='income').reduce((s,h)=>s+h.amount,0); }
-function todayFuel(){ return todaysHistory().filter(h=>h.type==='expense' && h.kadereCategory==='Fuel').reduce((s,h)=>s+h.amount,0); }
-function todayExpenseTotal(){ return todaysHistory().filter(h=>h.type==='expense').reduce((s,h)=>s+h.amount,0); }
-
-function computeAvgFare(){
-  if(!vehicle) return 0;
-  const todayTrips = todaysHistory().filter(h=>h.kadereTrip);
-  if(todayTrips.length) return todayTrips.reduce((s,h)=>s+h.amount,0)/todayTrips.length;
-  const recentTrips = state.history.filter(h=>h.kadereTrip).slice(0,20);
-  if(recentTrips.length) return recentTrips.reduce((s,h)=>s+h.amount,0)/recentTrips.length;
-  if(vehicle.manualAvgFare) return vehicle.manualAvgFare;
-  return 0;
-}
-
-function kmToService(){
-  if(!vehicle) return null;
-  const driven = (vehicle.currentOdometer||0) - (vehicle.lastServiceOdometer||0);
-  return (vehicle.serviceInterval||0) - driven;
-}
-function daysUntil(dateStr){
-  if(!dateStr) return null;
-  const d = new Date(dateStr + 'T00:00:00');
-  const now = new Date(); now.setHours(0,0,0,0);
-  return Math.round((d-now)/(1000*60*60*24));
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function dismissBanner(id){ document.getElementById(id).classList.add('hidden'); }
-
-function renderBanners(){
-  const km = kmToService();
-  const svcBanner = document.getElementById('banner-service');
-  if(km!==null && km < 0){
-    document.getElementById('banner-service-text').textContent = `🔧 Service overdue by ${Math.abs(Math.round(km))}km`;
-    svcBanner.classList.remove('hidden');
-  } else svcBanner.classList.add('hidden');
-
-  const licBanner = document.getElementById('banner-license');
-  const licDays = vehicle ? daysUntil(vehicle.licenseExpiry) : null;
-  if(licDays!==null && licDays<=14){
-    licBanner.className = 'banner ' + (licDays<0?'crit':'warn');
-    document.getElementById('banner-license-text').textContent = licDays<0
-      ? `🪪 License expired ${Math.abs(licDays)} day(s) ago`
-      : `🪪 License expires in ${licDays} day(s)`;
-    licBanner.classList.remove('hidden');
-  } else licBanner.classList.add('hidden');
-
-  const insBanner = document.getElementById('banner-insurance');
-  const insDays = vehicle ? daysUntil(vehicle.insuranceExpiry) : null;
-  if(insDays!==null && insDays<=14){
-    insBanner.className = 'banner ' + (insDays<0?'crit':'warn');
-    document.getElementById('banner-insurance-text').textContent = insDays<0
-      ? `🛡️ Insurance expired ${Math.abs(insDays)} day(s) ago`
-      : `🛡️ Insurance expires in ${insDays} day(s)`;
-    insBanner.classList.remove('hidden');
-  } else insBanner.classList.add('hidden');
-}
-
-function renderGauge(){
-  const km = kmToService();
-  const interval = vehicle.serviceInterval || 3000;
-  const pctLeft = Math.max(0, Math.min(1, km/interval));
-  const color = km<0 ? '#ef4444' : (pctLeft<0.15 ? '#fbbf24' : '#3b82f6');
-  const deg = Math.round((1-pctLeft) * 360);
-  document.getElementById('gauge-ring').style.background = `conic-gradient(${color} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg)`;
-  document.getElementById('gauge-num').textContent = km<0 ? `+${Math.abs(Math.round(km))}` : Math.round(km);
-  document.getElementById('gauge-title').textContent = km<0 ? 'Service overdue' : `${Math.round(km)}km until next service`;
-  document.getElementById('gauge-sub').textContent = km<0
-    ? `Overdue by ${Math.abs(Math.round(km))}km — log a Service expense to reset`
-    : `Since last service at ${Math.round(vehicle.lastServiceOdometer||0)}km`;
-}
-
-function renderChips(){
-  const licDays = daysUntil(vehicle.licenseExpiry);
-  const insDays = daysUntil(vehicle.insuranceExpiry);
-  const chipState = (days) => days===null ? 'ok' : (days<0 ? 'crit' : (days<=14 ? 'warn' : 'ok'));
-  const chipText = (days) => days===null ? 'Not set' : (days<0 ? `Expired ${Math.abs(days)}d ago` : `${days} day(s)`);
-
-  const licEl = document.getElementById('chip-license');
-  licEl.className = 'status-chip ' + chipState(licDays);
-  document.getElementById('chip-license-val').textContent = chipText(licDays);
-
-  const insEl = document.getElementById('chip-insurance');
-  insEl.className = 'status-chip ' + chipState(insDays);
-  document.getElementById('chip-insurance-val').textContent = chipText(insDays);
-}
-
-function renderSnapshot(){
-  const inc = todayIncome(), fuel = todayFuel(), expTotal = todayExpenseTotal();
-  const net = inc - expTotal;
-  document.getElementById('snap-income').textContent = fmt(inc);
-  document.getElementById('snap-fuel').textContent = fmt(fuel);
-  const netEl = document.getElementById('snap-net');
-  netEl.textContent = fmt(net);
-  netEl.style.color = net>=0 ? 'var(--green)' : 'var(--red)';
-
-  const km = kmToService();
-  document.getElementById('snap-km').textContent = km<0 ? `Overdue ${Math.abs(Math.round(km))}km` : `${Math.round(km)}km`;
-  const licDays = daysUntil(vehicle.licenseExpiry);
-  const insDays = daysUntil(vehicle.insuranceExpiry);
-  document.getElementById('snap-lic').textContent = licDays===null ? '—' : (licDays<0?`-${Math.abs(licDays)}`:licDays);
-  document.getElementById('snap-ins').textContent = insDays===null ? '—' : (insDays<0?`-${Math.abs(insDays)}`:insDays);
-}
-
-function renderTarget(){
-  const target = vehicle.dailyTarget || 0;
-  const inc = todayIncome();
-  const remaining = Math.max(0, target - inc);
-  const avgFare = computeAvgFare();
-  const pct = target>0 ? Math.min(100, (inc/target)*100) : 0;
-
-  document.getElementById('target-amount').textContent = target>0 ? fmt(inc) + ' / ' + fmt(target) : fmt(inc);
-  document.getElementById('target-bar').style.width = pct + '%';
-
-  const tripsEl = document.getElementById('target-trips');
-  if(target<=0){
-    tripsEl.textContent = 'Set a daily target in Vehicle settings to track this';
-  } else if(remaining<=0){
-    tripsEl.textContent = '🎉 Target reached for today';
-  } else if(avgFare>0){
-    const tripsNeeded = Math.ceil(remaining/avgFare);
-    tripsEl.textContent = `${fmt(remaining)} more · ≈${tripsNeeded} more trip(s) at your ${fmt(avgFare)} average`;
-  } else {
-    tripsEl.textContent = `${fmt(remaining)} more to hit target`;
-  }
-}
-
-function renderKadereHistory(){
-  const container = document.getElementById('kadere-history');
-  const items = state.history.filter(h => h.kadereTrip || h.kadereCategory).slice(0,15);
-  if(!items.length){ container.innerHTML = '<div class="empty">No trips or vehicle expenses logged yet.</div>'; return; }
-  container.innerHTML = items.map(h=>{
-    const isIncome = h.type==='income';
-    const label = isIncome ? `🚕 ${escHtml(h.name)}` : `${categoryIcon(h.kadereCategory)} ${escHtml(h.name)}`;
+function renderHistory(){
+  const el = document.getElementById('history-list');
+  document.getElementById('history-count').textContent = `${history.length} trip${history.length===1?'':'s'}`;
+  if(!history.length){ el.innerHTML = '<div class="empty">No trips saved yet. Log one from the Trip tab.</div>'; return; }
+  el.innerHTML = history.map(h=>{
+    const pos = h.takeHome >= 0;
     return `<div class="history-item">
-      <div><div class="hi-label">${label}</div><div class="hi-time">${new Date(h.timestamp).toLocaleString()}</div></div>
-      <span class="hi-amount ${isIncome?'pos':'neg'}">${isIncome?'+':'−'} ${fmt(h.amount)}</span>
+      <div class="hi-top">
+        <div><div class="hi-label">${h.platform} · ${fmt(h.amount)} collected</div><div class="hi-time">${new Date(h.timestamp).toLocaleString()}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="hi-amount ${pos?'pos':'neg'}">${pos?'+':''}${fmt(h.takeHome)}</span>
+          <button class="hi-del" onclick="deleteHistory('${h.id}')">✕</button>
+        </div>
+      </div>
+      <div class="hi-sub">${statusLabel(h.status)} · App ${fmt(h.appCommission)} · Expenses ${fmt(h.totalExpenses)}${costs.partnerEnabled?` · Partner ${fmt(h.partnerShare)}`:''}</div>
     </div>`;
   }).join('');
 }
-function categoryIcon(cat){
-  return { Fuel:'⛽', Service:'🔧', License:'🪪', Insurance:'🛡️', Other:'📎' }[cat] || '💸';
+async function deleteHistory(id){
+  history = history.filter(h=>String(h.id)!==String(id));
+  await storeSet('history', history);
+  renderHistory();
 }
 
-function renderAll(){
-  const hasProfile = !!vehicle;
-  document.getElementById('setup-empty-card').style.display = hasProfile ? 'none' : 'block';
-  document.getElementById('dashboard').style.display = hasProfile ? 'flex' : 'none';
-  document.getElementById('dashboard').style.flexDirection = 'column';
-  document.getElementById('dashboard').style.gap = '16px';
-  if(!hasProfile){
-    document.querySelectorAll('.banner').forEach(b=>b.classList.add('hidden'));
+function renderInsights(){
+  if(!history.length){
+    ['ins-distance','ins-collected','ins-app','ins-expenses','ins-partner','ins-takehome','ins-hourly'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('ins-trips').textContent = '0';
     return;
   }
-  renderBanners();
-  renderGauge();
-  renderChips();
-  renderSnapshot();
-  renderTarget();
-  renderKadereHistory();
+  let dist=0, collected=0, app=0, expenses=0, partner=0, takeHome=0, hours=0;
+  history.forEach(h=>{
+    dist+=h.effDistance||h.distance||0; collected+=h.amount||0; app+=h.appCommission||0;
+    expenses+=h.totalExpenses||0; partner+=h.partnerShare||0; takeHome+=h.takeHome||0;
+    hours+=(h.effTime||h.timeMin||0)/60;
+  });
+  document.getElementById('ins-trips').textContent = history.length;
+  document.getElementById('ins-distance').textContent = dist.toFixed(0);
+  document.getElementById('ins-collected').textContent = fmt(collected);
+  document.getElementById('ins-app').textContent = fmt(app);
+  document.getElementById('ins-expenses').textContent = fmt(expenses);
+  document.getElementById('ins-partner').textContent = fmt(partner);
+  document.getElementById('ins-takehome').textContent = fmt(takeHome);
+  document.getElementById('ins-hourly').textContent = fmt(hours>0?takeHome/hours:0);
+}
+
+function renderToday(){
+  const today = new Date().toISOString().slice(0,10);
+  const todays = history.filter(h=>h.timestamp.slice(0,10)===today);
+  document.getElementById('today-badge').textContent = `${todays.length} trip${todays.length===1?'':'s'}`;
+  let takeHome=0, app=0, hours=0;
+  todays.forEach(h=>{ takeHome+=h.takeHome||0; app+=h.appCommission||0; hours+=(h.effTime||h.timeMin||0)/60; });
+  document.getElementById('today-takehome').textContent = todays.length ? fmt(takeHome) : '—';
+  document.getElementById('today-app').textContent = todays.length ? fmt(app) : '—';
+  document.getElementById('today-hourly').textContent = hours>0 ? fmt(takeHome/hours) : '—';
+}
+
+// ============================================================
+// PREFERENCES MODAL
+// ============================================================
+function openPrefs(){
+  document.getElementById('s-currency').value = settings.CURRENCY_SYMBOL;
+  document.getElementById('s-threshold').value = settings.LOW_PROFIT_HOURLY_THRESHOLD;
+  openModal('prefs-modal');
+}
+async function savePrefs(){
+  settings.CURRENCY_SYMBOL = document.getElementById('s-currency').value || 'KSh';
+  settings.LOW_PROFIT_HOURLY_THRESHOLD = Math.max(0, num('s-threshold', 150));
+  await storeSet('settings', settings);
+  closeModal('prefs-modal');
+  showToast('Preferences saved');
+  if(currentView==='trip') calc();
+}
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function downloadBlob(content, filename, type){
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportBackup(){
+  const payload = { exportedAt:new Date().toISOString(), settings, costs, history };
+  downloadBlob(JSON.stringify(payload, null, 2), `driver-earnings-backup-${Date.now()}.json`, 'application/json');
+  showToast('Backup downloaded');
+}
+function exportCSV(){
+  if(!history.length){ showToast('No trips to export yet', 'error'); return; }
+  const cols = ['timestamp','platform','amount','paymentType','distance','timeMin','returnEmpty','grossFare','appCommission','fuelCost','wearTear','timeCost','insurance','otherCosts','totalExpenses','operatingProfit','partnerShare','takeHome','kmRate','hourlyRate','status'];
+  const rows = [cols.join(',')];
+  history.forEach(h=>{ rows.push(cols.map(c=>{
+    let v = h[c];
+    if(typeof v==='number') v = Number(v.toFixed(2));
+    return v===undefined||v===null ? '' : String(v).replace(/,/g,';');
+  }).join(',')); });
+  downloadBlob(rows.join('\n'), `driver-earnings-history-${Date.now()}.csv`, 'text/csv');
+  showToast('History exported');
+}
+function importBackup(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.settings) settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+      if(data.costs) costs = Object.assign(defaultCosts(), data.costs);
+      if(Array.isArray(data.history)) history = data.history;
+      await storeSet('settings', settings);
+      await storeSet('costs', costs);
+      await storeSet('history', history);
+      setupComplete = true;
+      await storeSet('setup_complete', true);
+      applyTheme();
+      closeModal('prefs-modal');
+      showToast('Backup restored');
+      showView('trip');
+    }catch(e){ showToast('Could not read that backup file', 'error'); }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
 }
 
 // ============================================================
@@ -729,7 +894,6 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e=>{
   document.querySelectorAll('.modal-overlay.open').forEach(m=>{ if(e.target===m) m.classList.remove('open'); });
 });
-
 function showToast(msg, type='success'){
   const el = document.createElement('div');
   el.className = 'toast';
@@ -740,26 +904,9 @@ function showToast(msg, type='success'){
 }
 
 // ============================================================
-// THEME (match CashSplit's saved light/dark preference)
+// BOOT
 // ============================================================
-function applyTheme(){
-  try{
-    const sraw = localStorage.getItem(SET_KEY);
-    if(sraw){
-      const s = JSON.parse(sraw);
-      document.body.classList.toggle('light', !!s.lightMode);
-    }
-  }catch(e){}
-}
-
-// ============================================================
-// INIT
-// ============================================================
-window.onload = () => {
-  loadShared();
-  applyTheme();
-  renderAll();
-};
+boot();
 </script>
 </body>
 </html>
