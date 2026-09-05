@@ -195,6 +195,7 @@ body.light #bottomnav{background:rgba(240,244,255,0.96);}
 @keyframes toastIn{from{transform:translate(-50%,20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
 
 .loading-screen{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.85rem;gap:8px;padding:60px 20px;}
+.storage-badge{font-size:0.62rem;color:var(--text3);text-align:center;padding:4px 0 0;}
 </style>
 </head>
 <body id="body">
@@ -236,7 +237,7 @@ body.light #bottomnav{background:rgba(240,244,255,0.96);}
 
     <div class="modal-section">
       <div class="modal-section-title">YOUR DATA</div>
-      <div class="hint" style="margin-top:0;">Your setup and trip history are saved automatically. Export a backup any time, or move it to another device.</div>
+      <div class="hint" style="margin-top:0;">Your setup and trip history are saved automatically to this device/browser. Export a backup any time, or move it to another device.</div>
       <div class="btn-row" style="margin-bottom:8px;">
         <button class="btn btn-ghost btn-sm" onclick="exportBackup()">⬇ Backup (JSON)</button>
         <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ History (CSV)</button>
@@ -245,6 +246,7 @@ body.light #bottomnav{background:rgba(240,244,255,0.96);}
         <button class="btn btn-ghost btn-sm btn-block" onclick="document.getElementById('import-file').click()">⬆ Restore Backup</button>
       </div>
       <input type="file" id="import-file" accept="application/json" style="display:none;" onchange="importBackup(event)">
+      <div class="storage-badge" id="storage-mode-badge"></div>
     </div>
 
     <div class="modal-btns">
@@ -425,18 +427,96 @@ body.light #bottomnav{background:rgba(240,244,255,0.96);}
 
 <script>
 // ============================================================
-// STORAGE (persistent, per-user — never localStorage)
+// STORAGE
+// ------------------------------------------------------------
+// This page can run in two contexts:
+//  1) Embedded inside a Claude.ai artifact iframe, where the
+//     special window.storage API is injected and available.
+//  2) As a normal, standalone deployed web page (which is what
+//     the "index.html" back-link implies this site is), where
+//     window.storage does NOT exist.
+//
+// Previously this only ever called window.storage.*, wrapped in
+// try/catch. On a normal page that call throws immediately
+// (window.storage is undefined), the catch swallows it silently,
+// and the fallback value is returned — so every "save" silently
+// no-opped and nothing ever survived a reload. Fixed by falling
+// back to localStorage (namespaced) whenever window.storage isn't
+// present, so data actually persists on real deployments while
+// still using the artifact API automatically if it is available.
 // ============================================================
-async function storeGet(key, fallback){
-  try{
-    const r = await window.storage.get(key, false);
-    if(!r || r.value===undefined || r.value===null) return fallback;
-    return JSON.parse(r.value);
-  }catch(e){ return fallback; }
+const STORAGE_NS = 'driverEarningsCalc:';
+let storageMode = 'unknown';
+
+function hasWidgetStorage(){
+  return typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function' && typeof window.storage.set === 'function';
 }
+function hasLocalStorage(){
+  try{
+    if(typeof window === 'undefined' || !window.localStorage) return false;
+    const t = '__storage_test__';
+    window.localStorage.setItem(t, '1');
+    window.localStorage.removeItem(t);
+    return true;
+  }catch(e){ return false; }
+}
+
+async function storeGet(key, fallback){
+  if(hasWidgetStorage()){
+    try{
+      storageMode = 'artifact';
+      const r = await window.storage.get(key, false);
+      if(!r || r.value===undefined || r.value===null) return fallback;
+      return JSON.parse(r.value);
+    }catch(e){
+      // Key not found (or a transient error) — fall through to
+      // localStorage so we don't silently lose data on this host.
+    }
+  }
+  if(hasLocalStorage()){
+    storageMode = 'browser';
+    try{
+      const raw = window.localStorage.getItem(STORAGE_NS+key);
+      if(raw===null || raw===undefined) return fallback;
+      return JSON.parse(raw);
+    }catch(e){ return fallback; }
+  }
+  storageMode = 'none';
+  return fallback;
+}
+
 async function storeSet(key, val){
-  try{ return await window.storage.set(key, JSON.stringify(val), false); }
-  catch(e){ console.error('Storage error', e); return null; }
+  if(hasWidgetStorage()){
+    try{
+      storageMode = 'artifact';
+      const res = await window.storage.set(key, JSON.stringify(val), false);
+      if(res) return res;
+    }catch(e){ /* fall through */ }
+  }
+  if(hasLocalStorage()){
+    storageMode = 'browser';
+    try{
+      window.localStorage.setItem(STORAGE_NS+key, JSON.stringify(val));
+      return { key, value: val };
+    }catch(e){
+      console.error('Storage error', e);
+      showToast('Could not save — your browser storage may be full or disabled', 'error');
+      return null;
+    }
+  }
+  storageMode = 'none';
+  console.error('No storage backend available (window.storage and localStorage both unavailable)');
+  showToast('Nothing was saved — this browser has no storage available', 'error');
+  return null;
+}
+
+function updateStorageBadge(){
+  const el = document.getElementById('storage-mode-badge');
+  if(!el) return;
+  const label = storageMode==='artifact' ? 'Synced via Claude artifact storage'
+    : storageMode==='browser' ? 'Saved locally in this browser'
+    : 'Not saving — storage unavailable on this browser';
+  el.textContent = label;
 }
 
 // ============================================================
@@ -674,7 +754,12 @@ async function saveTrip(){
   if(!lastComputed){ showToast('Enter an amount and trip details first', 'error'); return; }
   const entry = Object.assign({ id: Date.now()+Math.random(), timestamp: new Date().toISOString() }, lastComputed);
   history.unshift(entry);
-  await storeSet('history', history);
+  const saved = await storeSet('history', history);
+  if(saved===null){
+    // Save failed and storeSet already surfaced an error toast; roll back.
+    history.shift();
+    return;
+  }
   showToast('Trip saved');
   document.getElementById('t-amount').value='';
   document.getElementById('t-adjustment') && (document.getElementById('t-adjustment').value='');
@@ -724,7 +809,7 @@ function renderPartnerModeFields(){
 function num(id, fallback){ const el = document.getElementById(id); const v = el ? Number(el.value) : NaN; return isNaN(v) ? fallback : v; }
 
 async function saveCosts(){
-  costs = {
+  const newCosts = {
     commissionPct: Math.min(95, Math.max(0, num('c-commission', 18))),
     appFee: Math.max(0, num('c-appfee', 0)),
     fuelPricePerL: Math.max(0, num('c-fuelprice', 0)),
@@ -748,10 +833,13 @@ async function saveCosts(){
     partnerFixed: Math.max(0, num('c-partner-fixed', 0)),
     partnerNote: document.getElementById('c-partner-note').value
   };
-  await storeSet('costs', costs);
+  const savedCosts = await storeSet('costs', newCosts);
+  if(savedCosts===null) return; // error toast already shown
+  costs = newCosts;
   const wasComplete = setupComplete;
+  const savedFlag = await storeSet('setup_complete', true);
+  if(savedFlag===null) return;
   setupComplete = true;
-  await storeSet('setup_complete', true);
   showToast(wasComplete ? 'Setup updated' : 'Setup complete — start logging trips');
   showView('trip');
 }
@@ -778,8 +866,11 @@ function renderHistory(){
   }).join('');
 }
 async function deleteHistory(id){
-  history = history.filter(h=>String(h.id)!==String(id));
-  await storeSet('history', history);
+  const prev = history;
+  const next = history.filter(h=>String(h.id)!==String(id));
+  const saved = await storeSet('history', next);
+  if(saved===null) return; // error toast already shown, keep prev in memory
+  history = next;
   renderHistory();
 }
 
@@ -822,12 +913,17 @@ function renderToday(){
 function openPrefs(){
   document.getElementById('s-currency').value = settings.CURRENCY_SYMBOL;
   document.getElementById('s-threshold').value = settings.LOW_PROFIT_HOURLY_THRESHOLD;
+  updateStorageBadge();
   openModal('prefs-modal');
 }
 async function savePrefs(){
-  settings.CURRENCY_SYMBOL = document.getElementById('s-currency').value || 'KSh';
-  settings.LOW_PROFIT_HOURLY_THRESHOLD = Math.max(0, num('s-threshold', 150));
-  await storeSet('settings', settings);
+  const newSettings = Object.assign({}, settings, {
+    CURRENCY_SYMBOL: document.getElementById('s-currency').value || 'KSh',
+    LOW_PROFIT_HOURLY_THRESHOLD: Math.max(0, num('s-threshold', 150))
+  });
+  const saved = await storeSet('settings', newSettings);
+  if(saved===null) return;
+  settings = newSettings;
   closeModal('prefs-modal');
   showToast('Preferences saved');
   if(currentView==='trip') calc();
@@ -868,14 +964,18 @@ function importBackup(evt){
   reader.onload = async () => {
     try{
       const data = JSON.parse(reader.result);
-      if(data.settings) settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
-      if(data.costs) costs = Object.assign(defaultCosts(), data.costs);
-      if(Array.isArray(data.history)) history = data.history;
-      await storeSet('settings', settings);
-      await storeSet('costs', costs);
-      await storeSet('history', history);
-      setupComplete = true;
-      await storeSet('setup_complete', true);
+      const newSettings = data.settings ? Object.assign({}, DEFAULT_SETTINGS, data.settings) : settings;
+      const newCosts = data.costs ? Object.assign(defaultCosts(), data.costs) : costs;
+      const newHistory = Array.isArray(data.history) ? data.history : history;
+      const r1 = await storeSet('settings', newSettings);
+      const r2 = await storeSet('costs', newCosts);
+      const r3 = await storeSet('history', newHistory);
+      const r4 = await storeSet('setup_complete', true);
+      if(r1===null || r2===null || r3===null || r4===null){
+        showToast('Restore partially failed — check storage and try again', 'error');
+        return;
+      }
+      settings = newSettings; costs = newCosts; history = newHistory; setupComplete = true;
       applyTheme();
       closeModal('prefs-modal');
       showToast('Backup restored');
