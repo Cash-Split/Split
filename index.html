@@ -202,14 +202,22 @@
         border-top: 1px solid rgba(255, 255, 255, 0.12);
         gap: 10px;
       }
+      .hs {
+        flex: 1;
+        min-width: 0;
+      }
       .hs small {
         display: block;
         font-size: 0.68rem;
         opacity: 0.55;
       }
       .hs b {
+        display: block;
         font-family: var(--fd);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .hs .g {
         color: #4ade80;
@@ -1765,6 +1773,19 @@
           .toLowerCase()
           .replace(/\b\w/g, (c) => c.toUpperCase());
       const num = (s) => parseFloat(String(s).replace(/,/g, "")) || 0;
+      const fmtS = (n) => {
+        n = Number(n) || 0;
+        const a = Math.abs(n);
+        return (
+          (n < 0 ? "−" : "") +
+          curr().symbol +
+          " " +
+          a.toLocaleString(undefined, {
+            minimumFractionDigits: a >= 1000 ? 0 : 2,
+            maximumFractionDigits: a >= 1000 ? 0 : 2,
+          })
+        );
+      };
       const haptic = (p) => {
         try {
           navigator.vibrate && navigator.vibrate(p);
@@ -1992,10 +2013,10 @@
       function renderHero() {
         $("h-amt").textContent = fmt(state.balance);
         const t = todayStats();
-        $("s-in").textContent = fmt(t.inc);
-        $("s-out").textContent = fmt(t.exp);
+        $("s-in").textContent = fmtS(t.inc);
+        $("s-out").textContent = fmtS(t.exp);
         const n = $("s-net");
-        n.textContent = fmt(t.net);
+        n.textContent = fmtS(t.net);
         n.className = t.net >= 0 ? "g" : "rd";
         const e = Object.entries(state.dailyBalanceHistory)
           .sort((a, b) => new Date(a[0]) - new Date(b[0]))
@@ -2346,7 +2367,7 @@
     <div class="${it.type === "income" ? "tg" : "tr"} xs" style="font-weight:700;margin-top:3px">${it.type === "income" ? "+" : "−"}${fmt(it.amount)}</div></div></div>`,
             )
             .join("") +
-          `<label class="fl2"><span class="row"><input type="checkbox" id="sm-fee" ${$("sm-fee") && !$("sm-fee").checked ? "" : "checked"}> Also record M-Pesa charges</span></label>`;
+          `<label class="fl2"><span class="row"><input type="checkbox" id="sm-fee" ${$("sm-fee") && !$("sm-fee").checked ? "" : "checked"}> Also record M-Pesa charges</span></label><label class="fl2"><span class="row"><input type="checkbox" id="sm-today" ${$("sm-today") && $("sm-today").checked ? "checked" : ""}> Use today's date (count in Today in / out)</span></label>`;
         const s = $("sm-save");
         s.hidden = false;
         s.textContent = `Add ${on.length} record${on.length === 1 ? "" : "s"}`;
@@ -2377,18 +2398,20 @@
         });
       }
       function smSave() {
-        const feeOn = $("sm-fee") ? $("sm-fee").checked : true;
+        const feeOn = $("sm-fee") ? $("sm-fee").checked : true,
+          useToday = $("sm-today") && $("sm-today").checked;
         let n = 0;
         smItems.forEach((it) => {
           if (!it.on) return;
-          xAdd(it.type, it.name, it.amount, it.ts, it.note, it.code, it.party);
+          const ts = useToday ? new Date() : it.ts;
+          xAdd(it.type, it.name, it.amount, ts, it.note, it.code, it.party);
           n++;
           if (feeOn && it.cost > 0 && it.type === "expense")
             xAdd(
               "expense",
               XFEE,
               it.cost,
-              it.ts,
+              ts,
               "Fee · " + it.code,
               it.code ? it.code + "-fee" : "",
               "",
