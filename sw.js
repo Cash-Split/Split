@@ -1,10 +1,14 @@
 /**
- * CashSplit Service Worker — v13
- * Offline-first app shell + runtime caching (so the screenshot reader / OCR engine
- * works offline after it has been loaded once while online).
+ * CashSplit Service Worker — v15
+ * - Offline-first app shell
+ * - Own files: network-first (fixes/updates always arrive), cache fallback offline
+ * - CDN files (OCR engine): cache-first + background refresh, so the screenshot
+ *   reader works offline after it has been loaded once while online
+ * - Bumping the version purges every older cache (clears the broken v13/v14 pages)
  */
-const SHELL = "cashsplit-shell-v13";
-const RUNTIME = "cashsplit-runtime-v13";
+const VERSION = "v15";
+const SHELL = "cashsplit-shell-" + VERSION;
+const RUNTIME = "cashsplit-runtime-" + VERSION;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -12,14 +16,25 @@ const SHELL_ASSETS = [
   "./bere.html",
   "./dere.html",
 ];
+const OCR_JS =
+  "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 const BACKEND_HOSTS = ["script.google.com", "script.googleusercontent.com"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL).then((cache) =>
-      // add one by one so a missing optional file never breaks installation
-      Promise.all(SHELL_ASSETS.map((u) => cache.add(u).catch(() => null))),
-    ),
+    (async () => {
+      const shell = await caches.open(SHELL);
+      // one by one so a missing optional file never breaks installation
+      await Promise.all(
+        SHELL_ASSETS.map((u) =>
+          fetch(u, { cache: "reload" })
+            .then((r) => (r.ok ? shell.put(u, r) : null))
+            .catch(() => null),
+        ),
+      );
+      const rt = await caches.open(RUNTIME);
+      await rt.add(OCR_JS).catch(() => null);
+    })(),
   );
   self.skipWaiting();
 });
@@ -50,37 +65,44 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET" || req.headers.has("range")) return;
   const url = new URL(req.url);
   if (!/^https?:$/.test(url.protocol)) return;
-  if (BACKEND_HOSTS.includes(url.hostname)) return; // community wall: app handles its own offline cache
+  if (BACKEND_HOSTS.includes(url.hostname)) return; // community wall handles its own offline cache
 
-  // Page navigations: network first (fresh updates), fall back to cached shell offline
-  if (req.mode === "navigate") {
+  const sameOrigin = url.origin === self.location.origin;
+
+  // Own pages and files: network first, cached copy when offline
+  if (req.mode === "navigate" || sameOrigin) {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL).then((c) => c.put(req, copy));
+          if (cacheable(res)) {
+            const copy = res.clone();
+            caches.open(SHELL).then((c) => c.put(req, copy));
+          }
           return res;
         })
         .catch(() =>
           caches
             .match(req)
             .then(
-              (r) => r || caches.match("./index.html") || caches.match("./"),
+              (r) =>
+                r ||
+                (req.mode === "navigate"
+                  ? caches.match("./index.html") || caches.match("./")
+                  : undefined),
             ),
         ),
     );
     return;
   }
 
-  // Everything else (own files + OCR engine from CDN): stale-while-revalidate
-  const bucket = url.origin === self.location.origin ? SHELL : RUNTIME;
+  // CDN files (OCR engine etc.): cache first, refresh in background
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
         .then((res) => {
           if (cacheable(res)) {
             const copy = res.clone();
-            caches.open(bucket).then((c) => c.put(req, copy));
+            caches.open(RUNTIME).then((c) => c.put(req, copy));
           }
           return res;
         })
@@ -89,4 +111,3 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
-
