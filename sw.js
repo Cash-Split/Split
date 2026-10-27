@@ -1,66 +1,91 @@
 /**
- * Service Worker for Split-in PWA
- * Focus: Perfect Offline Use & Fast Loading
+ * CashSplit Service Worker — v13
+ * Offline-first app shell + runtime caching (so the screenshot reader / OCR engine
+ * works offline after it has been loaded once while online).
  */
-
-const CACHE_NAME = 'split-in-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  // Add your CSS and JS files here, for example:
-  // '/style.css',
-  // '/app.js',
-  // '/manifest.json'
+const SHELL = "cashsplit-shell-v13";
+const RUNTIME = "cashsplit-runtime-v13";
+const SHELL_ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./bere.html",
+  "./dere.html",
 ];
+const BACKEND_HOSTS = ["script.google.com", "script.googleusercontent.com"];
 
-// 1. Install Event: Cache all essential assets
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching shell assets');
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(SHELL).then((cache) =>
+      // add one by one so a missing optional file never breaks installation
+      Promise.all(SHELL_ASSETS.map((u) => cache.add(u).catch(() => null))),
+    ),
   );
-  self.skipWaiting(); // Force activation
+  self.skipWaiting();
 });
 
-// 2. Activate Event: Clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k !== SHELL && k !== RUNTIME)
+            .map((k) => caches.delete(k)),
+        ),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
+});
+
+const cacheable = (res) => res && (res.ok || res.type === "opaque");
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET" || req.headers.has("range")) return;
+  const url = new URL(req.url);
+  if (!/^https?:$/.test(url.protocol)) return;
+  if (BACKEND_HOSTS.includes(url.hostname)) return; // community wall: app handles its own offline cache
+
+  // Page navigations: network first (fresh updates), fall back to cached shell offline
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(SHELL).then((c) => c.put(req, copy));
+          return res;
         })
-      );
-    })
-  );
-  self.clients.claim();
-});
+        .catch(() =>
+          caches
+            .match(req)
+            .then(
+              (r) => r || caches.match("./index.html") || caches.match("./"),
+            ),
+        ),
+    );
+    return;
+  }
 
-// 3. Fetch Event: "Stale-While-Revalidate" Strategy
-// This serves from cache immediately for speed, then updates cache in background
-self.addEventListener('fetch', (event) => {
+  // Everything else (own files + OCR engine from CDN): stale-while-revalidate
+  const bucket = url.origin === self.location.origin ? SHELL : RUNTIME;
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchedResponse = fetch(event.request).then((networkResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          // Update cache with new version from network
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        });
-      });
-
-      // Return cached version if available, otherwise wait for network
-      return cachedResponse || fetchedResponse;
-    }).catch(() => {
-      // Fallback for when both cache and network fail (offline and not cached)
-      if (event.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
-    })
+    caches.match(req).then((cached) => {
+      const network = fetch(req)
+        .then((res) => {
+          if (cacheable(res)) {
+            const copy = res.clone();
+            caches.open(bucket).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || network;
+    }),
   );
 });
-
