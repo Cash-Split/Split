@@ -4,42 +4,56 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Kenya Live: Run the Economy</title>
     <style>
       :root {
-        --bg: #060a12;
-        --pn: #0d1424;
-        --cd: rgba(13, 20, 36, 0.85);
-        --bd: rgba(96, 165, 250, 0.14);
-        --bl: #3b82f6;
-        --bl2: #60a5fa;
-        --gr: #22c55e;
-        --rd: #ef4444;
-        --yl: #fbbf24;
-        --tx: #e2e8f0;
-        --mu: #94a3b8;
-        --in: rgba(255, 255, 255, 0.06);
+        --bg: #f1f5f9;
+        --pn: #fff;
+        --cd: #fff;
+        --bd: rgba(37, 99, 235, 0.2);
+        --bl: #2563eb;
+        --gr: #15803d;
+        --rd: #dc2626;
+        --yl: #b45309;
+        --tx: #0f172a;
+        --mu: #475569;
+        --in: rgba(0, 0, 0, 0.05);
+        color-scheme: light;
         box-sizing: border-box;
         padding-top: env(safe-area-inset-top, 0px);
         padding-bottom: env(safe-area-inset-bottom, 0px);
       }
-      @media (prefers-color-scheme: light) {
-        :root:not([data-theme="dark"]) {
-          --bg: #f1f5f9;
-          --pn: #fff;
-          --cd: rgba(255, 255, 255, 0.92);
-          --bd: rgba(37, 99, 235, 0.2);
-          --bl: #2563eb;
-          --bl2: #1d4ed8;
-          --gr: #15803d;
-          --rd: #dc2626;
-          --yl: #b45309;
-          --tx: #0f172a;
-          --mu: #475569;
-          --in: rgba(0, 0, 0, 0.05);
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #060a12;
+          --pn: #0d1424;
+          --cd: #0d1424;
+          --bd: rgba(96, 165, 250, 0.18);
+          --bl: #3b82f6;
+          --gr: #22c55e;
+          --rd: #f87171;
+          --yl: #fbbf24;
+          --tx: #e2e8f0;
+          --mu: #94a3b8;
+          --in: rgba(255, 255, 255, 0.07);
+          color-scheme: dark;
         }
+      }
+      :root[data-theme="dark"] {
+        --bg: #060a12;
+        --pn: #0d1424;
+        --cd: #0d1424;
+        --bd: rgba(96, 165, 250, 0.18);
+        --bl: #3b82f6;
+        --gr: #22c55e;
+        --rd: #f87171;
+        --yl: #fbbf24;
+        --tx: #e2e8f0;
+        --mu: #94a3b8;
+        --in: rgba(255, 255, 255, 0.07);
+        color-scheme: dark;
       }
       * {
         box-sizing: border-box;
@@ -52,26 +66,15 @@
         background: var(--bg);
         color: var(--tx);
         font:
-          13px/1.45 ui-monospace,
-          "SF Mono",
-          Consolas,
-          monospace;
-      }
-      h1,
-      h2,
-      h3,
-      .h {
-        font-family:
-          system-ui,
+          14px/1.45 system-ui,
           -apple-system,
           "Segoe UI",
           sans-serif;
-        margin: 0;
       }
       #app {
-        max-width: 760px;
+        max-width: 720px;
         margin: 0 auto;
-        padding: 10px 12px 40px;
+        padding: 10px 12px 96px;
         display: grid;
         gap: 10px;
       }
@@ -81,25 +84,68 @@
         border-radius: 14px;
         padding: 12px;
       }
-      .hero {
-        background: linear-gradient(
-          135deg,
-          rgba(59, 130, 246, 0.25),
-          rgba(34, 197, 94, 0.1)
-        );
+      h2,
+      h3 {
+        margin: 0 0 6px;
       }
-      .top {
+      .mu,
+      small {
+        color: var(--mu);
+      }
+      .up {
+        color: var(--gr);
+      }
+      .dn {
+        color: var(--rd);
+      }
+      .y {
+        color: var(--yl);
+      }
+      .row {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 8px;
-        font-weight: 700;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--bd);
       }
-      .grid {
+      .row:last-child {
+        border-bottom: 0;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .av {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--bl);
+        color: #fff;
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        place-items: center;
+        font-weight: 700;
+        overflow: hidden;
+        flex: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+      .av img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
         gap: 8px;
-        margin: 10px 0;
+        margin-top: 8px;
       }
       .st {
         background: var(--in);
@@ -108,38 +154,12 @@
       }
       .st small {
         display: block;
-        color: var(--mu);
       }
       .st b {
         font-size: 15px;
+        white-space: nowrap;
       }
-      .gr {
-        color: var(--gr);
-      }
-      .rd {
-        color: var(--rd);
-      }
-      .y {
-        color: var(--yl);
-      }
-      .mu,
-      small {
-        color: var(--mu);
-      }
-      .bar {
-        height: 6px;
-        background: var(--in);
-        border-radius: 3px;
-        overflow: hidden;
-      }
-      .bar i {
-        display: block;
-        height: 100%;
-        background: var(--bl);
-      }
-      .btn,
-      .opt,
-      .chip {
+      button {
         font: inherit;
         color: var(--tx);
         cursor: pointer;
@@ -157,18 +177,6 @@
         color: var(--tx);
         border: 1px solid var(--bd);
       }
-      .chip {
-        background: var(--in);
-        border: 1px solid var(--bd);
-        border-radius: 20px;
-        padding: 5px 11px;
-        margin: 0 4px 8px 0;
-      }
-      .chip.on {
-        background: var(--bl);
-        color: #fff;
-        border-color: var(--bl);
-      }
       .opt {
         display: block;
         width: 100%;
@@ -181,54 +189,118 @@
       }
       .opt small {
         display: block;
+        margin-top: 2px;
       }
       .opt:disabled {
-        opacity: 0.4;
+        opacity: 0.45;
+      }
+      .chip {
+        background: var(--in);
+        border: 1px solid var(--bd);
+        border-radius: 20px;
+        padding: 5px 12px;
+        margin: 0 4px 6px 0;
+      }
+      .chip.on {
+        background: var(--bl);
+        color: #fff;
+        border-color: var(--bl);
+      }
+      .bar {
+        height: 6px;
+        background: var(--in);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+      }
+      .sec {
+        display: none;
+      }
+      .sec.on {
+        display: grid;
+        gap: 10px;
+      }
+      .al {
+        border-color: var(--yl);
+      }
+      .imp {
+        border-left: 4px solid var(--bl);
+      }
+      select {
+        font: inherit;
+        background: var(--in);
+        color: var(--tx);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 6px;
       }
       #map {
         width: 100%;
-        max-height: 52vh;
+        max-height: 70vh;
         display: block;
       }
-      #map .rg polygon {
+      #map rect {
         stroke: var(--bg);
         stroke-width: 2;
         cursor: pointer;
-        transition: fill 0.3s;
+        transition: fill 0.6s;
       }
       #map text {
         fill: #fff;
         font:
-          700 9px system-ui,
+          700 11px system-ui,
           sans-serif;
         text-anchor: middle;
         pointer-events: none;
         paint-order: stroke;
-        stroke: rgba(0, 0, 0, 0.65);
+        stroke: rgba(0, 0, 0, 0.55);
         stroke-width: 2px;
       }
-      @keyframes fl {
+      #map .tv {
+        font-size: 15px;
+      }
+      #map .tb {
+        font-size: 13px;
+        animation: pl 1s infinite;
+      }
+      @keyframes pl {
         50% {
-          fill-opacity: 0.25;
-          stroke: #fbbf24;
+          opacity: 0.35;
         }
       }
-      #map .rg polygon.fl {
-        animation: fl 0.6s 3;
-      }
-      #al {
+      nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        border-color: var(--yl);
+        justify-content: center;
+        background: var(--pn);
+        border-top: 1px solid var(--bd);
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+        z-index: 5;
       }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 0;
+      nav button {
+        flex: 1;
+        max-width: 130px;
+        background: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 6px 2px;
+        color: var(--mu);
+        font-size: 12px;
+      }
+      nav button span {
+        display: block;
+        font-size: 18px;
+      }
+      nav button.on {
+        color: var(--bl);
+        background: var(--in);
+        font-weight: 700;
       }
       .ov {
         position: fixed;
@@ -237,38 +309,40 @@
         display: none;
         align-items: flex-end;
         justify-content: center;
-        z-index: 5;
+        z-index: 9;
       }
       .ov.on {
         display: flex;
       }
-      #dlg {
-        z-index: 8;
-      }
       .sh {
         width: 100%;
-        max-width: 760px;
+        max-width: 720px;
         max-height: 88vh;
         overflow: auto;
         background: var(--pn);
+        color: var(--tx);
         border: 1px solid var(--bd);
         border-radius: 18px 18px 0 0;
         padding: 14px 14px calc(16px + env(safe-area-inset-bottom, 0px));
       }
-      .lb {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        margin-top: 6px;
+      input[type="text"] {
+        width: 100%;
+        font: inherit;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--bd);
+        background: var(--in);
+        color: var(--tx);
+        margin: 8px 0;
       }
       #toast {
         position: fixed;
         left: 50%;
-        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-        transform: translate(-50%, 30px);
+        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        transform: translate(-50%, 20px);
         background: var(--bl);
         color: #fff;
-        padding: 10px 14px;
+        padding: 9px 14px;
         border-radius: 12px;
         opacity: 0;
         pointer-events: none;
@@ -281,3268 +355,764 @@
         opacity: 1;
         transform: translate(-50%, 0);
       }
-
-      #map {
-        max-height: 72vh;
-        width: 100%;
-      }
-      #map text.nb {
-        fill: var(--mu);
-        stroke: none;
-        font-weight: 400;
-        font-size: 8px;
-      }
-      .who {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 10px;
-      }
-      #av {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        font:
-          700 16px system-ui,
-          sans-serif;
-        color: #fff;
-      }
-      #chat {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-height: 70px;
-        max-height: 46vh;
-        overflow: auto;
-        padding: 4px 0 8px;
-      }
-      .bub {
-        max-width: 84%;
-        padding: 8px 12px;
-        border-radius: 16px;
-        animation: pop 0.25s ease-out;
-        line-height: 1.4;
-      }
-      .ai {
-        background: var(--in);
-        border-bottom-left-radius: 4px;
-        align-self: flex-start;
-      }
-      .me {
-        background: var(--bl);
-        color: #fff;
-        border-bottom-right-radius: 4px;
-        align-self: flex-end;
-      }
-      .typ i {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        margin: 0 2px;
-        border-radius: 50%;
-        background: var(--mu);
-        animation: bn 1s infinite;
-      }
-      .typ i:nth-child(2) {
-        animation-delay: 0.15s;
-      }
-      .typ i:nth-child(3) {
-        animation-delay: 0.3s;
-      }
-      @keyframes bn {
-        50% {
-          transform: translateY(-4px);
-          opacity: 0.4;
-        }
-      }
-      @keyframes pop {
-        from {
-          opacity: 0;
-          transform: translateY(8px) scale(0.96);
-        }
-      }
-      #do .opt {
-        animation: pop 0.3s both;
-      }
-      #fl .row:first-child,
-      #nw .row:first-child {
-        animation: pop 0.3s;
-      }
-      .up {
-        color: var(--gr);
-      }
-      .dn {
-        color: var(--rd);
-      }
-      .st b {
-        font-variant-numeric: tabular-nums;
-        display: block;
-        white-space: nowrap;
-      }
-      .st small {
-        font-size: 11px;
-      }
-      #nw .row {
-        justify-content: flex-start;
-        border-bottom: 1px solid var(--bd);
-      }
-      /* new */
-      .fg {
-        width: 24px;
-        height: 16px;
-        border-radius: 2px;
-        vertical-align: -3px;
-        margin-right: 6px;
-        box-shadow: 0 0 0 1px var(--bd);
-      }
-      .nop {
-        pointer-events: none;
-      }
-      @keyframes dsh {
-        to {
-          stroke-dashoffset: -18;
-        }
-      }
-      #map line.cons {
-        animation: dsh 0.8s linear infinite;
-      }
-      @keyframes rise {
-        to {
-          transform: translateY(-16px);
-          opacity: 0;
-        }
-      }
-      #map text.ftx {
-        animation: rise 1.2s forwards;
-        font-size: 9px;
-      }
-      @keyframes alp {
-        50% {
-          opacity: 0.3;
-        }
-      }
-      #map text.alb {
-        animation: alp 0.9s infinite;
-        font-size: 13px;
-      }
-      #map text.ic {
-        font-size: 11px;
-        stroke: none;
-      }
-      .lg2 span {
-        display: inline-block;
-        margin: 2px 10px 2px 0;
-      }
-      .lg2 i {
-        display: inline-block;
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-        margin-right: 4px;
-        vertical-align: -1px;
-      }
-      #cf .row {
-        padding: 3px 0;
-      }
-      #cf .bar {
-        height: 8px;
-      }
-      #rn .row,
-      #sev .row {
-        justify-content: flex-start;
-        border-bottom: 1px solid var(--bd);
-        font-size: 12px;
-      }
       @media (prefers-reduced-motion: reduce) {
         * {
           animation: none !important;
+          transition: none !important;
         }
       }
     </style>
   </head>
+  <header>
+    <a href="index.html">Back</a>
+  </header>
   <body>
     <div id="app">
-      <div class="card top">
-        <span id="tq" class="h"></span><span id="tt"></span><span id="ta"></span
-        ><button class="btn g" id="sp">1×</button
-        ><button class="btn g" id="hb">?</button>
-      </div>
-      <div class="card hero">
-        <div class="row">
-          <h1><span id="kf"></span>Republic of Kenya</h1>
-          <small id="clk"></small>
-        </div>
-        <div id="hs" class="grid"></div>
-      </div>
       <div class="card">
-        <div id="chips"></div>
-        <svg id="map" viewBox="-45 -10 590 530"></svg>
-        <div class="lg2 mu">
-          <span><i style="background: #fbbf24"></i>Taxes to Nairobi</span
-          ><span><i style="background: #60a5fa"></i>Exports</span
-          ><span><i style="background: #fb923c"></i>Imports</span
-          ><span><i style="background: #22c55e"></i>People moving</span
-          ><span><i style="background: #f8fafc"></i>Rail freight</span
-          ><span><i style="background: #ef4444"></i>Crimes</span>
+        <div class="top">
+          <button class="av" id="av" aria-label="Edit profile"></button>
+          <div class="grow"><b id="nm"></b><br /><small id="hq"></small></div>
+          <button class="btn g" id="sp">1×</button>
         </div>
-        <div class="mu" id="lg">
-          Roads get thicker and greener as infrastructure grows. Dashed yellow
-          roads and rings are under construction. Pulsing warnings need a
-          decision. Tap a region or a country flag.
+        <div class="stats">
+          <div class="st"><small>Treasury</small><b id="s1"></b></div>
+          <div class="st"><small>Approval</small><b id="s2"></b></div>
+          <div class="st"><small>Action points</small><b id="s3"></b></div>
         </div>
       </div>
-      <div class="card">
-        <h3>Alerts by region</h3>
-        <div id="inb"></div>
-      </div>
-      <div class="card">
-        <h3>Money flow (KSh a day)</h3>
-        <div id="cf"></div>
-        <div id="fl"></div>
-      </div>
-      <div class="card" id="ip"></div>
-      <div class="card">
-        <h3>National actions</h3>
-        <div id="na"></div>
-      </div>
-      <div class="card">
-        <h3>International relations</h3>
-        <div class="mu">Tap a country to visit, build ties or sign an MoU.</div>
-        <div id="ir"></div>
-      </div>
-      <div class="card">
-        <h3>Live news</h3>
-        <div id="nw"></div>
-      </div>
-      <button class="btn g" id="rs">Restart</button>
+
+      <section class="sec on" data-t="news">
+        <div id="al"></div>
+        <div class="card">
+          <div class="row" style="border: 0">
+            <h3>Live news</h3>
+            <select id="nf"></select>
+          </div>
+          <div id="nl"></div>
+        </div>
+        <div class="card">
+          <h3>What your decisions did</h3>
+          <div id="il"></div>
+        </div>
+      </section>
+
+      <section class="sec" data-t="map">
+        <div class="card">
+          <div id="lc"></div>
+          <svg
+            id="map"
+            viewBox="0 0 300 235"
+            role="img"
+            aria-label="Map of regions"
+          ></svg>
+          <small class="mu"
+            >Live. Tap a region to act. ⚠ alert · 🚧 project under way.</small
+          >
+        </div>
+        <div class="card">
+          <h3>Latest</h3>
+          <div id="tk"></div>
+        </div>
+      </section>
+
+      <section class="sec" data-t="reg">
+        <div class="card">
+          <h3>Regions</h3>
+          <div class="mu">
+            Pick a region to see its news and choose what to do. You see the
+            impact straight away.
+          </div>
+          <div id="rl"></div>
+        </div>
+      </section>
+
+      <section class="sec" data-t="eco">
+        <div class="card">
+          <h3>Economy</h3>
+          <div class="stats" id="es"></div>
+        </div>
+        <div class="card">
+          <h3>Decisions</h3>
+          <div id="na"></div>
+        </div>
+        <div class="card">
+          <h3>Projects under way</h3>
+          <div id="pj"></div>
+        </div>
+      </section>
+
+      <section class="sec" data-t="wld">
+        <div class="card">
+          <h3>International relations</h3>
+          <div class="mu">
+            Visit, build ties, then sign MoUs once relations reach 50.
+          </div>
+          <div id="ir"></div>
+        </div>
+      </section>
     </div>
-    <div class="ov" id="sov"><div class="sh" id="sh"></div></div>
-    <div class="ov" id="dlg">
+
+    <nav id="nav">
+      <button data-t="news" class="on"><span>📰</span>News</button>
+      <button data-t="map"><span>🗺️</span>Map</button>
+      <button data-t="reg"><span>📍</span>Regions</button>
+      <button data-t="eco"><span>📊</span>Economy</button>
+      <button data-t="wld"><span>🌍</span>World</button>
+    </nav>
+
+    <div class="ov" id="ov"><div class="sh" id="sh"></div></div>
+    <div class="ov on" id="su">
       <div class="sh">
-        <div class="who">
-          <span id="av"></span>
-          <div><b id="wn"></b><br /><small>online</small></div>
+        <h2>Welcome to Kenya Live</h2>
+        <div class="mu">
+          Add your photo and name. Everyone in the game will call you by it.
         </div>
-        <div id="chat"></div>
-        <div id="do"></div>
+        <div class="top" style="margin: 10px 0">
+          <span class="av" id="pv"></span
+          ><input type="file" id="pf" accept="image/*" />
+        </div>
+        <input
+          type="text"
+          id="pn"
+          maxlength="24"
+          placeholder="Your name"
+          autocomplete="name"
+        />
+        <button class="btn" id="go" style="width: 100%">Start</button>
       </div>
     </div>
     <div id="toast"></div>
+
     <script>
       const $ = (s) => document.querySelector(s),
-        clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v)),
-        rnd = (n) => (Math.random() * 2 - 1) * n,
-        sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+        cl = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v)),
         pick = (a) => a[(Math.random() * a.length) | 0],
-        NS = "http://www.w3.org/2000/svg";
+        rn = (n) => (Math.random() * 2 - 1) * n;
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
       const DPQ = 30,
-        TURNS = 40;
-      const SIM = {
-        ap: 3,
-        maxAp: 6,
-        tax: [
-          [0.1, "Low"],
-          [0.16, "Medium"],
-          [0.22, "High"],
-        ],
-        rev: 5.5,
-        base: 8,
-        progC: 2,
-        intRate: 0.012,
-        repay: 0.01,
-        crimeC: 0.002,
-        maxDebt: 500,
-        loseT: -300,
-        loseAppr: 15,
-        revolt: 10,
-        drift: 0.25,
-        lowE: 6,
-        hiE: -3,
-        hzLow: 3,
-        hzMax: 30,
-        arch: 225,
-        tickMs: 500,
-        evWait: 45,
-      };
-      const BASES = {
-        ag: "Agriculture",
-        tour: "Tourism",
-        man: "Manufacturing",
-        min: "Mining",
-        tech: "Tech",
-        port: "Port and trade",
-        live: "Livestock",
-        svc: "Services",
-      };
-      const T = [
-        [
-          "North",
-          "live",
-          "60,10 240,10 270,90 200,110 90,110 40,70",
-          3.5,
-          52,
-          38,
-          55,
-          40,
-          28,
-          42,
-          48,
-          30,
-        ],
-        [
-          "Western",
-          "ag",
-          "20,110 90,110 100,170 50,200 15,160",
-          6.2,
-          60,
-          42,
-          42,
-          52,
-          45,
-          55,
-          56,
-          40,
-        ],
-        [
-          "Rift Valley",
-          "tour",
-          "90,110 160,110 170,200 100,230 100,170",
-          8,
-          64,
-          50,
-          35,
-          58,
-          52,
-          60,
-          62,
-          45,
-        ],
-        [
-          "Central",
-          "man",
-          "160,110 200,110 215,170 170,200",
-          5.5,
-          70,
-          58,
-          25,
-          65,
-          65,
-          68,
-          66,
-          52,
-        ],
-        [
-          "Eastern",
-          "min",
-          "200,110 270,90 280,200 215,230 215,170",
-          6,
-          58,
-          44,
-          40,
-          50,
-          40,
-          55,
-          55,
-          38,
-        ],
-        [
-          "Lakeside",
-          "svc",
-          "15,160 50,200 100,230 80,280 20,250",
-          6.5,
-          56,
-          45,
-          45,
-          50,
-          48,
-          52,
-          54,
-          35,
-        ],
-        [
-          "Nairobi",
-          "tech",
-          "100,230 170,200 215,230 200,270 130,275",
-          5,
-          72,
-          62,
-          22,
-          72,
-          80,
-          60,
-          62,
-          55,
-        ],
-        [
-          "Coast",
-          "port",
-          "215,230 280,200 285,270 230,310 200,270",
-          4.5,
-          62,
-          48,
-          38,
-          55,
-          60,
-          50,
-          58,
-          42,
-        ],
+        TURNS = 40,
+        TAX = [0.1, 0.16, 0.22];
+      const RG = [
+        ["North", 110, 10, 130, 60, 3.5],
+        ["Western", 10, 80, 70, 60, 6.2],
+        ["Rift Valley", 85, 80, 60, 80, 8],
+        ["Central", 150, 80, 50, 80, 5.5],
+        ["Eastern", 205, 80, 85, 80, 6],
+        ["Lakeside", 10, 145, 70, 60, 6.5],
+        ["Nairobi", 85, 165, 115, 45, 5],
+        ["Coast", 205, 165, 85, 60, 4.5],
       ];
-      const A = {
-        road: {
-          n: "Build roads and power",
-          c: 9,
-          q: 2,
-          d: "+14 infrastructure and +3 jobs in 2 quarters",
-          done: (r) => {
-            r.inf = clamp(r.inf + 14);
-            r.e = clamp(r.e + 3);
-          },
-          fin: (n) => `Roads and power lines finished in ${n}`,
-        },
-        prog: {
-          n: "Open a job program",
-          c: 4,
-          d: "+6 jobs now. Costs KSh 2B every quarter until cancelled",
-          now: (r) => {
-            r.prog = 1;
-            r.e = clamp(r.e + 6);
-          },
-        },
-        std: {
-          n: "Set work standards",
-          c: 2,
-          d: "Choose low, basic or strong",
-        },
-        hosp: {
-          n: "Build hospitals and clinics",
-          c: 6,
-          q: 2,
-          d: "+12 health in 2 quarters. Protects from pandemics",
-          done: (r) => {
-            r.hl = clamp(r.hl + 12);
-            r.hosp++;
-          },
-          fin: (n) => `New clinics open in ${n}`,
-        },
-        pol: {
-          n: "Fund police and courts",
-          c: 5,
-          q: 1,
-          d: "+10 security next quarter. Less corruption",
-          done: (r) => {
-            r.sec = clamp(r.sec + 10);
-            G.corr = Math.max(0.03, G.corr - 0.005);
-          },
-          fin: (n) => `Courts and police upgraded in ${n}`,
-        },
-        prep: {
-          n: "Disaster prep",
-          c: 4,
-          q: 1,
-          d: "+15 readiness next quarter",
-          done: (r) => {
-            r.rd = clamp(r.rd + 15);
-          },
-          fin: (n) => `Flood walls and grain stores ready in ${n}`,
-        },
-        train: {
-          n: "Train workers",
-          c: 4,
-          q: 1,
-          d: "+8 job quality next quarter. Output bonus after 3 more",
-          done: (r) => {
-            r.jq = clamp(r.jq + 8);
-            G.dl.push({ due: G.day + 3 * DPQ, rid: r.id, fx: { prod: 0.1 } });
-          },
-          fin: (n) => `Workers finish training in ${n}`,
-        },
-        relief: {
-          n: "Give relief aid",
-          c: 3,
-          d: "+8 happiness and -4 poverty now. No lasting gain",
-          now: (r) => {
-            r.hap = clamp(r.hap + 8);
-            r.pv = clamp(r.pv - 4);
-          },
-        },
-      };
-      // events: id, weight, region pick, scale(1 readiness,2 health), headline, text, choices [label,cost,effect,ops]
-      const EV = {};
-      const E = (id, w, pk, sc, t, x, ch) =>
-        (EV[id] = { id, w, pk, sc, t, x, ch });
-      E(
-        "drought",
-        3,
-        "ag live",
-        1,
-        (r) => `Drought bites ${r}; herds are dying`,
-        "The long rains failed.",
-        [
-          [
-            "Truck in water and feed",
-            6,
-            "Limits the damage",
-            [
-              ["y", 2],
-              ["e", -1],
-            ],
-          ],
-          [
-            "Do nothing",
-            0,
-            "Food prices jump next quarter",
-            [
-              ["e", -4],
-              ["p", 4],
-              ["y", -4],
-              ["a", -2],
-              ["D", 1, { ev: "food" }],
-            ],
-          ],
-        ],
-      );
-      E(
-        "flood",
-        3,
-        "port ag",
-        1,
-        (r) => `Flash floods hit ${r}; thousands displaced`,
-        "Rivers burst their banks.",
-        [
-          [
-            "Send rescue and tents",
-            6,
-            "Saves lives. Slow repair",
-            [
-              ["i", -4],
-              ["y", -2],
-              ["h", -2],
-            ],
-          ],
-          [
-            "Wait for the rain to stop",
-            0,
-            "Heavy losses",
-            [
-              ["i", -10],
-              ["h", -6],
-              ["y", -8],
-              ["a", -4],
-              ["p", 4],
-            ],
-          ],
-        ],
-      );
-      E(
-        "locust",
-        2,
-        "ag live",
-        1,
-        (r) => `Locust swarms eat crops in ${r}`,
-        "Billions of insects. Fields are bare.",
-        [
-          ["Spray from the air", 5, "Saves most crops", [["e", -1]]],
-          [
-            "Let farmers cope",
-            0,
-            "Harvest lost. Food prices rise",
-            [
-              ["e", -5],
-              ["p", 4],
-              ["D", 1, { ev: "food" }],
-            ],
-          ],
-        ],
-      );
-      E(
-        "storm",
-        2,
-        "port tour",
-        1,
-        (r) => `Coastal storm batters ${r}`,
-        "Boats are lost and hotels are wrecked.",
-        [
-          [
-            "Fund repairs",
-            5,
-            "Fast recovery",
-            [
-              ["i", -3],
-              ["e", -2],
-            ],
-          ],
-          [
-            "Leave it to insurers",
-            0,
-            "Slow recovery",
-            [
-              ["i", -8],
-              ["e", -6],
-              ["y", -5],
-              ["a", -3],
-            ],
-          ],
-        ],
-      );
-      E(
-        "cholera",
-        2,
-        "hl",
-        2,
-        (r) => `Cholera outbreak in ${r}`,
-        "Dirty water is spreading disease.",
-        [
-          [
-            "Open clinics and clean water",
-            5,
-            "Outbreak ends fast",
-            [
-              ["h", -3],
-              ["y", -1],
-            ],
-          ],
-          [
-            "Wait and watch",
-            0,
-            "Disease spreads",
-            [
-              ["h", -12],
-              ["e", -3],
-              ["y", -6],
-              ["a", -4],
-            ],
-          ],
-        ],
-      );
-      E(
-        "pandemic",
-        1,
-        "hl",
-        2,
-        (r) => `Pandemic wave reaches ${r}`,
-        "Hospitals fill up fast.",
-        [
-          [
-            "Test and isolate",
-            8,
-            "Wave stays small",
-            [
-              ["h", -4],
-              ["e", -2],
-            ],
-          ],
-          [
-            "Open as usual",
-            0,
-            "Many fall sick",
-            [
-              ["h", -14],
-              ["e", -8],
-              ["y", -8],
-              ["a", -5],
-            ],
-          ],
-        ],
-      );
-      E(
-        "oil",
-        2,
-        "any",
-        0,
-        () => "Oil prices spike worldwide",
-        "Fuel costs more everywhere.",
-        [
-          ["Subsidise fuel", 8, "Prices hold. Treasury hurts", [["inf", 0.3]]],
-          [
-            "Let prices rise",
-            0,
-            "Inflation and anger",
-            [
-              ["inf", 2.5],
-              ["a", -4],
-              ["g", -0.8],
-            ],
-          ],
-        ],
-      );
-      E(
-        "shilling",
-        2,
-        "any",
-        0,
-        () => "The shilling crashes",
-        "Imports now cost far more.",
-        [
-          [
-            "Raise rates and use reserves",
-            6,
-            "Calms prices",
-            [
-              ["inf", 0.5],
-              ["g", -0.4],
-            ],
-          ],
-          [
-            "Print money to cope",
-            0,
-            "Cash now, inflation later",
-            [
-              ["inf", 3],
-              ["t", 8],
-              ["tr", -4],
-            ],
-          ],
-        ],
-      );
-      E(
-        "tourism",
-        2,
-        "tour",
-        0,
-        (r) => `Tourism collapses in ${r}`,
-        "Bookings are cancelled.",
-        [
-          [
-            "Run a marketing blitz",
-            6,
-            "Visitors return sooner",
-            [
-              ["e", -2],
-              ["y", -1],
-            ],
-          ],
-          [
-            "Wait it out",
-            0,
-            "Hotels close",
-            [
-              ["e", -8],
-              ["p", 5],
-              ["a", -3],
-            ],
-          ],
-        ],
-      );
-      E(
-        "bumper",
-        1.5,
-        "ag live",
-        0,
-        (r) => `Bumper harvest in ${r}`,
-        "Barns are full.",
-        [
-          [
-            "Build grain stores",
-            4,
-            "Food safe. More readiness",
-            [
-              ["r", 12],
-              ["p", -3],
-              ["y", 3],
-            ],
-          ],
-          [
-            "Sell it all abroad",
-            0,
-            "Cash now. Thin stores",
-            [
-              ["t", 8],
-              ["y", 2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "mineral",
-        1,
-        "min",
-        0,
-        (r) => `Mineral find in ${r}`,
-        "Surveyors found a rich seam.",
-        [
-          [
-            "Mine with strict rules",
-            5,
-            "Slow, safe jobs and income",
-            [
-              ["e", 5],
-              ["j", 4],
-              ["t", 6],
-            ],
-          ],
-          [
-            "Sell licences fast",
-            0,
-            "Quick cash. Risky pits",
-            [
-              ["t", 14],
-              ["z", 10],
-              ["a", -2],
-              ["tr", -2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "investor",
-        1.5,
-        "man tech",
-        0,
-        (r) => `Foreign investor eyes ${r}`,
-        "A big firm wants to build here.",
-        [
-          [
-            "Accept. Keep our standards",
-            0,
-            "More jobs. Good quality",
-            [
-              ["e", 4],
-              ["j", 3],
-              ["tr", 2],
-            ],
-          ],
-          [
-            "Accept. Ease the rules",
-            0,
-            "Many jobs. More risk",
-            [
-              ["e", 7],
-              ["z", 8],
-              ["j", -2],
-            ],
-          ],
-          ["Say no", 0, "Nothing changes", [["tr", -1]]],
-        ],
-      );
-      E(
-        "strike",
-        () => 1 + Math.max(...G.regs.map((r) => r.hz)) / 10,
-        "man min svc",
-        0,
-        (r) => `Workers strike in ${r}`,
-        "Pay is low and work is unsafe.",
-        [
-          [
-            "Raise wages",
-            4,
-            "Strike ends",
-            [
-              ["y", 3],
-              ["e", 1],
-            ],
-          ],
-          [
-            "Send in police",
-            3,
-            "Strike broken. Anger stays",
-            [
-              ["y", -6],
-              ["s", 3],
-              ["a", -3],
-            ],
-          ],
-        ],
-      );
-      E(
-        "student",
-        1.5,
-        "tech svc",
-        0,
-        (r) => `Student protests in ${r}`,
-        "Students want jobs and fair fees.",
-        [
-          [
-            "Meet the students",
-            0,
-            "Calms campus",
-            [
-              ["y", 2],
-              ["a", 1],
-            ],
-          ],
-          [
-            "Disperse them",
-            0,
-            "Order, but anger",
-            [
-              ["y", -5],
-              ["a", -3],
-              ["s", 2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "ethnic",
-        1.5,
-        "any",
-        0,
-        (r) => `Ethnic tension rises in ${r}`,
-        "Rumours are spreading.",
-        [
-          [
-            "Hold peace talks",
-            3,
-            "Tension eases",
-            [
-              ["s", 3],
-              ["y", 2],
-            ],
-          ],
-          [
-            "Send troops",
-            5,
-            "Calm by force",
-            [
-              ["s", 6],
-              ["y", -3],
-            ],
-          ],
-          [
-            "Ignore it",
-            0,
-            "Violence flares",
-            [
-              ["s", -10],
-              ["y", -8],
-              ["e", -4],
-              ["a", -5],
-            ],
-          ],
-        ],
-      );
-      E(
-        "election",
-        1,
-        "any",
-        0,
-        () => "Election year pressure",
-        "Rivals promise handouts.",
-        [
-          ["Hand out gifts", 8, "Approval up. Money gone", [["a", 6]]],
-          [
-            "Stay honest",
-            0,
-            "Approval dips. Trust grows",
-            [
-              ["a", -3],
-              ["tr", 2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "scandal",
-        1.5,
-        "any",
-        0,
-        (r) => `Corruption scandal in ${r}`,
-        "Officials stole road money.",
-        [
-          [
-            "Fire the officials",
-            0,
-            "Painful but clean",
-            [
-              ["a", -3],
-              ["tr", 3],
-            ],
-          ],
-          [
-            "Cover it up",
-            0,
-            "Trust drops",
-            [
-              ["tr", -6],
-              ["a", -4],
-            ],
-          ],
-        ],
-      );
-      E(
-        "fire",
-        () => 0.3 + Math.max(...G.regs.map((r) => r.hz)) / 9,
-        "hz",
-        0,
-        (r) => `Factory fire in ${r}; workers killed`,
-        "Exits were locked. No inspector came.",
-        [
-          [
-            "Pay victims. Send inspectors",
-            5,
-            "Hazard drops",
-            [
-              ["z", -20],
-              ["y", -1],
-              ["e", -2],
-            ],
-          ],
-          [
-            "Blame the owners",
-            0,
-            "Anger and more risk",
-            [
-              ["y", -6],
-              ["a", -5],
-              ["e", -4],
-            ],
-          ],
-        ],
-      );
-      E(
-        "blackout",
-        2,
-        "inf",
-        0,
-        (r) => `Power blackout in ${r}`,
-        "The grid has failed.",
-        [
-          ["Fix the grid now", 5, "Lights return", [["i", 3]]],
-          [
-            "Wait it out",
-            0,
-            "Firms lose days",
-            [
-              ["e", -4],
-              ["y", -4],
-              ["a", -2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "techhub",
-        1,
-        "tech",
-        0,
-        (r) => `Tech hub funding offered in ${r}`,
-        "Investors want to back start-ups.",
-        [
-          [
-            "Match the funds",
-            4,
-            "Jobs and quality up",
-            [
-              ["e", 4],
-              ["j", 4],
-              ["i", 2],
-            ],
-          ],
-          [
-            "Take the grant only",
-            0,
-            "Smaller gain",
-            [
-              ["t", 3],
-              ["e", 2],
-            ],
-          ],
-        ],
-      );
-      E(
-        "donor",
-        1.5,
-        "any",
-        0,
-        (r) => `Donor grant offered to ${r}`,
-        "A donor wants to help.",
-        [
-          [
-            "Spend it on clinics",
-            0,
-            "Health up",
-            [
-              ["h", 8],
-              ["tr", 2],
-            ],
-          ],
-          ["Add to treasury", 0, "+KSh 10B", [["t", 10]]],
-        ],
-      );
-      E(
-        "food",
-        0,
-        "any",
-        0,
-        (r) => `Food prices jump in ${r}`,
-        "Maize flour costs far more.",
-        [
-          [
-            "Cap food prices",
-            5,
-            "Calms homes",
-            [
-              ["y", -1],
-              ["inf", 0.3],
-            ],
-          ],
-          [
-            "Do nothing",
-            0,
-            "Hunger protests likely",
-            [
-              ["y", -6],
-              ["inf", 1],
-              ["D", 1, { ev: "riot" }],
-            ],
-          ],
-        ],
-      );
-      E(
-        "riot",
-        0,
-        "any",
-        0,
-        (r) => `Hunger protests erupt in ${r}`,
-        "Crowds fill the streets.",
-        [
-          [
-            "Cut the food tax",
-            4,
-            "Calm returns",
-            [
-              ["y", 3],
-              ["a", -1],
-            ],
-          ],
-          [
-            "Send police",
-            0,
-            "Order, but bitter",
-            [
-              ["s", -3],
-              ["y", -5],
-              ["a", -5],
-              ["e", -3],
-            ],
-          ],
-        ],
-      );
-      const RK = {
-        e: "e",
-        p: "pv",
-        h: "hl",
-        i: "inf",
-        s: "sec",
-        j: "jq",
-        y: "hap",
-        r: "rd",
-        z: "hz",
-      };
-      const LV = {
-        e: (r) => r.e,
-        pv: (r) => 100 - r.pv,
-        hl: (r) => r.hl,
-        inf: (r) => r.inf,
-        hap: (r) => r.hap,
-        dg: (r) => (r.sec + r.rd + r.hl + 100 - Math.min(100, r.hz * 2)) / 4,
-      };
-      const LN = {
+      const ST = {
         e: "Jobs",
-        pv: "Poverty",
         hl: "Health",
         inf: "Roads",
+        sec: "Security",
         hap: "Mood",
-        dg: "Danger",
       };
-      const WHO = {
-          n: ["Disaster Agency", "#f59e0b"],
-          h: ["Health Secretary", "#16a34a"],
-          e: ["Treasury PS", "#3b82f6"],
-          s: ["Interior CS", "#ef4444"],
-          l: ["Labour CS", "#9333ea"],
-          c: ["Chief of Staff", "#3b82f6"],
-        },
-        CAB = ["Cabinet Secretary", "#3b82f6"],
-        FOR = ["Foreign Affairs CS", "#0ea5e9"];
-      const CAT = {};
-      [
-        ["n", "drought flood locust storm"],
-        ["h", "cholera pandemic"],
-        ["s", "student ethnic scandal riot"],
-        ["l", "strike fire blackout"],
-      ].forEach(([k, s]) => s.split(" ").forEach((i) => (CAT[i] = k)));
-      // Kenya outline in real lon/lat, projected to the SVG
-      const K = 50,
-        PX = ([lo, la]) => [(lo - 33.8) * K, (5.2 - la) * K];
-      const OUT = [
-        [34, 4.2],
-        [35, 4.4],
-        [35.95, 4.6],
-        [36.9, 4.4],
-        [38.1, 3.6],
-        [39.05, 3.52],
-        [39.9, 3.9],
-        [41, 3.95],
-        [41.9, 3.98],
-        [41, 3.1],
-        [41, -1],
-        [41.56, -1.66],
-        [40.9, -2.3],
-        [40.1, -3.2],
-        [39.65, -4.05],
-        [39.2, -4.68],
-        [37.7, -3.4],
-        [36.8, -2.55],
-        [35.4, -1.8],
-        [33.93, -1],
-        [33.9, 0],
-        [34, 0.5],
-        [34.4, 1],
-        [34.6, 1.2],
-        [34.5, 2.2],
-        [34.4, 3.4],
-      ];
-      const RP = [
-        [
-          [33, 6],
-          [43, 6],
-          [43, 1.7],
-          [33, 1.7],
-        ],
-        [
-          [33, 1.7],
-          [35, 1.7],
-          [35.3, 0.05],
-          [33, 0.05],
-        ],
-        [
-          [35, 1.7],
-          [37, 1.7],
-          [36.7, 0.5],
-          [36.55, -1.05],
-          [36.55, -1.55],
-          [37.9, -1.55],
-          [37.9, -6],
-          [33, -6],
-          [33, -1.2],
-          [35.3, -1.2],
-          [35.3, 0.05],
-        ],
-        [
-          [36.7, 0.5],
-          [37.5, 0.5],
-          [37.5, -1.05],
-          [36.55, -1.05],
-        ],
-        [
-          [37, 1.7],
-          [43, 1.7],
-          [43, -1.55],
-          [38.6, -1.55],
-          [38.6, -3],
-          [37.9, -3],
-          [37.9, -1.55],
-          [37.15, -1.55],
-          [37.15, -1.05],
-          [37.5, -1.05],
-          [37.5, 0.5],
-          [36.7, 0.5],
-        ],
-        [
-          [33, 0.05],
-          [35.3, 0.05],
-          [35.3, -1.2],
-          [33, -1.2],
-        ],
-        [
-          [36.55, -1.55],
-          [36.55, -1.05],
-          [37.15, -1.05],
-          [37.15, -1.55],
-        ],
-        [
-          [38.6, -1.55],
-          [43, -1.55],
-          [43, -6],
-          [37.9, -6],
-          [37.9, -3],
-          [38.6, -3],
-        ],
-      ];
-      const LP = [
-        [37.4, 3],
-        [34.4, 0.9],
-        [35.9, -0.3],
-        [37, -0.25],
-        [39.8, 0.7],
-        [34.5, -0.6],
-        [36.85, -1.3],
-        [40, -3],
-      ];
-      const LPX = LP.map(PX);
-      // road network between region centres
-      const RE = [
-        [0, 2],
-        [0, 4],
-        [1, 2],
-        [1, 5],
-        [2, 3],
-        [2, 6],
-        [2, 5],
-        [3, 6],
-        [3, 4],
-        [4, 6],
-        [4, 7],
-        [6, 7],
-        [5, 6],
-      ];
-      const RAIL = [
-        [7, 6],
-        [6, 2],
-        [2, 5],
-      ];
-      const ADJ = LP.map(() => []);
-      RE.forEach(([a, b]) => {
-        ADJ[a].push(b);
-        ADJ[b].push(a);
-      });
-      function route(a, b) {
-        const pv = { [a]: -1 },
-          q = [a];
-        while (q.length) {
-          const u = q.shift();
-          if (u == b) break;
-          for (const v of ADJ[u])
-            if (!(v in pv)) {
-              pv[v] = u;
-              q.push(v);
-            }
-        }
-        const p = [];
-        for (let u = b; u != -1; u = pv[u]) p.push(u);
-        return p.reverse();
-      }
-      // countries: k s=sea l=land, p=flag centre on map, v=border region, r=start relations, t=MoU types offered
+      const NN = {
+        tr: "Treasury",
+        appr: "Approval",
+        infl: "Inflation",
+        debt: "Debt",
+        trade: "Exports",
+      };
       const CO = {
-        ug: {
-          n: "Uganda",
-          k: "l",
-          v: 1,
-          p: [-25, 125],
-          r: 65,
-          t: "trade sec",
-          d: "Western neighbour and top regional buyer.",
-        },
-        tz: {
-          n: "Tanzania",
-          k: "l",
-          v: 5,
-          p: [75, 470],
-          r: 55,
-          t: "trade infra",
-          d: "Southern neighbour and trade corridor.",
-        },
-        et: {
-          n: "Ethiopia",
-          k: "l",
-          v: 0,
-          p: [205, 28],
-          r: 58,
-          t: "trade sec",
-          d: "Northern neighbour. Livestock and power links.",
-        },
-        so: {
-          n: "Somalia",
-          k: "l",
-          v: 4,
-          p: [420, 225],
-          r: 45,
-          t: "sec trade",
-          d: "Eastern neighbour. Border security matters.",
-        },
-        us: {
-          n: "United States",
-          k: "s",
-          p: [500, 280],
-          r: 60,
-          t: "trade sec health tech",
-          d: "Large buyer of apparel, tea and tech services.",
-        },
-        ae: {
-          n: "UAE",
-          k: "s",
-          p: [500, 315],
-          r: 62,
-          t: "trade infra tour",
-          d: "Gulf hub for tea, flowers and investment.",
-        },
-        in: {
-          n: "India",
-          k: "s",
-          p: [500, 350],
-          r: 60,
-          t: "trade health tech",
-          d: "Source of medicine, vehicles and fuel trade.",
-        },
-        cn: {
-          n: "China",
-          k: "s",
-          p: [500, 385],
-          r: 58,
-          t: "trade infra tech",
-          d: "Largest lender and builder of railways and ports.",
-        },
-        jp: {
-          n: "Japan",
-          k: "s",
-          p: [500, 420],
-          r: 58,
-          t: "infra tech health",
-          d: "Port and power financing partner.",
-        },
-        eu: {
-          n: "European Union",
-          k: "s",
-          p: [500, 455],
-          r: 57,
-          t: "trade health tour tech",
-          d: "Buyer of flowers, coffee and vegetables.",
-        },
-        gb: {
-          n: "United Kingdom",
-          k: "s",
-          p: [500, 490],
-          r: 59,
-          t: "sec tech trade",
-          d: "Old partner in security, tea and finance.",
-        },
+        ug: ["Uganda", 65],
+        tz: ["Tanzania", 55],
+        et: ["Ethiopia", 58],
+        cn: ["China", 58],
+        us: ["United States", 60],
+        ae: ["UAE", 62],
+        gb: ["United Kingdom", 59],
+        eu: ["European Union", 57],
+      };
+      const PJ = {
+        road: ["Build roads and power", 9, 30, { inf: 14, e: 3 }],
+        clinic: ["Build clinics", 6, 30, { hl: 12 }],
+        police: ["Fund police and courts", 5, 15, { sec: 10 }],
+        jobs: ["Open a job program", 6, 20, { e: 8, hap: 2 }],
+        relief: ["Give relief aid", 3, 0, { hap: 8 }],
       };
       const MT = {
-        trade: {
-          n: "Trade MoU",
-          c: 3,
-          d: "Exports +6% while active. Relations +8.",
-        },
-        infra: {
-          n: "Infrastructure financing MoU",
-          c: 2,
-          d: "+KSh 20B loan now (adds debt). +8 roads in the two weakest regions.",
-        },
-        sec: {
-          n: "Security cooperation MoU",
-          c: 3,
-          d: "+6 security in every region.",
-        },
-        health: {
-          n: "Health partnership MoU",
-          c: 2,
-          d: "+5 health in every region.",
-        },
-        tour: {
-          n: "Tourism and visa MoU",
-          c: 2,
-          d: "+6 jobs in tourism and port regions. Exports +3% while active.",
-        },
-        tech: {
-          n: "Tech and education MoU",
-          c: 3,
-          d: "+4 job quality everywhere. +5 jobs in tech and factories.",
-        },
+        trade: ["Trade MoU", 3, { trade: 0.2 }, "Exports rise every day"],
+        health: ["Health MoU", 2, { hl: 5 }, "Health up everywhere"],
+        sec: ["Security MoU", 3, { sec: 5 }, "Security up everywhere"],
       };
-      // flags as inline SVG (work on every device)
-      const R_ = (x, y, w, h, f) =>
-          `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`,
-        C_ = (x, y, r, f) =>
-          `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`,
-        S_ = (x, y, r, f = "#fff") => {
-          const p = [];
-          for (let i = 0; i < 10; i++) {
-            const a = -Math.PI / 2 + (i * Math.PI) / 5,
-              q = i % 2 ? r * 0.4 : r;
-            p.push(
-              (x + q * Math.cos(a)).toFixed(1) +
-                "," +
-                (y + q * Math.sin(a)).toFixed(1),
-            );
-          }
-          return `<polygon points="${p.join(" ")}" fill="${f}"/>`;
-        },
-        stripes = (cols) =>
-          cols
-            .map((c, i) =>
-              R_(0, (i * 20) / cols.length, 30, 20 / cols.length + 0.2, c),
-            )
-            .join("");
-      const FLAGS = {
-        ke:
-          R_(0, 0, 30, 6, "#000") +
-          R_(0, 6, 30, 1, "#fff") +
-          R_(0, 7, 30, 6, "#bb0000") +
-          R_(0, 13, 30, 1, "#fff") +
-          R_(0, 14, 30, 6, "#006600") +
-          `<ellipse cx="15" cy="10" rx="3" ry="5.5" fill="#bb0000" stroke="#fff" stroke-width=".8"/><path d="M15 5v10" stroke="#fff" stroke-width=".8"/>`,
-        cn:
-          R_(0, 0, 30, 20, "#de2910") +
-          S_(6, 6, 4, "#ffde00") +
-          S_(12, 2.5, 1.2, "#ffde00") +
-          S_(14, 5, 1.2, "#ffde00") +
-          S_(14, 8, 1.2, "#ffde00") +
-          S_(12, 10.5, 1.2, "#ffde00"),
-        us:
-          stripes([
-            "#b22234",
-            "#fff",
-            "#b22234",
-            "#fff",
-            "#b22234",
-            "#fff",
-            "#b22234",
-          ]) +
-          R_(0, 0, 13, 11, "#3c3b6e") +
+      const EV = [
+        [
+          "drought",
+          "Drought hits {r}",
+          "The rains failed. Herds and crops are stressed.",
           [
-            [3, 3],
-            [7, 3],
-            [11, 3],
-            [5, 6],
-            [9, 6],
-            [3, 9],
-            [7, 9],
-            [11, 9],
-          ]
-            .map(([x, y]) => C_(x, y, 0.9, "#fff"))
-            .join(""),
-        ae:
-          R_(0, 0, 30, 20, "#fff") +
-          R_(0, 0, 30, 6.7, "#00732f") +
-          R_(0, 13.3, 30, 6.7, "#000") +
-          R_(0, 0, 8, 20, "#ff0000"),
-        in:
-          stripes(["#ff9933", "#fff", "#138808"]) +
-          `<circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" stroke-width=".8"/>`,
-        gb:
-          R_(0, 0, 30, 20, "#012169") +
-          `<path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.5"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#c8102e" stroke-width="3.5"/>`,
-        eu:
-          R_(0, 0, 30, 20, "#003399") +
-          Array.from({ length: 12 }, (_, i) =>
-            C_(
-              (15 + 6 * Math.cos((i * Math.PI) / 6)).toFixed(1),
-              (10 + 6 * Math.sin((i * Math.PI) / 6)).toFixed(1),
-              0.9,
-              "#ffcc00",
-            ),
-          ).join(""),
-        jp: R_(0, 0, 30, 20, "#fff") + C_(15, 10, 5, "#bc002d"),
-        ug:
-          stripes([
-            "#000",
-            "#fcdc04",
-            "#d90000",
-            "#000",
-            "#fcdc04",
-            "#d90000",
-          ]) +
-          C_(15, 10, 4, "#fff") +
-          C_(15, 10, 2, "#555"),
-        tz:
-          R_(0, 0, 30, 20, "#1eb53a") +
-          `<path d="M30 0V20H0Z" fill="#00a3dd"/><path d="M0 20L30 0" stroke="#fcd116" stroke-width="7"/><path d="M0 20L30 0" stroke="#000" stroke-width="5"/>`,
-        et:
-          stripes(["#078930", "#fcdd09", "#da121a"]) +
-          C_(15, 10, 4.5, "#0f47af") +
-          S_(15, 10, 3.2, "#fcdd09"),
-        so: R_(0, 0, 30, 20, "#4189dd") + S_(15, 10, 5),
-      };
-      const F = (c, a = "") =>
-        `<svg viewBox="0 0 30 20" ${a}>${FLAGS[c]}</svg>`;
-      const OB = ["Uganda", "Tanzania", "Ethiopia", "Somalia"];
-      const XB = {
-        ag: 1.2,
-        tour: 1.4,
-        man: 1,
-        min: 1.3,
-        tech: 0.9,
-        port: 1.1,
-        live: 0.9,
-        svc: 0.8,
-      };
-      const XT = {
-        ag: (n, d) => `${n} tonnes of tea and coffee sail from Mombasa to ${d}`,
-        live: (n, d) => `${n} tonnes of beef and hides leave for ${d}`,
-        tour: (n) => `${n * 3} tourists land at Jomo Kenyatta and Moi airports`,
-        man: (n, d) => `${n} tonnes of cement and steel head to ${d}`,
-        min: (n, d) => `${n} tonnes of soda ash and titanium leave for ${d}`,
-        tech: (n, d) =>
-          `Software contracts worth US$${(n / 50).toFixed(1)}M signed with ${d} clients`,
-        port: (n) =>
-          `${n} transit containers cross to ${pick(["Uganda", "Rwanda", "South Sudan"])}`,
-        svc: (n) => `Banks receive US$${(n / 20).toFixed(1)}M in remittances`,
-      };
-      const IMP = [
-          "fuel",
-          "machinery",
-          "wheat",
-          "cooking oil",
-          "phones",
-          "used cars",
-          "fertiliser",
+            ["Truck in water and feed", { tr: -5, hap: 2, e: -1 }],
+            ["Wait for rain", { hap: -3, e: -2, appr: -1 }],
+          ],
         ],
-        DEST = [
-          "Dubai",
-          "Rotterdam",
-          "Mumbai",
-          "Shanghai",
-          "Kampala",
-          "Kigali",
-          "Karachi",
-        ];
-      const CR = [
-        "Armed robbery reported in {r}",
-        "Mobile money agent robbed in {r}",
-        "Phone snatchers hit commuters in {r}",
-        "Mob justice after market theft in {r}",
-        "Cattle raiders strike near {r}",
-        "Fraud gang arrested in {r}",
-        "Illegal charcoal seized in {r}",
-        "Police patrols cut crime in {r}",
+        [
+          "flood",
+          "Floods in {r}",
+          "Rivers burst their banks.",
+          [
+            ["Send rescue and tents", { tr: -5, hap: 3, inf: -2 }],
+            ["Let local councils cope", { hap: -4, inf: -4, appr: -1 }],
+          ],
+        ],
+        [
+          "cholera",
+          "Cholera cases in {r}",
+          "Dirty water is spreading disease.",
+          [
+            ["Open clinics and clean water", { tr: -4, hl: 4, hap: 1 }],
+            ["Watch and wait", { hl: -5, hap: -3 }],
+          ],
+        ],
+        [
+          "strike",
+          "Workers strike in {r}",
+          "Pay is low and work is tough.",
+          [
+            ["Raise wages", { tr: -4, hap: 4, e: 1 }],
+            ["Hold talks only", { hap: 1, appr: -1 }],
+          ],
+        ],
+        [
+          "blackout",
+          "Power blackout in {r}",
+          "The grid has failed.",
+          [
+            ["Repair the grid now", { tr: -4, inf: 4 }],
+            ["Wait it out", { e: -2, hap: -2 }],
+          ],
+        ],
+        [
+          "investor",
+          "Investor eyes {r}",
+          "A firm wants to build here.",
+          [
+            ["Welcome with fair rules", { e: 5, hap: 2, appr: 1 }],
+            ["Fast-track with lighter rules", { e: 8, sec: -2, appr: -1 }],
+            ["Say no", {}],
+          ],
+        ],
+        [
+          "donor",
+          "Donor grant for {r}",
+          "A donor wants to help.",
+          [
+            ["Spend it on clinics", { hl: 6, appr: 1 }],
+            ["Add it to the treasury", { tr: 10 }],
+          ],
+        ],
+        [
+          "oil",
+          "Oil prices rise",
+          "Fuel costs more everywhere.",
+          [
+            ["Subsidise fuel", { tr: -8, infl: 0.2 }],
+            ["Let prices rise", { infl: 1.5, appr: -3 }],
+          ],
+        ],
+        [
+          "fest",
+          "Tourism boom in {r}",
+          "Visitors are flocking in.",
+          [
+            ["Market the region", { tr: -3, e: 5, hap: 2 }],
+            ["Let it grow on its own", { e: 2 }],
+          ],
+        ],
       ];
+      const evd = (id) => EV.find((e) => e[0] == id);
       let G,
-        FL = [],
-        PO = [],
-        SEL = null,
-        SH = [],
-        PA = [],
-        DIRTY = 1,
-        LSIG = "",
-        CT = 0;
-      const M = (x) => "KSh " + Math.round(x * 1000) + "M",
-        chatOpen = () => $("#dlg").classList.contains("on");
-      const Q = () => (G.day / DPQ) | 0,
-        yq = () => `Q${(Q() % 4) + 1} ${2027 + ((Q() / 4) | 0)}`;
-      const W = (k) => {
-        let s = 0,
-          p = 0;
-        for (const r of G.regs) {
-          s += r[k] * r.pop;
-          p += r.pop;
-        }
-        return s / p;
-      };
-      // news items: {d day, m text, r region ids, l local-only}
-      function news(m, rid, loc) {
-        G.news.unshift({
-          d: G.day * 3,
-          m,
-          r: rid == null ? [] : [].concat(rid),
-          l: loc ? 1 : 0,
-        });
-        G.news.length = Math.min(G.news.length, 80);
-      }
-      function led(m, a, c) {
-        G.led.unshift([m, a, c]);
-        G.led.length = Math.min(G.led.length, 8);
-      }
-      function toast(m) {
-        const t = $("#toast");
-        t.textContent = m;
-        t.classList.add("on");
-        clearTimeout(toast.h);
-        toast.h = setTimeout(() => t.classList.remove("on"), 2300);
-      }
-      function save() {
-        try {
-          localStorage.setItem("kenya1", JSON.stringify(G));
-        } catch (e) {}
-      }
-      function setH(el, h) {
-        if (el._h !== h) {
-          el._h = h;
-          el.innerHTML = h;
-        }
-      }
-      function fx(ops, r, m = 1) {
-        for (const [k, v0, x] of ops) {
-          const v = v0 < 0 ? v0 * m : v0;
-          if (k == "D") G.dl.push({ due: G.day + v0 * DPQ, rid: r.id, fx: x });
-          else if (RK[k]) r[RK[k]] = clamp(r[RK[k]] + v);
-          else if (k == "t") G.tr += v;
-          else if (k == "a") G.appr = clamp(G.appr + v);
-          else if (k == "tr") G.trust = clamp(G.trust + v);
-          else if (k == "inf") G.infl = Math.max(0, G.infl + v);
-          else if (k == "g") G.gm += v;
-        }
-      }
-      function newGame() {
-        const rel = {};
-        for (const c in CO) rel[c] = CO[c].r;
+        tab = "news",
+        layer = "e",
+        IT = [],
+        pic = "",
+        NFV = "all",
+        SIG = {};
+
+      function fresh(name, p) {
         G = {
-          v: 3,
+          name,
+          pic: p,
           day: 0,
+          ap: 3,
           tr: 50,
           debt: 120,
           gdp: 3.5,
           infl: 6,
           appr: 58,
-          trust: 60,
           tax: 1,
-          ap: 3,
-          mood: 0,
           pr: 0,
-          gm: 0,
-          corr: 0.12,
-          drive: 0,
-          fx: 129,
-          fxq: 129,
-          ex: 0,
-          im: 0,
-          crime: 0,
-          cn: 0,
-          taxc: 0,
-          paid: 0,
-          rate: 0,
-          sint: 0,
-          speed: 1,
-          layer: "e",
-          over: null,
-          q: [],
-          dl: [],
-          pend: [],
+          spd: 1,
+          trade: 0,
           uid: 0,
-          rel,
-          mou: [],
-          cf: null,
-          ev: [],
-          news: [],
-          led: [],
-          hist: [],
-          mv: "",
-          mvr: [],
-          th: {},
-          regs: T.map(
-            ([n, b, pts, pop, e, jq, pv, hl, inf, sec, hap, rd], id) => ({
-              id,
-              n,
-              b,
-              pop,
-              e,
-              jq,
-              pv,
-              hl,
-              inf,
-              sec,
-              hap,
-              rd,
-              std: 1,
-              hz: 0,
-              prog: 0,
-              hosp: 0,
-              prod: 0,
-              stdT: 0,
-              tx: 0,
-              cr: 0,
-            }),
-          ),
-        };
-        sched();
-        news("You take office. The economy is open for business.");
-        SH = [];
-        LSIG = "";
-        DIRTY = 1;
-        save();
-      }
-      function pickR(sp) {
-        const w = G.regs.map((r) =>
-          sp == "any"
-            ? 1
-            : sp == "hz"
-              ? 1 + r.hz / 8
-              : sp == "inf"
-                ? 1 + (100 - r.inf) / 15
-                : sp == "hl"
-                  ? 1 + (100 - r.hl) / 15
-                  : sp.split(" ").includes(r.b)
-                    ? 5
-                    : 1,
-        );
-        let x = Math.random() * w.reduce((a, b) => a + b, 0);
-        for (let i = 0; i < w.length; i++) {
-          x -= w[i];
-          if (x <= 0) return G.regs[i];
-        }
-        return G.regs[0];
-      }
-      function sched() {
-        const n = 1 + (Math.random() < 0.5) + (Math.random() < 0.2),
-          used = [];
-        for (let i = 0; i < n; i++) {
-          const L = Object.values(EV)
-            .map((e) => [e, typeof e.w == "function" ? e.w() : e.w])
-            .filter(([e]) => !used.includes(e.id));
-          let x = Math.random() * L.reduce((a, b) => a + b[1], 0),
-            e = L[0][0];
-          for (const [d, w] of L) {
-            x -= w;
-            if (x <= 0) {
-              e = d;
-              break;
-            }
-          }
-          used.push(e.id);
-          G.ev.push({ at: G.day + 3 + ((Math.random() * 24) | 0), id: e.id });
-        }
-      }
-      // an event becomes a regional alert. It never interrupts: open it from the region or the alerts list
-      function trig(id, rid) {
-        const e = EV[id],
-          r = rid == null ? pickR(e.pk) : G.regs[rid];
-        G.pend.push({ u: ++G.uid, id, rid: r.id, exp: G.day + SIM.evWait });
-        FL.push(r.id);
-        news(e.t(r.n), r.id);
-        toast("Alert in " + r.n + ". Tap the region to respond.");
-      }
-      const defCh = (e) => {
-        let i = e.ch.length - 1;
-        for (let j = i; j >= 0; j--)
-          if (!e.ch[j][1]) {
-            i = j;
-            break;
-          }
-        return i;
-      };
-      function resolve(p, ci, auto) {
-        const e = EV[p.id],
-          r = G.regs[p.rid],
-          [l, c, d, ops] = e.ch[ci],
-          m =
-            e.sc == 1
-              ? 1.5 - r.rd / 100
-              : e.sc == 2
-                ? Math.max(0.5, 1.5 - r.hosp * 0.3 - r.hl / 200)
-                : 1;
-        const ix = G.pend.indexOf(p);
-        if (ix < 0) return;
-        G.pend.splice(ix, 1);
-        if (!auto) {
-          G.tr -= c;
-          if (c) led("Emergency spending", "-KSh " + c + "B", "rd");
-        }
-        fx(ops, r, m);
-        G.mood += !auto && c ? 2 : -1;
-        news(
-          auto
-            ? `${r.n}: no decision, so "${l}" happened. ${d}`
-            : `${r.n}: ${l}. ${d}`,
-          r.id,
-        );
-        toast(auto ? r.n + ": no decision taken" : d);
-        DIRTY = 1;
-        save();
-      }
-      // particles travel along road paths
-      function pt(pts, c, r = 3, fl) {
-        if (PA.length > 60 || pts.length < 2) return;
-        const sg = [];
-        let len = 0;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const s = Math.hypot(
-            pts[i + 1][0] - pts[i][0],
-            pts[i + 1][1] - pts[i][1],
-          );
-          sg.push(s);
-          len += s;
-        }
-        const e = document.createElementNS(NS, "circle");
-        e.setAttribute("r", r);
-        e.setAttribute("fill", c);
-        e.setAttribute("cx", pts[0][0]);
-        e.setAttribute("cy", pts[0][1]);
-        if (c == "#f8fafc") {
-          e.setAttribute("stroke", "#3b82f6");
-          e.setAttribute("stroke-width", 1.5);
-        }
-        $("#pt").append(e);
-        PA.push({ e, pts, sg, len, t: 0, d: Math.max(0.9, len / 110), fl });
-      }
-      const rpts = (a, b) => route(a, b).map((i) => LPX[i]);
-      function pathTo(i, cc) {
-        const c = CO[cc];
-        return rpts(i, c.k == "s" ? 7 : c.v).concat([c.p]);
-      }
-      function pickP() {
-        const ks = Object.keys(CO),
-          w = ks.map(
-            (k) =>
-              Math.max(1, G.rel[k] - 30) *
-              (G.mou.some((m) => m.c == k && m.t == "trade") ? 2.5 : 1),
-          );
-        let x = Math.random() * w.reduce((a, b) => a + b, 0);
-        for (let i = 0; i < ks.length; i++) {
-          x -= w[i];
-          if (x <= 0) return ks[i];
-        }
-        return ks[0];
-      }
-      function ft(x, y, t, c) {
-        const e = document.createElementNS(NS, "text");
-        e.setAttribute("x", x);
-        e.setAttribute("y", y - 6);
-        e.setAttribute("class", "ftx");
-        e.style.fill = c;
-        e.textContent = t;
-        $("#ft").append(e);
-        setTimeout(() => e.remove(), 1300);
-      }
-      function ring(i) {
-        if (PA.length > 60) return;
-        const [x, y] = PX(LP[i]),
-          e = document.createElementNS(NS, "circle");
-        e.setAttribute("cx", x + (Math.random() * 30 - 15));
-        e.setAttribute("cy", y + (Math.random() * 30 - 15));
-        e.setAttribute("fill", "none");
-        e.setAttribute("stroke", "#ef4444");
-        e.setAttribute("stroke-width", 2);
-        $("#pt").append(e);
-        PA.push({ e, ring: 1, t: 0, d: 1 });
-      }
-      function thr(k, v, t) {
-        const b = Math.floor(v);
-        if (G.th[k] == null) {
-          G.th[k] = b;
-          return;
-        }
-        if (b != G.th[k]) {
-          news(t(b > G.th[k]));
-          G.th[k] = b;
-        }
-      }
-      function tick() {
-        const R = G.regs,
-          f = 1 / DPQ;
-        G.day++;
-        DIRTY = 1;
-        G.q = G.q.filter((i) => {
-          if (--i.left > 0) return true;
-          const r = R[i.rid];
-          A[i.k].done(r);
-          news(A[i.k].fin(r.n), r.id);
-          FL.push(r.id);
-          ft(...LPX[r.id], "Finished!", "#22c55e");
-          return false;
-        });
-        G.dl = G.dl.filter((d) => {
-          if (d.due > G.day) return true;
-          const r = R[d.rid];
-          if (d.fx.ev) trig(d.fx.ev, d.rid);
-          if (d.fx.prod) {
-            r.prod += d.fx.prod;
-            news("Trained workers lift output in " + r.n, r.id);
-          }
-          return false;
-        });
-        G.ev = G.ev.filter((v) => {
-          if (v.at > G.day) return true;
-          trig(v.id);
-          return false;
-        });
-        G.pend.slice().forEach((p) => {
-          if (p.exp <= G.day) resolve(p, defCh(EV[p.id]), 1);
-        });
-        let crimes = 0;
-        R.forEach((r) => {
-          const sb = [SIM.lowE, 0, SIM.hiE][r.std],
-            strong = r.std == 2 && G.day - r.stdT >= 3 * DPQ;
-          const tg =
-            28 +
-            0.32 * r.inf +
-            0.22 * r.sec +
-            0.12 * r.hl +
-            sb +
-            r.prog * 8 +
-            r.prod * 8 -
-            (G.tax > 1 ? 3 : 0);
-          r.e = clamp(r.e + (tg - r.e) * SIM.drift * f + rnd(0.04));
-          r.jq = clamp(
-            r.jq + (r.std == 0 ? -0.6 : strong ? 0.7 : 0.1) * f + rnd(0.02),
-          );
-          r.hz = clamp(
-            r.hz +
-              ((r.std == 0 ? SIM.hzLow : r.std == 1 ? -1 : -2) - r.sec / 80) *
-                f,
-          );
-          r.pv = clamp(
-            r.pv +
-              ((100 - r.e) * 0.7 + (100 - r.jq) * 0.1 - r.pv) * 0.2 * f +
-              rnd(0.03),
-          );
-          r.hl = clamp(
-            r.hl +
-              (r.inf * 0.3 + r.hosp * 6 + 35 - r.hl) * 0.05 * f +
-              rnd(0.02),
-          );
-          r.sec = clamp(r.sec - (0.3 + (r.pv > 45 ? 0.3 : 0)) * f + rnd(0.02));
-          r.inf = clamp(r.inf - 0.25 * f);
-          r.rd = clamp(r.rd - 0.2 * f);
-          r.hap = clamp(
-            r.hap +
-              (0.35 * r.e +
-                0.2 * r.hl +
-                0.15 * r.sec +
-                0.1 * r.inf +
-                0.2 * (100 - r.pv) -
-                r.hap) *
-                0.3 *
-                f +
-              rnd(0.05),
-          );
-          r.pop *= 1 + 0.004 * f;
-          r.cr = Math.floor(
-            r.pop * (0.12 + (100 - r.sec) / 400 + r.pv / 500) + Math.random(),
-          );
-          crimes += r.cr;
-          if (
-            r.hz > SIM.hzMax &&
-            Math.random() < ((r.hz - SIM.hzMax) / 70 + 0.1) * f
-          ) {
-            trig(Math.random() < 0.6 ? "fire" : "strike", r.id);
-            G.appr = clamp(G.appr - 0.5);
-          }
-        });
-        const nT = G.mou.filter((m) => m.t == "trade").length,
-          nU = G.mou.filter((m) => m.t == "tour").length,
-          mx = 1 + 0.06 * nT + 0.03 * nU;
-        let rv = 0,
-          ex = 0,
-          im = 0;
-        R.forEach((r) => {
-          r.tx =
-            (((r.pop * r.e) / 100) *
-              (0.5 + r.jq / 200) *
-              (1 + r.prod) *
-              (r.std == 2 && G.day - r.stdT >= 3 * DPQ ? 1.12 : 1) *
-              SIM.tax[G.tax][0] *
-              SIM.rev *
-              (1 - G.corr)) /
-            DPQ;
-          rv += r.tx;
-          ex +=
-            ((r.pop * r.e) / 100) *
-            XB[r.b] *
-            0.0065 *
-            mx *
-            (G.fx / 129) *
-            (1 + (r.inf - 50) / 300);
-          im += r.pop * 0.0047 * (G.fx / 129) * (1 + G.infl / 60);
-        });
-        const rk = Object.keys(G.rel);
-        rk.forEach((c) => {
-          G.rel[c] = clamp(
-            G.rel[c] +
-              (50 + 4 * G.mou.filter((m) => m.c == c).length - G.rel[c]) *
-                0.1 *
-                f +
-              rnd(0.05),
-          );
-        });
-        const ar = rk.reduce((s, c) => s + G.rel[c], 0) / rk.length;
-        const progs = R.filter((r) => r.prog).length,
-          aus = G.tr < 0,
-          sp = (SIM.base - (aus ? 4 : 0) + progs * SIM.progC) / DPQ,
-          int = (G.debt * SIM.intRate) / DPQ,
-          rp = (G.debt * SIM.repay) / DPQ,
-          cc = crimes * SIM.crimeC;
-        const net = rv - sp - int - rp - cc;
-        G.tr += net;
-        G.debt -= rp;
-        G.rate = net / 3;
-        G.sint = int / 3;
-        G.cn = crimes;
-        G.taxc += rv;
-        G.paid += int;
-        G.ex += ex;
-        G.im += im;
-        G.crime += crimes;
-        G.cf = { rv, sp, int, rp, cc, ex, im };
-        const dfx =
-          (im - ex) * 0.8 +
-          (G.infl - 4) * 0.003 -
-          (G.trust - 60) * 0.003 -
-          (G.fx - 129) * 0.0012 +
-          rnd(0.12);
-        G.fx = clamp(G.fx + dfx, 80, 320);
-        G.debt += (G.debt * 0.4 * dfx) / G.fx;
-        G.gdp +=
-          (3.2 +
-            0.05 * (W("inf") - 50) +
-            0.06 * (W("e") - 60) +
-            G.gm -
-            (G.tax - 1) * 0.8 +
-            (ex - im) * 5 -
-            G.gdp) *
-            0.4 *
-            f +
-          rnd(0.02);
-        G.gm *= 0.977;
-        const it =
-          4 +
-          G.pr +
-          progs * 0.6 +
-          (G.tr < 20 ? 1.5 : 0) -
-          (G.tr > 60 ? 1 : 0) +
-          (G.fx - 129) * 0.008;
-        G.infl = Math.max(0, G.infl + (it - G.infl) * 0.3 * f + rnd(0.01));
-        G.pr *= 0.983;
-        const T2 =
-          0.28 * W("e") +
-          0.12 * W("hl") +
-          0.12 * W("sec") +
-          0.2 * clamp(110 - G.infl * 7) +
-          0.1 * (100 - W("pv")) +
-          0.08 * (100 - G.tax * 30) +
-          0.1 * W("hap") +
-          G.mood;
-        G.appr = clamp(G.appr + (T2 - G.appr) * 0.25 * f + rnd(0.04));
-        G.mood *= 0.98;
-        G.trust = clamp(
-          G.trust +
-            (62 -
-              Math.max(0, G.debt - 150) * 0.08 -
-              G.corr * 60 +
-              (G.tr < 0 ? -10 : 0) +
-              (W("sec") - 55) * 0.1 +
-              (ar - 55) * 0.1 -
-              G.trust) *
-              0.2 *
-              f,
-        );
-        flows(rv, sp, int, rp, cc, ex, im, crimes, progs);
-        thr(
-          "i",
-          G.infl,
-          (u) =>
-            `Inflation ${u ? "rises to" : "falls to"} ${G.infl.toFixed(1)}%`,
-        );
-        thr(
-          "u",
-          100 - W("e"),
-          (u) =>
-            `Unemployment ${u ? "rises to" : "falls to"} ${(100 - W("e")).toFixed(1)}%`,
-        );
-        thr(
-          "f",
-          G.fx / 5,
-          (u) =>
-            `Shilling ${u ? "weakens" : "strengthens"} to ${G.fx.toFixed(1)} per dollar`,
-        );
-        if (G.day % DPQ == 0) qEnd();
-        if (G.day % 10 == 0) save();
-        if (G.tr < SIM.loseT || G.debt >= SIM.maxDebt)
-          return end("Debt Spiral");
-        if (G.appr < SIM.loseAppr) return end("Voted Out");
-        if (R.filter((r) => r.hap < SIM.revolt).length >= 3)
-          return end("Country in Revolt");
-        if (G.day >= TURNS * DPQ) return end(verdict());
-      }
-      // one live local headline for a region
-      function regNews(r, ex) {
-        const q = G.q.find((i) => i.rid == r.id),
-          pr = Math.round(150 + G.infl * 2.5 + (G.fx - 129) * 0.3),
-          mo = G.mou.length ? pick(G.mou) : null;
-        return pick([
-          `${r.n} employs ${Math.round(r.pop * 4.5 * r.e).toLocaleString()}k workers. Unemployment is ${(100 - r.e).toFixed(1)}%`,
-          `Poverty in ${r.n} stands at ${Math.round(r.pv)}%. Mood is ${Math.round(r.hap)} out of 100`,
-          q
-            ? `${A[q.k].n} in ${r.n} is ${Math.round(100 - (q.left / (A[q.k].q * DPQ)) * 100)}% done`
-            : `Roads and power in ${r.n} are rated ${Math.round(r.inf)} out of 100`,
-          `Clinics in ${r.n} treat ${Math.round(r.pop * 900 * (1 + (100 - r.hl) / 80)).toLocaleString()} patients today`,
-          `${r.cr} crimes reported in ${r.n} today. Security is ${Math.round(r.sec)} out of 100`,
-          XT[r.b](Math.round(40 + ex * 3000 * Math.random()), pick(DEST)),
-          `${r.n} pays ${M(r.tx * 2.33)} in tax this week`,
-          r.hz > SIM.hzMax
-            ? `Inspectors warn of unsafe factories in ${r.n}`
-            : `Disaster readiness in ${r.n} is ${Math.round(r.rd)} out of 100`,
-          `Maize flour costs KSh ${pr} for 2 kg in ${r.n}`,
-          mo
-            ? `Traders in ${r.n} gain from the ${MT[mo.t].n} with ${CO[mo.c].n}`
-            : `${r.n} traders ask for new trade deals`,
-        ]);
-      }
-      function flows(rv, sp, int, rp, cc, ex, im, crimes, progs) {
-        const R = G.regs;
-        let x = Math.random() * rv,
-          rt = R[0];
-        for (const r of R) {
-          x -= r.tx;
-          if (x <= 0) {
-            rt = r;
-            break;
-          }
-        }
-        led("Tax from " + rt.n, "+" + M(rt.tx), "gr");
-        const s = Math.random();
-        if (s < 0.4)
-          led(
-            "Wages and services",
-            "-" + M(sp * (0.4 + Math.random() * 0.4)),
-            "rd",
-          );
-        else if (s < 0.65) led("Interest to lenders", "-" + M(int), "rd");
-        else if (s < 0.8) led("Bond repayment", "-" + M(rp), "rd");
-        else
-          led(
-            crimes ? "Crime losses" : "Job programs",
-            "-" + M(crimes ? cc : (progs * SIM.progC) / DPQ),
-            "rd",
-          );
-        const t = Math.random() < 0.5;
-        led(
-          t ? "Exports earn" : "Imports cost",
-          (t ? "+" : "-") +
-            "US$" +
-            ((1000 * (t ? ex : im)) / G.fx).toFixed(1) +
-            "M",
-          t ? "gr" : "rd",
-        );
-        // taxes flow to Nairobi along the roads
-        let i = (Math.random() * 8) | 0;
-        if (i != 6)
-          pt(rpts(i, 6), "#fbbf24", 3, ["+" + M(R[i].tx * 3), "#fbbf24", 6]);
-        // exports: region -> Mombasa -> overseas buyer, or overland to a neighbour
-        i = (Math.random() * 8) | 0;
-        let cx = pickP();
-        pt(pathTo(i, cx), "#60a5fa", 3);
-        // imports: partner -> port or border -> region
-        i = (Math.random() * 8) | 0;
-        cx = pickP();
-        pt(pathTo(i, cx).slice().reverse(), "#fb923c", 3);
-        // railway freight Mombasa -> Nairobi -> Rift
-        if (Math.random() < 0.25)
-          pt(rpts(7, Math.random() < 0.5 ? 6 : 2), "#f8fafc", 4);
-        R.forEach((r) => {
-          if (r.cr >= 2 && Math.random() < 0.35) ring(r.id);
-        });
-        if (G.day % 3 == 0) {
-          const a = pick(R),
-            b = pick(R),
-            at = (r) => r.e * 0.5 + r.hap * 0.3 + r.inf * 0.2;
-          if (a != b && at(b) - at(a) > 4) {
-            const m = Math.min(0.03, (a.pop * 0.0015 * (at(b) - at(a))) / 15);
-            a.pop -= m;
-            b.pop += m;
-            pt(rpts(a.id, b.id), "#22c55e", 2.5);
-            G.mv = `About ${(Math.round(m * 1e4) * 100).toLocaleString()} people move from ${a.n} to ${b.n} for work`;
-            G.mvr = [a.id, b.id];
-            if (Math.random() < 0.4) news(G.mv, G.mvr);
-          }
-        }
-        // national feed (tagged with the regions involved)
-        if (Math.random() < 0.45) {
-          const r = pick(R),
-            pr = R.slice().sort((a, b) => b.cr - a.cr)[0],
-            k = (Math.random() * 9) | 0;
-          let m,
-            rid = null;
-          if (k == 0) {
-            m = XT[r.b](Math.round(40 + ex * 3000 * Math.random()), pick(DEST));
-            rid = r.id;
-          } else if (k == 1) {
-            m = `Tanker docks at Mombasa with ${Math.round(900 + im * 9000 * Math.random())} tonnes of ${pick(IMP)}`;
-            rid = 7;
-          } else if (k < 4) {
-            m = pick(CR).replace("{r}", pr.n);
-            rid = pr.id;
-          } else if (k == 4) {
-            m = G.mv;
-            rid = G.mvr;
-          } else if (k == 5)
-            m = `Treasury collects ${M(rv * 2.33)} in tax this week`;
-          else if (k == 6)
-            m = `Lenders receive ${M(int * 2.33)} in interest this week. Debt is KSh ${Math.round(G.debt)}B`;
-          else if (k == 7) {
-            m = `${r.n} employs ${Math.round(r.pop * 4.5 * r.e).toLocaleString()}k workers. Poverty is ${Math.round(r.pv)}%`;
-            rid = r.id;
-          } else {
-            m = `Maize flour costs KSh ${Math.round(150 + G.infl * 2.5 + (G.fx - 129) * 0.3)} for 2 kg in ${r.n}`;
-            rid = r.id;
-          }
-          if (m) news(m, rid);
-        }
-        // every region keeps getting its own local headlines
-        if (Math.random() < 0.7) {
-          const r = pick(R);
-          news(regNews(r, ex), r.id, 1);
-        }
-      }
-      function qEnd() {
-        const R = G.regs;
-        G.ap = Math.min(SIM.maxAp, G.ap + SIM.ap);
-        G.fxq = G.fx;
-        if (G.drive > 0) {
-          G.corr = Math.max(0.03, G.corr - 0.015);
-          G.drive--;
-        }
-        if (G.tr < 0) {
-          R.forEach((r) => {
-            r.hl = clamp(r.hl - 3);
-            r.inf = clamp(r.inf - 3);
-          });
-          G.appr = clamp(G.appr - 5);
-          news("Treasury is empty. Austerity cuts clinics and roads");
-        }
-        if (
-          R.filter((r) => r.std == 2).length >= 3 &&
-          G.tax == 2 &&
-          Math.random() < 0.3
-        ) {
-          G.trust = clamp(G.trust - 5);
-          G.gm -= 1;
-          news("Investors pull out over high tax and strict rules");
-        }
-        if (Math.random() < 0.6) {
-          const c = pick(Object.keys(CO)),
-            d =
-              (Math.random() < 0.5 ? 1 : -1) * (3 + ((Math.random() * 4) | 0));
-          G.rel[c] = clamp(G.rel[c] + d);
-          news(
-            `${CO[c].n} ${d > 0 ? "warms to" : "cools toward"} Kenya (${d > 0 ? "+" : ""}${d} relations)`,
-          );
-        }
-        G.hist.push({ g: G.gdp, e: W("e"), a: G.appr });
-        sched();
-        save();
-        toast(yq() + " begins. You have " + G.ap + " AP");
-      }
-      function score() {
-        return Math.round(
-          G.appr +
-            W("e") * 0.7 +
-            W("hl") * 0.4 +
-            (100 - W("pv")) * 0.4 +
-            W("jq") * 0.4 +
-            Math.max(
-              0,
-              G.hist.reduce((s, h) => s + h.g, 0) / Math.max(1, G.hist.length),
-            ) *
-              4 +
-            clamp(G.tr - G.debt / 3, -60, 60) * 0.5 +
-            G.trust * 0.3,
-        );
-      }
-      function verdict() {
-        const low = G.regs.filter((r) => r.std == 0).length,
-          s = score();
-        return low >= 4 && W("jq") < 48
-          ? "Sweatshop State"
-          : G.debt > 380
-            ? "Debt Spiral"
-            : G.appr < 30
-              ? "Voted Out"
-              : s >= SIM.arch
-                ? "Architect of Prosperity"
-                : "Steady Steward";
-      }
-      function end(t) {
-        G.over = { title: t, score: score() };
-        DIRTY = 1;
-        save();
-        showEnd();
-      }
-      function chart() {
-        const n = Math.max(2, G.hist.length);
-        const pl = (k, c, f) =>
-          `<polyline fill="none" stroke="${c}" stroke-width="2" points="${G.hist.map((h, i) => `${((i / (n - 1)) * 290 + 5).toFixed(0)},${(115 - clamp(f(h[k])) * 1.1).toFixed(0)}`).join(" ")}"/>`;
-        return `<svg viewBox="0 0 300 120" width="100%">${pl("g", "#fbbf24", (v) => (v + 5) * 6.6)}${pl("e", "#60a5fa", (v) => v)}${pl("a", "#22c55e", (v) => v)}</svg><br><small>Yellow: GDP growth. Blue: employment. Green: approval.</small>`;
-      }
-      function showEnd() {
-        const o = G.over;
-        chat(
-          WHO.c,
-          [
-            `<b>${o.title}</b>`,
-            `Score ${o.score} after ${Math.floor(G.day / DPQ)} quarters. Approval ${Math.round(G.appr)}%. Debt KSh ${Math.round(G.debt)}B.`,
-            chart(),
-          ],
-          [
-            {
-              l: "Play again",
-              d: "Start a new term",
-              rep: "Starting a new term.",
-              go: () => {
-                newGame();
-                drawTick();
-                help();
-              },
-            },
-          ],
-        );
-      }
-      // animated chat dialog (only opens when you ask for it)
-      async function chat(who, lines, opts, cancel) {
-        const tk = ++CT,
-          box = $("#chat"),
-          oc = $("#do"),
-          av = $("#av");
-        box.innerHTML = "";
-        oc.innerHTML = "";
-        av.textContent = who[0][0];
-        av.style.background = who[1];
-        $("#wn").textContent = who[0];
-        $("#dlg").classList.add("on");
-        const say = async (t, me) => {
-          const b = document.createElement("div");
-          b.className = "bub " + (me ? "me" : "ai");
-          if (!me) {
-            b.classList.add("typ");
-            b.innerHTML = "<i></i><i></i><i></i>";
-            box.append(b);
-            box.scrollTop = 1e5;
-            await sleep(Math.min(1400, 350 + t.length * 12));
-            if (tk != CT) return;
-            b.classList.remove("typ");
-          }
-          b.innerHTML = t;
-          if (me) box.append(b);
-          box.scrollTop = 1e5;
-        };
-        for (const l of lines) {
-          await say(l);
-          if (tk != CT) return;
-        }
-        let done = 0;
-        opts.forEach((p, i) => {
-          const e = document.createElement("button");
-          e.className = "opt";
-          e.style.animationDelay = i * 0.12 + "s";
-          e.innerHTML = `<b>${p.l}</b> <span class="y">${p.ap ? "1 AP + " : ""}${p.c ? "KSh " + p.c + "B" : p.ap ? "free" : ""}</span><small>${p.d || ""}</small>`;
-          if (p.c > G.tr || p.dis) e.disabled = true;
-          e.onclick = async () => {
-            if (done) return;
-            done = 1;
-            oc.innerHTML = "";
-            await say(p.l, 1);
-            if (tk != CT) return;
-            await say(p.rep || "Done.");
-            if (tk != CT) return;
-            await sleep(450);
-            if (tk != CT) return;
-            $("#dlg").classList.remove("on");
-            p.go && p.go();
-          };
-          oc.append(e);
-        });
-        if (cancel) {
-          const c = document.createElement("button");
-          c.className = "btn g";
-          c.textContent = "Cancel";
-          c.onclick = () => {
-            CT++;
-            $("#dlg").classList.remove("on");
-          };
-          oc.append(c);
-        }
-      }
-      function help() {
-        chat(
-          WHO.c,
-          [
-            "Welcome, Mr President. The economy of Kenya runs live. Watch the numbers move.",
-            "You get 3 action points (AP) each quarter. Each action costs 1 AP and money.",
-            "Tap a region on the map to see its live news, its alerts and what you can do there.",
-            "Alerts never interrupt you. Open them when you are ready. If you wait about 1.5 quarters, the default outcome happens.",
-            "Tap a country flag to build relations and sign MoUs. Keep the treasury above zero and approval above 15%. Survive 40 quarters.",
-          ],
-          [{ l: "Got it", rep: "Good luck." }],
-        );
-      }
-      // open one regional alert as a dialogue, on request
-      function showEv(p) {
-        if (!p || G.over || !G.pend.includes(p)) return;
-        const e = EV[p.id],
-          r = G.regs[p.rid];
-        chat(
-          WHO[CAT[p.id] || "e"],
-          [
-            e.t(r.n),
-            e.x,
-            `Mr President, what do we do? About ${Math.max(1, Math.ceil((p.exp - G.day) * 3))} days to decide.`,
-          ],
-          e.ch.map(([l, c, d], ci) => ({
-            l,
-            d,
-            c,
-            rep: d,
-            go: () => resolve(p, ci, 0),
+          next: 12,
+          regs: RG.map(([n, , , , , pop], id) => ({
+            id,
+            n,
+            pop,
+            e: 52 + ((Math.random() * 16) | 0),
+            hl: 46 + ((Math.random() * 16) | 0),
+            inf: 42 + ((Math.random() * 16) | 0),
+            sec: 52 + ((Math.random() * 12) | 0),
+            hap: 56,
           })),
-          1,
-        );
+          rel: Object.fromEntries(Object.keys(CO).map((k) => [k, CO[k][1]])),
+          mou: [],
+          proj: [],
+          pend: [],
+          news: [],
+          imp: [],
+          over: null,
+        };
+        news(name + " takes office. The economy is open for business.");
       }
-      const openEv = (u) => showEv(G.pend.find((x) => x.u == u));
-      const O = (l, d, c, fn, rep) => ({
-        l,
-        d,
-        c,
-        ap: 1,
-        rep: rep || "Approved. On it.",
-        go: () => {
-          if (G.ap < 1) return toast("No action points left");
-          if (c > G.tr) return toast("Not enough money");
-          G.ap--;
-          G.tr -= c;
-          if (c) led("Spent on " + l.toLowerCase(), "-KSh " + c + "B", "rd");
-          toast(fn());
-          DIRTY = 1;
-          save();
-        },
-      });
-      function setStd(r, n) {
-        r.std = n;
-        r.stdT = G.day;
-        if (n == 0) r.e = clamp(r.e + 6);
-        if (n == 2) r.e = clamp(r.e - 3);
-        const s = ["low", "basic", "strong"][n];
-        news(`${r.n} sets ${s} work standards`, r.id);
-        return `${r.n}: ${s} work standards`;
+      const avg = (k) =>
+        G.regs.reduce((s, r) => s + r[k] * r.pop, 0) /
+        G.regs.reduce((s, r) => s + r.pop, 0);
+      const save = () => {
+        try {
+          localStorage.setItem("ke2", JSON.stringify(G));
+        } catch (e) {}
+      };
+      function toast(m) {
+        const t = $("#toast");
+        t.textContent = m;
+        t.classList.add("on");
+        clearTimeout(toast.h);
+        toast.h = setTimeout(() => t.classList.remove("on"), 2400);
       }
-      function ract(k, i) {
-        const a = A[k],
-          r = G.regs[i];
-        if (G.ap < 1)
-          return toast("No action points left. Wait for the next quarter.");
-        if (k == "std")
-          return chat(
-            CAB,
-            [`Work standards in ${r.n}. Which level?`],
-            [
-              O(
-                "Low",
-                "Cheap fast jobs. +6 jobs. Accidents and strikes rise.",
-                1,
-                () => setStd(r, 0),
-              ),
-              O("Basic", "Safe default. No change.", 2, () => setStd(r, 1)),
-              O(
-                "Strong",
-                "Firms pay more. -3 jobs. Quality and tax rise after 3 quarters.",
-                4,
-                () => setStd(r, 2),
-              ),
-            ],
-            1,
-          );
-        if (k == "prog" && r.prog)
-          return toast("A job program is already open here");
-        chat(
-          CAB,
-          [`${a.n} in ${r.n}.`, `Expected: ${a.d}.`],
-          [
-            O("Confirm", a.d, a.c, () => {
-              news(`You order: ${a.n} in ${r.n}`, r.id);
-              if (a.q) {
-                G.q.push({ k, rid: i, left: a.q * DPQ });
-                return `${a.n} started in ${r.n}`;
-              }
-              a.now(r);
-              return `${a.n}: done in ${r.n}`;
-            }),
-          ],
-          1,
-        );
+      function news(m, rid, k) {
+        G.news.unshift({ d: G.day, m, r: rid == null ? -1 : rid, k: k || "" });
+        G.news.length = Math.min(G.news.length, 60);
       }
-      const eb = (bs, v) =>
-        G.regs.forEach((r) => {
-          if (bs.includes(r.b)) r.e = clamp(r.e + v);
-        });
-      function nat(k) {
-        if (G.over) return;
-        if (G.ap < 1)
-          return toast("No action points left. Wait for the next quarter.");
-        if (k == "tax")
-          return chat(
-            CAB,
-            [
-              "Tax rate is " +
-                SIM.tax[G.tax][1].toLowerCase() +
-                " now. Change it?",
-            ],
-            [
-              ["Low", "Less revenue. Approval and growth up."],
-              ["Medium", "Balanced."],
-              ["High", "More revenue. Approval and growth fall."],
-            ].map(([n, d], i) =>
-              O(n, d, 1, () => {
-                G.tax = i;
-                news("Tax rate set to " + n.toLowerCase());
-                return "Tax rate set to " + n.toLowerCase();
-              }),
-            ),
-            1,
-          );
-        if (k == "trade")
-          return chat(
-            CAB,
-            ["One sector gains. Another pays. Which deal?"],
-            [
-              O(
-                "Open to tech exports",
-                "Tech and manufacturing +8 jobs. Farms -5. Trust +3.",
-                3,
-                () => {
-                  eb(["tech", "man"], 8);
-                  eb(["ag", "live"], -5);
-                  G.trust = clamp(G.trust + 3);
-                  news("Export deal signed with new buyers");
-                  return "Export deal signed";
-                },
-              ),
-              O(
-                "Protect farmers",
-                "Farms +6 jobs. Factories -4. Prices +0.5.",
-                3,
-                () => {
-                  eb(["ag", "live"], 6);
-                  eb(["man", "tech"], -4);
-                  G.infl += 0.5;
-                  news("Farm shield protects growers from imports");
-                  return "Farm shield in place";
-                },
-              ),
-              O(
-                "Tariff on imports",
-                "+KSh 8B now. Factories +3 jobs. Prices +1. Trust -3.",
-                0,
-                () => {
-                  G.tr += 8;
-                  led("Tariff revenue", "+KSh 8B", "gr");
-                  eb(["man"], 3);
-                  G.infl += 1;
-                  G.trust = clamp(G.trust - 3);
-                  news("Tariffs raised on imported goods");
-                  return "Tariffs raised";
-                },
-              ),
-            ],
-            1,
-          );
-        if (k == "borrow") {
-          const o = [
-            [20, 1.5],
-            [50, 3],
-          ]
-            .filter(([n]) => G.debt + n <= SIM.maxDebt)
-            .map(([n, p]) =>
-              O(
-                "Borrow KSh " + n + "B",
-                `Treasury +${n}. Inflation pressure up. Interest 1.2% a quarter.`,
-                0,
-                () => {
-                  G.tr += n;
-                  G.debt += n;
-                  G.pr += p;
-                  led("Loan received", "+KSh " + n + "B", "gr");
-                  news(`Treasury borrows KSh ${n}B from lenders`);
-                  return `Borrowed KSh ${n}B`;
-                },
-              ),
-            );
-          o.push(
-            O("Repay KSh 20B early", "Debt -20. Saves interest.", 20, () => {
-              G.debt = Math.max(0, G.debt - 20);
-              news("Treasury repays KSh 20B early");
-              return "Repaid KSh 20B";
-            }),
-          );
-          return chat(
-            CAB,
-            [`Debt stands at KSh ${Math.round(G.debt)}B. Borrow or repay?`],
-            o,
-            1,
-          );
+      function ap(fx, rid) {
+        for (const k in fx) {
+          const v = fx[k];
+          if (k in ST) {
+            if (rid === "all") G.regs.forEach((r) => (r[k] = cl(r[k] + v)));
+            else if (rid != null && typeof rid == "number")
+              G.regs[rid][k] = cl(G.regs[rid][k] + v);
+          } else if (k == "tr") G.tr += v;
+          else if (k == "appr") G.appr = cl(G.appr + v);
+          else if (k == "infl") G.infl = Math.max(0, G.infl + v);
+          else if (k == "debt") G.debt += v;
+          else if (k == "trade") G.trade += v;
         }
-        if (k == "corr")
-          return chat(
-            CAB,
-            [
-              "An anti-corruption drive costs approval now and saves money later.",
-            ],
-            [
-              O(
-                "Launch drive",
-                "Approval -5 now. Less leakage for 6 quarters. Trust +4.",
-                6,
-                () => {
-                  G.drive = 6;
-                  G.appr = clamp(G.appr - 5);
-                  G.trust = clamp(G.trust + 4);
-                  news("Anti-corruption drive launched");
-                  return "Anti-corruption drive launched";
-                },
-              ),
-            ],
-            1,
-          );
       }
-      // international relations and MoUs
-      function signMou(cc, t) {
-        const c = CO[cc],
-          R = G.regs;
-        if (t == "infra") {
-          G.tr += 20;
-          G.debt += 20;
-          G.pr += 1;
-          led("Loan from " + c.n, "+KSh 20B", "gr");
-          R.slice()
-            .sort((a, b) => a.inf - b.inf)
-            .slice(0, 2)
-            .forEach((r) => {
-              r.inf = clamp(r.inf + 8);
-              FL.push(r.id);
-              ft(...LPX[r.id], "+8 roads", "#22c55e");
-            });
-        }
-        if (t == "sec") R.forEach((r) => (r.sec = clamp(r.sec + 6)));
-        if (t == "health") R.forEach((r) => (r.hl = clamp(r.hl + 5)));
-        if (t == "tour")
-          R.forEach((r) => {
-            if (r.b == "tour" || r.b == "port") r.e = clamp(r.e + 6);
-          });
-        if (t == "tech")
-          R.forEach((r) => {
-            r.jq = clamp(r.jq + 4);
-            if (r.b == "tech" || r.b == "man") r.e = clamp(r.e + 5);
-          });
-        G.mou.push({ c: cc, t, day: G.day });
-        G.rel[cc] = clamp(G.rel[cc] + 8);
-        G.trust = clamp(G.trust + 1);
-        news(`MoU signed with ${c.n}: ${MT[t].n}`);
-        return `${MT[t].n} signed with ${c.n}`;
-      }
-      function country(cc) {
-        if (G.over) return;
-        const c = CO[cc],
-          rel = Math.round(G.rel[cc]),
-          ms = G.mou.filter((m) => m.c == cc),
-          o = [
-            O("State visit", "Relations +10. Trust +1.", 2, () => {
-              G.rel[cc] = clamp(G.rel[cc] + 10);
-              G.trust = clamp(G.trust + 1);
-              news(`The President visits ${c.n}. Relations improve`);
-              return "State visit to " + c.n;
-            }),
-          ];
-        c.t.split(" ").forEach((t) => {
-          if (ms.some((m) => m.t == t)) return;
-          const x = MT[t],
-            p = O(x.n, x.d + " Needs relations 50+.", x.c, () =>
-              signMou(cc, t),
-            );
-          p.dis = rel < 50;
-          o.push(p);
-        });
-        chat(
-          FOR,
-          [
-            `${c.n}: relations ${rel} out of 100. ${c.d}`,
-            ms.length
-              ? "Signed: " + ms.map((m) => MT[m.t].n).join(", ") + "."
-              : "No MoUs signed yet.",
-          ],
-          o,
-          1,
-        );
-      }
-      function bar(l, k, inv) {
-        return `<div class="lb"><span>${l}</span><span></span></div><div class="bar" data-b="${k}"${inv ? ' data-v="1"' : ""}><i></i></div>`;
-      }
-      function sheet(i) {
-        SEL = i;
-        const r = G.regs[i];
-        const ab = Object.keys(A)
-          .map((k) => {
-            const a = A[k];
-            if (k == "prog" && r.prog)
-              return `<button class="opt" data-c="${i}"><b>Cancel job program</b><small>Saves KSh 2B each quarter. Jobs drift back.</small></button>`;
-            return `<button class="opt" data-k="${k}" data-i="${i}"><b>${a.n}</b> <span class="y">1 AP + KSh ${a.c}B</span><small>${a.d}</small></button>`;
+      const fmt = (fx) =>
+        Object.entries(fx)
+          .map(([k, v]) => {
+            const bad = k == "infl" || k == "debt" ? v > 0 : v < 0,
+              u =
+                k == "tr" || k == "debt" ? "B" : k == "trade" ? "B a day" : "";
+            return `<span class="${bad ? "dn" : "up"}">${ST[k] || NN[k]} ${v > 0 ? "+" : "−"}${Math.abs(v)}${u}</span>`;
           })
-          .join("");
+          .join(" · ") || "No change";
+
+      // impact engine: snapshot before and after, show the real difference at once
+      function snap() {
+        const o = {
+          Treasury: G.tr,
+          Debt: G.debt,
+          Approval: G.appr,
+          Inflation: G.infl,
+          Exports: G.trade,
+          AP: G.ap,
+          Relations: Object.values(G.rel).reduce((a, b) => a + b, 0) / 8,
+        };
+        for (const k in ST) o["Avg " + ST[k]] = avg(k);
+        G.regs.forEach((r) => {
+          for (const k in ST) o[r.n + " " + ST[k]] = r[k];
+        });
+        for (const c in CO) o[CO[c][0] + " relations"] = G.rel[c];
+        return o;
+      }
+      function act(label, tgt, fn, quiet) {
+        const s = snap();
+        fn();
+        const t = snap(),
+          pre =
+            typeof tgt == "number"
+              ? G.regs[tgt].n + " "
+              : typeof tgt == "string"
+                ? CO[tgt][0] + " "
+                : null,
+          d = [];
+        for (const k in t) {
+          const dv = t[k] - s[k];
+          if (Math.abs(dv) < 0.05) continue;
+          const show =
+            !k.includes(" ") ||
+            (pre ? k.startsWith(pre) : k.startsWith("Avg "));
+          if (!show || (k == "Relations" && pre)) continue;
+          const bad = k == "Debt" || k == "Inflation" ? dv > 0 : dv < 0;
+          d.push([k, s[k], t[k], dv, bad]);
+        }
+        const rec = { t: label, d };
+        G.imp.unshift(rec);
+        G.imp.length = Math.min(G.imp.length, 8);
+        if (!quiet) res(rec, tgt);
+        else toast(label);
+        save();
+        ui(1);
+      }
+      const dRows = (d) =>
+        d.length
+          ? d
+              .map(
+                ([k, a, b, dv, bad]) =>
+                  `<div class="row"><span>${esc(k)}</span><span>${a.toFixed(1)} → ${b.toFixed(1)} <b class="${bad ? "dn" : "up"}">${dv > 0 ? "+" : "−"}${Math.abs(dv).toFixed(1)}</b></span></div>`,
+              )
+              .join("")
+          : '<div class="mu">No big change yet. Effects build over the next days.</div>';
+      function res(r, tgt) {
+        IT = [];
+        const back =
+          typeof tgt == "number"
+            ? `<button class="opt" data-back="${tgt}"><b>Back to ${G.regs[tgt].n}</b></button>`
+            : typeof tgt == "string"
+              ? `<button class="opt" data-back="${tgt}"><b>Back to ${CO[tgt][0]}</b></button>`
+              : "";
         $("#sh").innerHTML =
-          `<h2>${r.n}</h2><div class="mu">${BASES[r.b]}. Population <span id="spop"></span>M. Standards: ${["low", "basic", "strong"][r.std]}.${r.hz > SIM.hzMax ? ' <span class="rd">Factory risk is high.</span>' : ""}</div>
- ${bar("Jobs", "e")}${bar("Job quality", "jq")}${bar("Poverty", "pv", 1)}${bar("Health", "hl")}${bar("Roads and power", "inf")}${bar("Security", "sec")}${bar("Happiness", "hap")}${bar("Disaster readiness", "rd")}
- <h3 style="margin:14px 0 4px">Needs your decision</h3><div id="sev"></div>
- <h3 style="margin:14px 0 4px">Actions (you have <span id="sap"></span> AP)</h3>${ab}
- <h3 style="margin:14px 0 4px">Projects here</h3><div id="sq"></div>
- <h3 style="margin:14px 0 4px">Live news in ${r.n}</h3><div id="rn"></div>
- <button class="btn g" id="sc" style="margin-top:12px">Close</button>`;
-        $("#sov").classList.add("on");
-        upSheet();
+          `<h2>${esc(r.t)}</h2><div class="mu">Impact right now, ${esc(G.name)}:</div>${dRows(r.d)}${back}<button class="btn g" id="x" style="margin-top:10px">Close</button>`;
+        $("#ov").classList.add("on");
       }
-      function upSheet() {
-        if (SEL == null || !$("#sov").classList.contains("on")) return;
-        const r = G.regs[SEL];
-        document.querySelectorAll("#sh [data-b]").forEach((e) => {
-          const v = r[e.dataset.b],
-            i = e.querySelector("i");
-          i.style.width = v + "%";
-          i.style.background = `hsl(${(e.dataset.v ? 100 - v : v) * 1.2},65%,45%)`;
-          e.previousElementSibling.lastChild.textContent = v.toFixed(1);
-        });
-        $("#sap").textContent = G.ap;
-        $("#spop").textContent = r.pop.toFixed(3);
-        const pe = G.pend.filter((p) => p.rid == SEL);
-        setH(
-          $("#sev"),
-          pe.length
-            ? pe
-                .map(
-                  (p) =>
-                    `<button class="opt" data-e="${p.u}"><b>${EV[p.id].t(r.n)}</b> <span class="y">${Math.max(1, Math.ceil((p.exp - G.day) * 3))} days left</span><small>Tap to talk to the ${WHO[CAT[p.id] || "e"][0]}</small></button>`,
-                )
-                .join("")
-            : '<div class="mu">No open alerts here.</div>',
-        );
-        const qs = G.q.filter((i) => i.rid == SEL);
-        setH(
-          $("#sq"),
-          qs.length
-            ? qs
-                .map((i) => {
-                  const pc = Math.round(
-                    100 - (i.left / (A[i.k].q * DPQ)) * 100,
-                  );
-                  return `<div class="row"><span>${A[i.k].n}</span><span>${pc}%</span></div><div class="bar"><i style="width:${pc}%"></i></div>`;
-                })
-                .join("")
-            : '<div class="mu">Nothing under construction.</div>',
-        );
-        setH(
-          $("#rn"),
-          G.news
-            .filter((n) => n.r.includes(SEL))
-            .slice(0, 10)
+      function sheet(title, head, items) {
+        IT = items;
+        $("#sh").innerHTML =
+          `<h2>${title}</h2>${head}` +
+          items
             .map(
-              (n) => `<div class="row"><small>Day ${n.d}</small> ${n.m}</div>`,
+              (o, i) =>
+                `<button class="opt" data-i="${i}"${o.dis ? " disabled" : ""}><b>${o.l}</b> <span class="y">${o.cost != null ? "AP 1" + (o.cost ? " · KSh " + o.cost + "B" : "") : ""}</span><small>${o.d}</small></button>`,
             )
-            .join("") || '<div class="mu">Quiet so far.</div>',
+            .join("") +
+          `<button class="btn g" id="x">Close</button>`;
+        $("#ov").classList.add("on");
+      }
+      const Z = (label, tgt, cost, fn) => () =>
+        act(label, tgt, () => {
+          G.ap--;
+          G.tr -= cost;
+          fn();
+        });
+
+      function regSheet(i) {
+        const r = G.regs[i],
+          q = G.proj.filter((p) => p.rid == i);
+        const head =
+          `<div class="mu">Population ${r.pop.toFixed(2)}M</div>` +
+          Object.keys(ST)
+            .map(
+              (k) =>
+                `<div class="row"><span>${ST[k]}</span><span style="width:55%"><div class="bar"><i style="width:${r[k]}%;background:hsl(${r[k] * 1.2},65%,45%)"></i></div></span><b>${Math.round(r[k])}</b></div>`,
+            )
+            .join("") +
+          (q.length
+            ? `<div class="mu" style="margin-top:8px">Under way: ${q.map((p) => PJ[p.k][0] + " (" + p.left + " days)").join(", ")}</div>`
+            : "") +
+          `<h3 style="margin-top:12px">What do you want to do?</h3>`;
+        const items = Object.keys(PJ).map((k) => {
+          const [n, c, days, fx] = PJ[k];
+          return {
+            l: n,
+            cost: c,
+            dis: G.tr < c || G.ap < 1,
+            d: fmt(fx) + (days ? ` · ready in ${days} days` : " · instantly"),
+            go: Z(n + " in " + r.n, i, c, () => {
+              if (days) {
+                G.proj.push({ k, rid: i, left: days });
+                news("You order: " + n + " in " + r.n, i);
+              } else {
+                ap(fx, i);
+                news(n + " delivered in " + r.n, i);
+              }
+            }),
+          };
+        });
+        sheet(r.n, head, items);
+      }
+      function ctrSheet(c) {
+        const rel = G.rel[c],
+          n = CO[c][0];
+        const it = [
+          {
+            l: "State visit",
+            cost: 2,
+            dis: G.tr < 2 || G.ap < 1,
+            d: '<span class="up">Relations +10</span>',
+            go: Z("State visit to " + n, c, 2, () => {
+              G.rel[c] = cl(G.rel[c] + 10);
+              news("You visit " + n + ". Relations improve");
+            }),
+          },
+        ];
+        for (const t in MT) {
+          const [m, cost, fx, desc] = MT[t],
+            has = G.mou.some((x) => x.c == c && x.t == t);
+          it.push({
+            l: m + (has ? " (signed)" : ""),
+            cost,
+            dis: has || rel < 50 || G.tr < cost || G.ap < 1,
+            d:
+              fmt(fx) +
+              " · " +
+              desc +
+              (rel < 50 ? " · needs relations 50" : ""),
+            go: Z(m + " with " + n, c, cost, () => {
+              ap(fx, "all");
+              G.mou.push({ c, t });
+              G.rel[c] = cl(G.rel[c] + 8);
+              news(m + " signed with " + n);
+            }),
+          });
+        }
+        sheet(
+          n,
+          `<div class="mu">Relations ${Math.round(rel)} out of 100</div>`,
+          it,
         );
       }
-      // live counters that tween toward their targets every frame
-      const TL = [
-        [
-          "Treasury",
-          () => G.tr,
-          (v) => "KSh " + v.toFixed(3) + "B",
-          0,
-          () =>
-            `${G.rate >= 0 ? "▲" : "▼"} ${Math.round(Math.abs(G.rate) * 1000)}M a day`,
-        ],
-        [
-          "Debt",
-          () => G.debt,
-          (v) => "KSh " + v.toFixed(2) + "B",
-          1,
-          () => `interest ${Math.round(G.sint * 1000)}M a day`,
-        ],
-        [
-          "USD/KES",
-          () => G.fx,
-          (v) => v.toFixed(2),
-          1,
-          () =>
-            `${G.fx >= G.fxq ? "▲" : "▼"} ${Math.abs(G.fx - G.fxq).toFixed(2)} this quarter`,
-        ],
-        ["GDP growth", () => G.gdp, (v) => v.toFixed(2) + "%", 0, () => ""],
-        ["Inflation", () => G.infl, (v) => v.toFixed(2) + "%", 1, () => ""],
-        [
-          "Unemployment",
-          () => 100 - W("e"),
-          (v) => v.toFixed(2) + "%",
-          1,
-          () => "",
-        ],
-        ["Approval", () => G.appr, (v) => v.toFixed(1) + "%", 0, () => ""],
-        ["Intl trust", () => G.trust, (v) => v.toFixed(1) + "%", 0, () => ""],
-        [
-          "Employed",
-          () => G.regs.reduce((s, r) => s + (r.pop * 0.45 * r.e) / 100, 0),
-          (v) => v.toFixed(3) + "M",
-          0,
-          () => "",
-        ],
-        [
-          "Population",
-          () => G.regs.reduce((s, r) => s + r.pop, 0),
-          (v) => v.toFixed(3) + "M",
-          0,
-          () => "",
-        ],
-        [
-          "Exports",
-          () => G.ex,
-          (v) => "KSh " + v.toFixed(2) + "B",
-          0,
-          () => "",
-        ],
-        [
-          "Imports",
-          () => G.im,
-          (v) => "KSh " + v.toFixed(2) + "B",
-          1,
-          () => "",
-        ],
-        [
-          "Crimes",
-          () => G.crime,
-          (v) => Math.round(v).toLocaleString(),
-          1,
-          () => `+${G.cn} just now`,
-        ],
-        [
-          "Taxes collected",
-          () => G.taxc,
-          (v) => "KSh " + v.toFixed(2) + "B",
-          0,
-          () => "",
-        ],
-        [
-          "Interest paid",
-          () => G.paid,
-          (v) => "KSh " + v.toFixed(2) + "B",
-          1,
-          () => "",
-        ],
-      ];
-      function tween() {
-        TL.forEach((t, i) => {
-          const v = t[1]();
-          if (SH[i] == null) SH[i] = v;
-          const d = v - SH[i];
-          SH[i] += Math.abs(d) < 1e-5 ? d : d * 0.25;
-          const b = $("#tv" + i);
-          b.textContent = t[2](SH[i]);
-          b.className = Math.abs(d) < 1e-4 ? "" : d > 0 != !!t[3] ? "up" : "dn";
-        });
-        $("#tt").textContent = "KSh " + SH[0].toFixed(2) + "B";
-        $("#tt").className = G.tr < 0 ? "rd" : "up";
-        $("#ta").textContent = "Approval " + Math.round(SH[6]) + "%";
+      function natSheet(k) {
+        let it = [],
+          t = "";
+        if (k == "tax") {
+          t = "Tax rate";
+          it = [
+            ["Low", { appr: 2 }, "Households keep more. Less revenue."],
+            ["Medium", {}, "Balanced."],
+            ["High", { tr: 5, appr: -3 }, "More revenue. People feel it."],
+          ].map(([n, fx, d], i) => ({
+            l: n,
+            cost: 0,
+            dis: G.ap < 1 || G.tax == i,
+            d: fmt(fx) + " · " + d,
+            go: Z("Tax set to " + n.toLowerCase(), null, 0, () => {
+              G.tax = i;
+              ap(fx);
+              news("Tax rate set to " + n.toLowerCase());
+            }),
+          }));
+        }
+        if (k == "debt") {
+          t = "Borrow or repay";
+          it = [
+            ["Borrow KSh 20B", { tr: 20, debt: 20, infl: 0.3 }, 0],
+            ["Repay KSh 20B", { tr: -20, debt: -20 }, 20],
+          ].map(([n, fx, c]) => ({
+            l: n,
+            cost: c,
+            dis: G.ap < 1 || G.tr < c,
+            d: fmt(fx),
+            go: Z(n, null, 0, () => {
+              ap(fx);
+              G.pr += fx.debt > 0 ? 1 : 0;
+              news(n);
+            }),
+          }));
+        }
+        if (k == "corr") {
+          t = "Anti-corruption drive";
+          it = [
+            {
+              l: "Launch the drive",
+              cost: 6,
+              dis: G.tr < 6 || G.ap < 1,
+              d:
+                fmt({ appr: -2, trade: 0.15 }) +
+                " · leaks closed, more money every day",
+              go: Z("Anti-corruption drive", null, 6, () => {
+                ap({ appr: -2, trade: 0.15 });
+                news("Anti-corruption drive launched");
+              }),
+            },
+          ];
+        }
+        sheet(t, "", it);
       }
-      function chips() {
-        $("#chips").innerHTML = Object.keys(LN)
+
+      function trig() {
+        const e = pick(EV),
+          r = pick(G.regs);
+        G.pend.push({ u: ++G.uid, id: e[0], rid: r.id, exp: G.day + 100 });
+        const m = e[1].replace("{r}", r.n);
+        news(m, r.id, "alert");
+        toast("New alert: " + m);
+      }
+      function decide(u, c) {
+        const p = G.pend.find((x) => x.u == u);
+        if (!p) return;
+        const e = evd(p.id),
+          [l, fx] = e[3][c],
+          r = G.regs[p.rid];
+        if (fx.tr < 0 && G.tr < -fx.tr) return toast("Not enough money");
+        act(l, e[0] == "oil" ? null : p.rid, () => {
+          ap(fx, p.rid);
+          G.pend = G.pend.filter((x) => x !== p);
+          news(r.n + ": " + l, r.id);
+        });
+      }
+
+      function mkNews() {
+        const r = pick(G.regs),
+          t = pick([
+            `${r.n}: ${((r.pop * 0.45 * r.e) / 100).toFixed(2)}M people at work. Unemployment ${(100 - r.e).toFixed(1)}%`,
+            `${r.n}: roads and power rated ${Math.round(r.inf)} out of 100`,
+            `${r.n}: clinics rated ${Math.round(r.hl)} out of 100`,
+            `${r.n}: security feels ${r.sec > 60 ? "calm" : "tense"} today`,
+            `${r.n}: mood is ${Math.round(r.hap)} out of 100`,
+            `Maize flour costs KSh ${Math.round(150 + G.infl * 2.5)} for 2 kg in ${r.n}`,
+            `Treasury holds KSh ${G.tr.toFixed(1)}B`,
+            `Inflation is ${G.infl.toFixed(1)}% and growth is ${G.gdp.toFixed(1)}%`,
+          ]);
+        news(t, t.startsWith(r.n) ? r.id : null);
+      }
+
+      function tick() {
+        G.day++;
+        let inc = 0;
+        G.regs.forEach((r) => {
+          const tg = 28 + 0.3 * r.inf + 0.2 * r.sec + 0.12 * r.hl;
+          r.e = cl(r.e + (tg - r.e) * 0.02 + rn(0.05));
+          r.hl = cl(r.hl - 0.012 + rn(0.03));
+          r.inf = cl(r.inf - 0.01);
+          r.sec = cl(r.sec - 0.012 + rn(0.03));
+          r.hap = cl(
+            r.hap +
+              (0.4 * r.e + 0.2 * r.hl + 0.2 * r.sec + 0.2 * r.inf - r.hap) *
+                0.03 +
+              rn(0.05),
+          );
+          r.pop *= 1.00004;
+          inc += ((r.pop * r.e) / 100) * TAX[G.tax];
+        });
+        G.tr += inc * 0.6 + G.trade - 1.6 - (G.debt * 0.012) / DPQ;
+        G.appr = cl(
+          G.appr +
+            (0.5 * avg("hap") +
+              0.3 * avg("e") +
+              20 -
+              (G.tax - 1) * 6 -
+              G.infl -
+              G.appr) *
+              0.03,
+        );
+        G.gdp +=
+          (3 +
+            0.05 * (avg("e") - 60) +
+            0.03 * (avg("inf") - 50) -
+            (G.tax - 1) * 0.6 -
+            G.gdp) *
+          0.05;
+        G.infl = Math.max(0, G.infl + (5 + G.pr - G.infl) * 0.02);
+        G.pr *= 0.98;
+        G.proj = G.proj.filter((p) => {
+          if (--p.left > 0) return true;
+          const [n, , , fx] = PJ[p.k],
+            r = G.regs[p.rid];
+          act(
+            n + " finished in " + r.n,
+            p.rid,
+            () => {
+              ap(fx, p.rid);
+              news(n + " finished in " + r.n, r.id, "done");
+            },
+            1,
+          );
+          return false;
+        });
+        if (G.day >= G.next && G.pend.length < 3) {
+          trig();
+          G.next = G.day + 18 + ((Math.random() * 20) | 0);
+        }
+        G.pend = G.pend.filter((p) => {
+          if (p.exp > G.day) return true;
+          const r = G.regs[p.rid];
+          news(r.n + ": the situation passed without a decision", r.id);
+          return false;
+        });
+        if (G.day % 3 == 0) mkNews();
+        if (G.day % DPQ == 0) {
+          G.ap = Math.min(6, G.ap + 3);
+          if (G.tr < 0) {
+            G.regs.forEach((r) => {
+              r.hl = cl(r.hl - 2);
+              r.inf = cl(r.inf - 2);
+            });
+            news("Treasury is empty. Austerity trims clinics and roads");
+          }
+          save();
+          toast("New quarter. You have " + G.ap + " action points");
+        }
+        if (G.appr < 8) return fin("Voted Out");
+        if (G.tr < -60) return fin("Debt Trouble");
+        if (G.day >= TURNS * DPQ)
+          return fin(
+            score() >= 170 ? "Architect of Prosperity" : "Steady Steward",
+          );
+      }
+      const score = () =>
+        Math.round(
+          G.appr +
+            avg("e") * 0.7 +
+            avg("hl") * 0.4 +
+            avg("inf") * 0.3 +
+            (G.tr - G.debt / 3) * 0.2,
+        );
+      function fin(t) {
+        G.over = t;
+        save();
+        IT = [
+          {
+            l: "Start a new term",
+            d: "",
+            go: () => {
+              fresh(G.name, G.pic);
+              ui(1);
+            },
+          },
+        ];
+        $("#sh").innerHTML =
+          `<h2>${t}</h2><div class="mu">${esc(G.name)}, your score is ${score()} after ${Math.floor(G.day / DPQ)} quarters. Approval ${Math.round(G.appr)}%.</div><button class="opt" data-i="0"><b>Start a new term</b></button><button class="btn g" id="x">Close</button>`;
+        $("#ov").classList.add("on");
+      }
+
+      // ---- drawing: build once, then update in place so taps are never lost
+      const av = (el) => {
+        el.innerHTML = G.pic
+          ? `<img src="${G.pic}" alt="">`
+          : esc((G.name || "?")[0].toUpperCase());
+      };
+      function build() {
+        $("#map").innerHTML = RG.map(
+          ([n, x, y, w, h], i) =>
+            `<g data-r="${i}"><rect id="t${i}" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/><text x="${x + w / 2}" y="${y + h / 2 - 2}">${n}</text><text class="tv" id="tv${i}" x="${x + w / 2}" y="${y + h / 2 + 14}"></text><text class="tb" id="tb${i}" x="${x + w - 12}" y="${y + 16}"></text></g>`,
+        ).join("");
+        $("#lc").innerHTML = Object.keys(ST)
           .map(
             (k) =>
-              `<button class="chip${G.layer == k ? " on" : ""}" data-l="${k}">${LN[k]}</button>`,
+              `<button class="chip${k == layer ? " on" : ""}" data-l="${k}">${ST[k]}</button>`,
           )
           .join("");
-      }
-      function ipUpd() {
-        const R = G.regs,
-          sig =
-            G.q.map((i) => i.k + i.rid).join() +
-            "|" +
-            R.filter((r) => r.prog)
-              .map((r) => r.id)
-              .join();
-        if (sig !== LSIG) {
-          LSIG = sig;
-          const pr = R.filter((r) => r.prog);
-          $("#ip").innerHTML =
-            `<div class="row"><h3>In progress</h3><b class="y" id="apd"></b></div>` +
-            (G.q.length || pr.length
-              ? G.q
-                  .map(
-                    (i, j) =>
-                      `<div class="row"><span>${A[i.k].n}: ${R[i.rid].n}</span><span id="lf${j}"></span></div>`,
-                  )
-                  .join("") +
-                pr
-                  .map(
-                    (r) =>
-                      `<div class="row"><span>Job program: ${r.n} (KSh 2B a quarter)</span><button class="chip" data-c="${r.id}">Cancel</button></div>`,
-                  )
-                  .join("")
-              : '<div class="mu">Nothing yet. Start a road, clinic or training in a region.</div>');
-        }
-        $("#apd").textContent =
-          "AP " + "●".repeat(G.ap) + "○".repeat(Math.max(0, SIM.ap - G.ap));
-        G.q.forEach((i, j) => {
-          const e = $("#lf" + j);
-          if (e) e.textContent = (i.left / DPQ).toFixed(1) + " qtr left";
-        });
-      }
-      // alerts list: one row per open regional event
-      function inbUpd() {
-        setH(
-          $("#inb"),
-          G.pend.length
-            ? G.pend
-                .map(
-                  (p) =>
-                    `<div class="row"><span><b>${G.regs[p.rid].n}</b>: ${EV[p.id].t(G.regs[p.rid].n)} <small>${Math.max(1, Math.ceil((p.exp - G.day) * 3))}d left</small></span><span><button class="chip" data-o="${p.rid}">Region</button><button class="chip" data-e="${p.u}">Respond</button></span></div>`,
-                )
-                .join("")
-            : '<div class="mu">All calm. New alerts appear here and on the map. They never interrupt the clock.</div>',
-        );
-      }
-      // money flow bars
-      function cfUpd() {
-        const c = G.cf;
-        if (!c) return;
-        const rows = [
-            ["Taxes in", c.rv, 1],
-            ["Exports earn", c.ex, 1],
-            ["Wages and services", c.sp, 0],
-            ["Interest", c.int, 0],
-            ["Bond repayment", c.rp, 0],
-            ["Crime losses", c.cc, 0],
-            ["Imports cost", c.im, 0],
-          ],
-          mx = Math.max(...rows.map((r) => r[1]), 1e-6);
-        setH(
-          $("#cf"),
-          rows
-            .map(
-              ([l, v, g]) =>
-                `<div class="row"><span style="width:36%">${l}</span><div class="bar" style="flex:1"><i style="width:${((v / mx) * 100).toFixed(0)}%;background:var(--${g ? "gr" : "rd"})"></i></div><b class="${g ? "up" : "dn"}" style="width:84px;text-align:right">${g ? "+" : "-"}${Math.round((v / 3) * 1000)}M</b></div>`,
-            )
-            .join(""),
-        );
-      }
-      // international relations list
-      function irUpd() {
-        setH(
-          $("#ir"),
-          Object.keys(CO)
-            .map((cc) => {
-              const c = CO[cc],
-                rel = Math.round(G.rel[cc]),
-                ms = G.mou.filter((m) => m.c == cc);
-              return `<button class="opt" data-cc="${cc}"><div class="row" style="padding:0"><span>${F(cc, 'class="fg"')}<b>${c.n}</b></span><span class="y">${rel}</span></div><div class="bar"><i style="width:${rel}%;background:hsl(${rel * 1.2},65%,45%)"></i></div><small>${ms.length ? ms.map((m) => MT[m.t].n).join(", ") : "No MoUs yet"}</small></button>`;
-            })
-            .join(""),
-        );
-      }
-      // map: roads, rail, trade lanes, construction, alerts
-      function mapUpd() {
-        const R = G.regs,
-          L = (a, b, st) =>
-            `<line x1="${a[0].toFixed(0)}" y1="${a[1].toFixed(0)}" x2="${b[0].toFixed(0)}" y2="${b[1].toFixed(0)}" ${st}/>`;
-        setH(
-          $("#rdg"),
-          RE.map(([a, b]) => {
-            const v = (R[a].inf + R[b].inf) / 2,
-              bu = G.q.some((i) => i.k == "road" && (i.rid == a || i.rid == b));
-            return L(
-              LPX[a],
-              LPX[b],
-              bu
-                ? 'stroke="#fbbf24" stroke-width="3" stroke-dasharray="6 4" class="cons"'
-                : `stroke="hsl(${Math.round(v / 10) * 12},60%,55%)" stroke-width="${(1 + Math.round(v / 5) / 3).toFixed(1)}" stroke-linecap="round" opacity=".9"`,
-            );
-          }).join(""),
-        );
-        setH(
-          $("#rlg"),
-          RAIL.map(([a, b]) =>
-            L(
-              LPX[a],
-              LPX[b],
-              'stroke="#f8fafc" stroke-width="1.4" stroke-dasharray="7 3" opacity=".8"',
-            ),
-          ).join(""),
-        );
-        setH(
-          $("#sl"),
-          Object.keys(CO)
-            .map((cc) => {
-              const c = CO[cc],
-                a = c.k == "s" ? LPX[7] : LPX[c.v],
-                has = G.mou.some((m) => m.c == cc);
-              return L(
-                a,
-                c.p,
-                `stroke="${has ? (c.k == "s" ? "#60a5fa" : "#22c55e") : "#94a3b8"}" stroke-width="${has ? 2 : 1}" stroke-dasharray="4 4" opacity="${(0.25 + G.rel[cc] / 200 + (has ? 0.3 : 0)).toFixed(2)}"`,
-              );
-            })
-            .join(""),
-        );
-        const ic = {
-          road: "🚧",
-          hosp: "🏥",
-          pol: "👮",
-          prep: "🛡",
-          train: "🎓",
-        };
-        setH(
-          $("#cn"),
-          R.map((r) => {
-            const [x, y] = LPX[r.id],
-              w = Math.round(r.inf * 0.28),
-              np = G.pend.filter((p) => p.rid == r.id).length;
-            let s = `<rect x="${(x - 14).toFixed(0)}" y="${(y + 5).toFixed(0)}" width="28" height="3" rx="1.5" fill="rgba(0,0,0,.45)"/><rect x="${(x - 14).toFixed(0)}" y="${(y + 5).toFixed(0)}" width="${w}" height="3" rx="1.5" fill="hsl(${r.inf * 1.2},65%,50%)"/>`;
-            if (r.hosp)
-              s += `<text class="ic" x="${(x - 18).toFixed(0)}" y="${(y + 18).toFixed(0)}">🏥${r.hosp}</text>`;
-            if (np)
-              s += `<text class="alb" x="${(x + 20).toFixed(0)}" y="${(y - 12).toFixed(0)}">⚠${np > 1 ? np : ""}</text>`;
-            G.q
-              .filter((i) => i.rid == r.id)
-              .forEach((i, j) => {
-                const fr = 1 - i.left / (A[i.k].q * DPQ);
-                s += `<circle cx="${(x + 22 * j - 8 * (G.q.filter((z) => z.rid == r.id).length - 1)).toFixed(0)}" cy="${(y - 24).toFixed(0)}" r="9" fill="rgba(0,0,0,.4)" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="${(fr * 56.5).toFixed(1)} 57" transform="rotate(-90 ${(x + 22 * j - 8 * (G.q.filter((z) => z.rid == r.id).length - 1)).toFixed(0)} ${(y - 24).toFixed(0)})"/><text class="ic" x="${(x + 22 * j - 8 * (G.q.filter((z) => z.rid == r.id).length - 1)).toFixed(0)}" y="${(y - 20).toFixed(0)}">${ic[i.k] || "🔨"}</text>`;
-              });
-            return s;
-          }).join(""),
-        );
-      }
-      function drawTick() {
-        DIRTY = 0;
-        const R = G.regs;
-        $("#tq").textContent = yq();
-        $("#clk").textContent = `Day ${G.day * 3} of ${TURNS * DPQ * 3}`;
-        TL.forEach((t, i) => {
-          $("#ts" + i).textContent = t[4]();
-        });
-        PO.forEach(([p, i]) => {
-          p.style.fill = `hsl(${clamp(LV[G.layer](R[i])) * 1.25},60%,40%)`;
-        });
-        FL.forEach((i) => {
-          const p = PO[i][0];
-          p.classList.add("fl");
-          setTimeout(() => p.classList.remove("fl"), 2000);
-        });
-        FL = [];
-        setH(
-          $("#fl"),
-          G.led
-            .map(
-              ([a, b, c]) =>
-                `<div class="row"><span>${a}</span><b class="${c == "gr" ? "up" : "dn"}">${b}</b></div>`,
-            )
-            .join(""),
-        );
-        setH(
-          $("#nw"),
-          G.news
-            .filter((n) => !n.l)
-            .slice(0, 8)
-            .map(
-              (n) =>
-                `<div class="row"><small>Day ${n.d}</small> ${n.r.length ? "<b>" + n.r.map((i) => R[i].n).join(" / ") + "</b>: " : ""}${n.m}</div>`,
-            )
-            .join(""),
-        );
-        ipUpd();
-        inbUpd();
-        cfUpd();
-        irUpd();
-        mapUpd();
-        upSheet();
-      }
-      let last = 0,
-        acc = 0;
-      function frame(t) {
-        const dt = Math.min(0.1, (t - last) / 1000 || 0);
-        last = t;
-        if (!G.over && G.speed && !chatOpen()) {
-          acc += dt * G.speed;
-          while (acc >= SIM.tickMs / 1000) {
-            acc -= SIM.tickMs / 1000;
-            tick();
-            if (G.over || chatOpen()) break;
-          }
-        }
-        if (DIRTY) drawTick();
-        tween();
-        PA = PA.filter((p) => {
-          p.t += dt;
-          const k = p.t / p.d;
-          if (k >= 1) {
-            p.e.remove();
-            if (p.fl) {
-              const q = p.pts[p.pts.length - 1];
-              ft(q[0], q[1], p.fl[0], p.fl[1]);
-            }
-            return false;
-          }
-          if (p.ring) {
-            p.e.setAttribute("r", 3 + k * 14);
-            p.e.setAttribute("opacity", 1 - k);
-          } else {
-            const s = p.sg;
-            let d = k * p.len,
-              i = 0;
-            while (i < s.length - 1 && d > s[i]) {
-              d -= s[i];
-              i++;
-            }
-            const f = s[i] ? d / s[i] : 0,
-              a = p.pts[i],
-              b = p.pts[i + 1];
-            p.e.setAttribute("cx", a[0] + (b[0] - a[0]) * f);
-            p.e.setAttribute("cy", a[1] + (b[1] - a[1]) * f);
-          }
-          return true;
-        });
-        requestAnimationFrame(frame);
-      }
-      function buildMap() {
-        const svg = $("#map"),
-          pp = (a) =>
-            a
-              .map((q) =>
-                PX(q)
-                  .map((v) => v.toFixed(1))
-                  .join(","),
-              )
-              .join(" "),
-          od = "M" + pp(OUT).replace(/ /g, "L") + "Z";
-        const [ox, oy] = PX([41.7, -4.2]);
-        const fl = Object.keys(CO)
-          .map((cc) => {
-            const c = CO[cc],
-              [x, y] = c.p;
-            return (
-              F(
-                cc,
-                `x="${x - 13}" y="${(y - 8.7).toFixed(1)}" width="26" height="17.3" data-cc="${cc}" style="cursor:pointer"`,
-              ) +
-              `<rect x="${x - 13}" y="${(y - 8.7).toFixed(1)}" width="26" height="17.3" fill="none" stroke="rgba(255,255,255,.4)" class="nop"/>` +
-              (c.k == "l"
-                ? `<text class="nb" x="${x}" y="${y + 19}">${c.n}</text>`
-                : `<text class="nb" x="${x + 30}" y="${y + 3}">${cc.toUpperCase()}</text>`)
-            );
-          })
-          .join("");
-        const lab = LP.map((p, i) => {
-          const [x, y] = PX(p);
-          return `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}"${i == 6 ? ' style="font-size:7px"' : ""}>${T[i][0]}</text>`;
-        }).join("");
-        const pr = [
-          ["⚓", 7, 18, -14],
-          ["✈", 6, 18, -14],
-          ["⚓", 5, 16, 18],
-          ["✈", 2, 14, -14],
-        ]
-          .map(
-            ([s, i, dx, dy]) =>
-              `<text class="ic" x="${(LPX[i][0] + dx).toFixed(0)}" y="${(LPX[i][1] + dy).toFixed(0)}">${s}</text>`,
-          )
-          .join("");
-        svg.innerHTML = `<defs><clipPath id="kc"><path d="${od}"/></clipPath></defs><text class="nb" x="${ox.toFixed(0)}" y="${oy.toFixed(0)}">Indian Ocean</text><path d="${od}" fill="var(--in)"/><g class="rg" clip-path="url(#kc)">${RP.map((p, i) => `<polygon data-i="${i}" points="${pp(p)}"/>`).join("")}</g><path d="${od}" fill="none" stroke="var(--bl2)" stroke-width="2.5" stroke-linejoin="round"/><g id="sl" class="nop"></g><g id="rdg" class="nop"></g><g id="rlg" class="nop"></g>${lab}${pr}<g id="cn" class="nop"></g><g id="pt" class="nop"></g><g id="ft" class="nop"></g>${fl}`;
-        PO = [...svg.querySelectorAll(".rg polygon")].map((p, i) => [p, i]);
-      }
-      function cancelP(i) {
-        const r = G.regs[i];
-        r.prog = 0;
-        toast("Job program cancelled in " + r.n);
-        DIRTY = 1;
-        save();
-        if (SEL == i) sheet(i);
-      }
-      function init() {
-        buildMap();
-        $("#kf").innerHTML = F(
-          "ke",
-          'class="fg" style="width:30px;height:20px"',
-        );
-        $("#hs").innerHTML = TL.map(
-          (t, i) =>
-            `<div class="st"><small>${t[0]}</small><b id="tv${i}"></b><small id="ts${i}"></small></div>`,
+        $("#rl").innerHTML = RG.map(
+          ([n], i) =>
+            `<button class="opt" data-r="${i}"><div class="row" style="border:0;padding:0"><b>${n}</b><span id="rv${i}"></span></div></button>`,
         ).join("");
+        $("#ir").innerHTML = Object.keys(CO)
+          .map(
+            (c) =>
+              `<button class="opt" data-c="${c}"><div class="row" style="border:0;padding:0"><b>${CO[c][0]}</b><span id="cv${c}"></span></div><div class="bar"><i id="cb${c}"></i></div><small id="cm${c}"></small></button>`,
+          )
+          .join("");
         $("#na").innerHTML = [
           ["tax", "Change tax rate"],
-          ["trade", "Trade deal or tariff"],
-          ["borrow", "Borrow or repay"],
+          ["debt", "Borrow or repay"],
           ["corr", "Anti-corruption drive"],
         ]
           .map(
@@ -3550,96 +1120,266 @@
               `<button class="opt" data-n="${k}"><b>${l}</b></button>`,
           )
           .join("");
+        $("#nf").innerHTML =
+          '<option value="all">All news</option><option value="alert">Alerts only</option>' +
+          RG.map(([n], i) => `<option value="${i}">${n}</option>`).join("");
+      }
+      function ui(force) {
+        const q = (G.day / DPQ) | 0;
+        $("#nm").textContent = G.name;
+        av($("#av"));
+        $("#hq").textContent =
+          `Q${(q % 4) + 1} ${2027 + ((q / 4) | 0)} · day ${G.day * 3}`;
+        $("#s1").textContent = "KSh " + G.tr.toFixed(1) + "B";
+        $("#s1").className = G.tr < 0 ? "dn" : "up";
+        $("#s2").textContent = Math.round(G.appr) + "%";
+        $("#s3").textContent =
+          "●".repeat(G.ap) + "○".repeat(Math.max(0, 3 - G.ap));
+        $("#sp").textContent = ["⏸", "1×", "2×"][G.spd];
+        const pc = (i) => G.pend.filter((p) => p.rid == i).length;
+        RG.forEach((_, i) => {
+          const r = G.regs[i],
+            v = r[layer];
+          $("#t" + i).style.fill = `hsl(${v * 1.2},55%,36%)`;
+          $("#tv" + i).textContent = Math.round(v);
+          $("#tb" + i).textContent =
+            (pc(i) ? "⚠" : "") + (G.proj.some((p) => p.rid == i) ? "🚧" : "");
+          $("#rv" + i).innerHTML =
+            `Jobs ${Math.round(r.e)} · Health ${Math.round(r.hl)} · Mood ${Math.round(r.hap)} ${pc(i) ? "⚠" : ""}`;
+        });
+        Object.keys(CO).forEach((c) => {
+          const v = G.rel[c];
+          $("#cv" + c).textContent = Math.round(v);
+          $("#cb" + c).style.cssText =
+            `width:${v}%;background:hsl(${v * 1.2},65%,45%)`;
+          $("#cm" + c).textContent =
+            G.mou
+              .filter((m) => m.c == c)
+              .map((m) => MT[m.t][0])
+              .join(", ") || "No MoUs yet";
+        });
+        $("#es").innerHTML = [
+          ["GDP growth", G.gdp.toFixed(2) + "%"],
+          ["Inflation", G.infl.toFixed(2) + "%"],
+          ["Unemployment", (100 - avg("e")).toFixed(1) + "%"],
+          ["Debt", "KSh " + G.debt.toFixed(0) + "B"],
+          ["Tax", ["Low", "Medium", "High"][G.tax]],
+          ["Daily exports", "KSh " + G.trade.toFixed(2) + "B"],
+        ]
+          .map(
+            ([a, b]) => `<div class="st"><small>${a}</small><b>${b}</b></div>`,
+          )
+          .join("");
+        $("#pj").innerHTML = G.proj.length
+          ? G.proj
+              .map((p) => {
+                const [n, , d] = PJ[p.k],
+                  f = 100 - (p.left / d) * 100;
+                return `<div class="row"><span>${n}: ${G.regs[p.rid].n}</span><span>${p.left} days</span></div><div class="bar"><i style="width:${f}%;background:var(--bl)"></i></div>`;
+              })
+              .join("")
+          : '<div class="mu">Nothing yet. Open a region and start a project.</div>';
+        const ft =
+          NFV == "all"
+            ? () => 1
+            : NFV == "alert"
+              ? (n) => n.k == "alert"
+              : (n) => n.r == +NFV;
+        const nh =
+          G.news
+            .filter(ft)
+            .slice(0, 25)
+            .map(
+              (n) =>
+                `<div class="row"><span><small>Day ${n.d * 3}</small> ${n.r >= 0 ? "<b>" + G.regs[n.r].n + "</b>: " : ""}${esc(n.m)}</span></div>`,
+            )
+            .join("") || '<div class="mu">Quiet so far.</div>';
+        if (SIG.n !== nh) {
+          SIG.n = nh;
+          $("#nl").innerHTML = nh;
+        }
+        $("#tk").innerHTML = G.news
+          .slice(0, 6)
+          .map((n) => `<div class="row"><span>${esc(n.m)}</span></div>`)
+          .join("");
+        const ah = G.pend
+          .map((p) => {
+            const e = evd(p.id),
+              r = G.regs[p.rid];
+            return `<div class="card al"><b>⚠ ${e[1].replace("{r}", r.n)}</b><div class="mu">${e[2]} ${esc(G.name)}, your call. No rush: it fades if you wait.</div>${e[3].map(([l, fx], c) => `<button class="opt" data-p="${p.u}" data-c="${c}"${fx.tr < 0 && G.tr < -fx.tr ? " disabled" : ""}><b>${l}</b><small>${fmt(fx)}</small></button>`).join("")}</div>`;
+          })
+          .join("");
+        if (SIG.a !== ah || force) {
+          SIG.a = ah;
+          $("#al").innerHTML = ah;
+        }
+        const ih =
+          G.imp
+            .map(
+              (r) =>
+                `<div class="imp card" style="margin:0 0 8px"><b>${esc(r.t)}</b>${dRows(r.d.slice(0, 6))}</div>`,
+            )
+            .join("") ||
+          '<div class="mu">Make a decision and its impact shows here.</div>';
+        if (SIG.i !== ih) {
+          SIG.i = ih;
+          $("#il").innerHTML = ih;
+        }
+      }
+      function setTab(t) {
+        tab = t;
+        document
+          .querySelectorAll(".sec")
+          .forEach((s) => s.classList.toggle("on", s.dataset.t == t));
+        document
+          .querySelectorAll("#nav button")
+          .forEach((b) => b.classList.toggle("on", b.dataset.t == t));
+      }
+
+      // ---- events
+      function bind() {
+        $("#nav").onclick = (e) => {
+          const b = e.target.closest("[data-t]");
+          if (b) setTab(b.dataset.t);
+        };
         $("#map").onclick = (e) => {
-          const c = e.target.closest && e.target.closest("[data-cc]");
-          if (c) return country(c.dataset.cc);
-          const i = e.target.dataset && e.target.dataset.i;
-          if (i != null) sheet(+i);
+          const g = e.target.closest("[data-r]");
+          if (g) regSheet(+g.dataset.r);
         };
-        $("#chips").onclick = (e) => {
-          const l = e.target.dataset.l;
-          if (l) {
-            G.layer = l;
-            chips();
-            DIRTY = 1;
-            save();
-          }
-        };
-        $("#sov").onclick = (e) => {
-          if (e.target.id == "sov" || e.target.id == "sc") {
-            $("#sov").classList.remove("on");
-            SEL = null;
-          }
-          const ev = e.target.closest("[data-e]");
-          if (ev) return openEv(+ev.dataset.e);
-          const b = e.target.closest("[data-k]");
-          if (b) ract(b.dataset.k, +b.dataset.i);
-          const c = e.target.closest("[data-c]");
-          if (c) cancelP(+c.dataset.c);
-        };
-        $("#inb").onclick = (e) => {
-          const ev = e.target.closest("[data-e]");
-          if (ev) return openEv(+ev.dataset.e);
-          const o = e.target.closest("[data-o]");
-          if (o) sheet(+o.dataset.o);
+        $("#rl").onclick = (e) => {
+          const g = e.target.closest("[data-r]");
+          if (g) regSheet(+g.dataset.r);
         };
         $("#ir").onclick = (e) => {
-          const b = e.target.closest("[data-cc]");
-          if (b) country(b.dataset.cc);
-        };
-        $("#ip").onclick = (e) => {
-          const c = e.target.closest("[data-c]");
-          if (c) cancelP(+c.dataset.c);
+          const g = e.target.closest("[data-c]");
+          if (g) ctrSheet(g.dataset.c);
         };
         $("#na").onclick = (e) => {
-          const b = e.target.closest("[data-n]");
-          if (b) nat(b.dataset.n);
+          const g = e.target.closest("[data-n]");
+          if (g) natSheet(g.dataset.n);
         };
-        const SP = [0, 1, 2, 4],
-          SL = ["⏸", "1×", "2×", "4×"];
+        $("#lc").onclick = (e) => {
+          const l = e.target.dataset.l;
+          if (l) {
+            layer = l;
+            build();
+            ui();
+          }
+        };
+        $("#nf").onchange = (e) => {
+          NFV = e.target.value;
+          SIG.n = null;
+          ui();
+        };
+        $("#al").onclick = (e) => {
+          const b = e.target.closest("[data-p]");
+          if (b) decide(+b.dataset.p, +b.dataset.c);
+        };
         $("#sp").onclick = () => {
-          G.speed = SP[(SP.indexOf(G.speed) + 1) % 4];
-          $("#sp").textContent = SL[SP.indexOf(G.speed)];
+          G.spd = (G.spd + 1) % 3;
+          ui();
           save();
         };
-        $("#hb").onclick = help;
-        $("#rs").onclick = () =>
-          chat(
-            CAB,
-            ["Restart? Your current game will be lost."],
-            [
-              {
-                l: "Restart",
-                d: "Start a new term",
-                rep: "Starting a new term.",
-                go: () => {
-                  newGame();
-                  $("#sp").textContent = "1×";
-                  chips();
-                  drawTick();
-                  help();
-                },
-              },
-            ],
-            1,
-          );
-        let loaded = 0;
-        try {
-          const s = JSON.parse(localStorage.getItem("kenya1"));
-          if (s && s.v == 3 && s.regs && s.regs.length == 8) {
-            G = s;
-            loaded = 1;
+        $("#sh").onclick = (e) => {
+          if (e.target.id == "x") return $("#ov").classList.remove("on");
+          const bk = e.target.closest("[data-back]");
+          if (bk) {
+            const v = bk.dataset.back;
+            return isNaN(v) ? ctrSheet(v) : regSheet(+v);
           }
-        } catch (e) {}
-        if (!G) newGame();
-        $("#sp").textContent = SL[SP.indexOf(G.speed)] || "1×";
-        chips();
-        drawTick();
-        requestAnimationFrame(frame);
-        if (!loaded) help();
-        else if (G.over) showEnd();
+          const b = e.target.closest("[data-i]");
+          if (!b) return;
+          const o = IT[+b.dataset.i];
+          if (!o) return;
+          if (o.cost != null) {
+            if (G.ap < 1)
+              return toast("No action points left. Wait for the next quarter.");
+            if (o.cost > G.tr) return toast("Not enough money");
+          }
+          $("#ov").classList.remove("on");
+          o.go();
+        };
+        $("#ov").onclick = (e) => {
+          if (e.target.id == "ov") $("#ov").classList.remove("on");
+        };
+        $("#av").onclick = () => {
+          $("#pn").value = G.name;
+          pic = G.pic;
+          av2();
+          $("#su").classList.add("on");
+        };
+        $("#pf").onchange = (e) => {
+          const f = e.target.files[0];
+          if (!f) return;
+          const rd = new FileReader();
+          rd.onload = () => {
+            const im = new Image();
+            im.onload = () => {
+              const c = document.createElement("canvas");
+              c.width = c.height = 96;
+              const x = c.getContext("2d"),
+                s = Math.min(im.width, im.height);
+              x.drawImage(
+                im,
+                (im.width - s) / 2,
+                (im.height - s) / 2,
+                s,
+                s,
+                0,
+                0,
+                96,
+                96,
+              );
+              pic = c.toDataURL("image/jpeg", 0.8);
+              av2();
+            };
+            im.src = rd.result;
+          };
+          rd.readAsDataURL(f);
+        };
+        $("#go").onclick = () => {
+          const n = $("#pn").value.trim() || "Leader";
+          if (G) {
+            G.name = n;
+            G.pic = pic;
+          } else fresh(n, pic);
+          $("#su").classList.remove("on");
+          save();
+          ui(1);
+        };
       }
-      init();
+      function av2() {
+        $("#pv").innerHTML = pic
+          ? `<img src="${pic}" alt="">`
+          : esc(($("#pn").value || "?")[0].toUpperCase());
+      }
+      function loop() {
+        const open =
+          $("#ov").classList.contains("on") ||
+          $("#su").classList.contains("on");
+        if (G && !G.over && G.spd && !open) {
+          tick();
+          ui();
+        }
+        setTimeout(loop, 900 / ((G && G.spd) || 1));
+      }
+      (function init() {
+        try {
+          const s = JSON.parse(localStorage.getItem("ke2"));
+          if (s && s.regs && s.regs.length == 8 && s.name) G = s;
+        } catch (e) {}
+        build();
+        bind();
+        if (G) {
+          $("#su").classList.remove("on");
+          pic = G.pic;
+          ui(1);
+        } else {
+          av2();
+          $("#pn").oninput = av2;
+        }
+        loop();
+      })();
     </script>
   </body>
 </html>
