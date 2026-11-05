@@ -25,6 +25,7 @@
         --text: #e2e8f0;
         --text2: #94a3b8;
         --text3: #64748b;
+        --zebra: rgba(96, 165, 250, 0.045);
         --fd:
           -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         --fm: "SF Mono", Consolas, Menlo, monospace;
@@ -44,6 +45,7 @@
         --text: #0f172a;
         --text2: #334155;
         --text3: #64748b;
+        --zebra: rgba(37, 99, 235, 0.05);
       }
       * {
         margin: 0;
@@ -57,6 +59,12 @@
       body {
         height: 100%;
         overflow: hidden;
+      }
+      @supports (height: 100dvh) {
+        html,
+        body {
+          height: 100dvh;
+        }
       }
       body {
         font-family: var(--fm);
@@ -80,11 +88,17 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
         border-bottom: 1px solid var(--border);
         background: var(--bg2);
         flex-shrink: 0;
         position: relative;
         z-index: 200;
+      }
+      .topr {
+        display: flex;
+        gap: 8px;
+        align-items: center;
       }
       .logo {
         font-family: var(--fd);
@@ -130,16 +144,22 @@
       }
       #content {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
-        padding: 16px 16px 90px;
+        padding: 20px 16px 100px;
         max-width: 760px;
         width: 100%;
         margin: 0 auto;
       }
+      #content.chatmode {
+        overflow: hidden;
+        padding-top: 12px;
+        padding-bottom: calc(68px + env(safe-area-inset-bottom));
+      }
       .page {
         display: none;
         flex-direction: column;
-        gap: 14px;
+        gap: 18px;
       }
       .page.on {
         display: flex;
@@ -148,17 +168,17 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: var(--r);
-        padding: 18px;
+        padding: 20px;
       }
       body.compact .card {
-        padding: 12px;
+        padding: 13px;
       }
       .ct {
         font-family: var(--fd);
         font-weight: 700;
         font-size: 0.92rem;
         color: var(--bl);
-        margin-bottom: 14px;
+        margin-bottom: 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -176,7 +196,7 @@
       #hero {
         background: linear-gradient(135deg, #0f2a6e, #1e3a8a 45%, #1d4ed8);
         border-radius: var(--r);
-        padding: 24px 20px 18px;
+        padding: 26px 20px 20px;
         text-align: center;
         color: #fff;
       }
@@ -187,9 +207,10 @@
       }
       .ha {
         font-family: var(--fd);
-        font-size: 2.4rem;
+        font-size: clamp(1.9rem, 8vw, 2.6rem);
         font-weight: 700;
-        margin: 4px 0;
+        margin: 6px 0;
+        word-break: break-word;
       }
       #spark {
         opacity: 0.8;
@@ -197,19 +218,27 @@
       .hr {
         display: flex;
         justify-content: space-around;
-        margin-top: 14px;
+        margin-top: 16px;
         padding-top: 14px;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
-        gap: 10px;
+        gap: 6px;
       }
       .hs {
         flex: 1;
         min-width: 0;
+        cursor: pointer;
+        border-radius: 10px;
+        padding: 6px 2px;
+        transition: background 0.15s;
+      }
+      .hs:hover,
+      .hs:active {
+        background: rgba(255, 255, 255, 0.1);
       }
       .hs small {
         display: block;
         font-size: 0.68rem;
-        opacity: 0.55;
+        opacity: 0.6;
       }
       .hs b {
         display: block;
@@ -225,6 +254,11 @@
       .hs .rd {
         color: #f87171;
       }
+      .hint {
+        font-size: 0.64rem;
+        opacity: 0.45;
+        margin-top: 8px;
+      }
       .setbal {
         background: rgba(255, 255, 255, 0.12);
         border: none;
@@ -234,12 +268,12 @@
         font-size: 0.72rem;
         cursor: pointer;
         font-family: var(--fm);
-        margin-top: 8px;
+        margin-top: 10px;
       }
       .trig {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 14px;
       }
       .tb {
         height: 76px;
@@ -346,7 +380,7 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
       }
       .fl {
         font-size: 0.74rem;
@@ -380,18 +414,37 @@
       }
       .empty {
         text-align: center;
-        padding: 30px 16px;
+        padding: 34px 16px;
         color: var(--text3);
         font-size: 0.86rem;
+      }
+      /* horizontal swipe strips */
+      .strip {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+        padding: 2px 1px 8px;
+        flex-shrink: 0;
+        scrollbar-width: none;
+      }
+      .strip::-webkit-scrollbar {
+        display: none;
+      }
+      .strip > * {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
       }
       /* history */
       .hi {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 11px 0;
+        padding: 13px 0;
         border-bottom: 1px solid var(--border);
-        gap: 8px;
+        gap: 10px;
       }
       .hi:last-child {
         border: none;
@@ -408,124 +461,222 @@
       .neg {
         color: var(--red);
       }
+      /* real table */
       .tw {
         overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
-      table {
+      table.dt {
         width: 100%;
-        border-collapse: collapse;
+        min-width: 540px;
+        border-collapse: separate;
+        border-spacing: 0;
         font-size: 0.8rem;
       }
-      th {
+      table.dt th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--bg2);
         text-align: left;
         color: var(--text3);
-        font-weight: 500;
-        padding: 6px 8px;
+        font-weight: 600;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--bb);
+        white-space: nowrap;
+      }
+      table.dt td {
+        padding: 10px 12px;
         border-bottom: 1px solid var(--border);
         white-space: nowrap;
       }
-      td {
-        padding: 8px;
-        border-bottom: 1px solid var(--border);
-        white-space: nowrap;
+      table.dt tbody tr:nth-child(even) {
+        background: var(--zebra);
       }
-      td.n {
+      table.dt tbody tr:last-child td {
+        border-bottom: none;
+      }
+      table.dt .r {
         text-align: right;
+      }
+      table.dt td.r {
         font-family: var(--fd);
         font-weight: 700;
+      }
+      table.dt td.nm {
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .seg {
         display: flex;
         gap: 4px;
       }
-      /* hub */
-      .tiles {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-      }
+      /* hub / chat */
       .tile {
         background: var(--bg3);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px 4px;
+        border-radius: 99px;
+        padding: 9px 14px;
         text-align: center;
         cursor: pointer;
-        font-size: 0.7rem;
+        font-size: 0.78rem;
         color: var(--text2);
         text-decoration: none;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
+        flex-direction: row;
+        gap: 6px;
         align-items: center;
+        white-space: nowrap;
       }
       .tile span {
-        font-size: 1.4rem;
+        font-size: 1rem;
       }
       .tile:active {
         transform: scale(0.95);
       }
-      @media (max-width: 380px) {
-        .tiles {
-          grid-template-columns: repeat(3, 1fr);
-        }
+      #page-hub.on {
+        height: 100%;
+        min-height: 0;
+        gap: 0;
       }
       #ai-log {
-        max-height: 46vh;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: 12px;
+        padding: 10px 2px 14px;
+        scroll-behavior: smooth;
       }
       .msg {
-        max-width: 94%;
-        padding: 11px 14px;
-        border-radius: 14px;
-        font-size: 0.85rem;
-        line-height: 1.55;
+        max-width: 92%;
+        padding: 12px 15px;
+        border-radius: 18px;
+        font-size: 0.86rem;
+        line-height: 1.6;
+        animation: pop 0.3s ease both;
       }
       .msg.bot {
         background: var(--bg3);
         border: 1px solid var(--border);
         align-self: flex-start;
+        border-bottom-left-radius: 5px;
+        transform-origin: left bottom;
       }
       .msg.me {
         background: var(--blue);
         color: #fff;
         align-self: flex-end;
+        border-bottom-right-radius: 5px;
+        transform-origin: right bottom;
       }
       .msg h4 {
         font-family: var(--fd);
         color: var(--bl);
         margin-bottom: 6px;
       }
-      .chips {
+      .msg.tn .row {
+        visibility: hidden;
+      }
+      .msg .fill {
+        transform-origin: left;
+        animation: grow 0.8s ease both;
+      }
+      .typing {
         display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
+        gap: 5px;
+        align-items: center;
+        padding: 15px 17px;
+        width: fit-content;
+      }
+      .typing i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--text3);
+        animation: bounce 1s infinite ease-in-out;
+      }
+      .typing i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes grow {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.5;
+        }
+        30% {
+          transform: translateY(-5px);
+          opacity: 1;
+        }
       }
       .chip {
         background: var(--bd);
         color: var(--bl);
         border: 1px solid var(--border);
-        padding: 7px 11px;
+        padding: 8px 13px;
         border-radius: 99px;
-        font-size: 0.75rem;
+        font-size: 0.76rem;
         cursor: pointer;
+        white-space: nowrap;
+      }
+      .composer {
+        display: flex;
+        gap: 8px;
+        padding-top: 8px;
+        flex-shrink: 0;
+      }
+      .composer input {
+        border-radius: 99px;
+        padding: 12px 18px;
+      }
+      .composer .btn {
+        border-radius: 50%;
+        width: 46px;
+        height: 46px;
+        padding: 0;
+        flex-shrink: 0;
+        font-size: 1rem;
       }
       /* shortcuts / goals / misc */
       .pills {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        gap: 10px;
       }
       .pill {
         background: var(--bg3);
         border: 1px solid var(--border);
         border-radius: 10px;
-        padding: 11px;
+        padding: 12px;
         text-align: center;
         cursor: pointer;
         position: relative;
@@ -557,7 +708,7 @@
         border: 1px solid var(--border);
         border-radius: var(--rs);
         padding: 14px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
       .bar {
         height: 6px;
@@ -577,6 +728,13 @@
         padding: 14px;
         text-align: center;
       }
+      .stat.cl {
+        cursor: pointer;
+      }
+      .stat.cl.on {
+        border-color: var(--blue);
+        background: var(--bd);
+      }
       .stat b {
         display: block;
         font-family: var(--fd);
@@ -589,7 +747,7 @@
       .g2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 12px;
       }
       .g3 {
         display: grid;
@@ -618,6 +776,19 @@
         justify-content: center;
         font-size: 0.8rem;
         font-weight: 700;
+        text-align: center;
+        pointer-events: none;
+      }
+      .donut.big,
+      .donut.big .ring {
+        width: 190px;
+        height: 190px;
+      }
+      .donut.big .ring {
+        cursor: pointer;
+      }
+      .donut.big .dc {
+        inset: 30px;
       }
       .lg {
         display: flex;
@@ -626,20 +797,36 @@
         font-size: 0.82rem;
         margin: 5px 0;
       }
+      .lg.cl {
+        cursor: pointer;
+        padding: 8px 10px;
+        border-radius: 10px;
+        margin: 3px 0;
+        border: 1px solid transparent;
+      }
+      .lg.cl.on {
+        border-color: var(--blue);
+        background: var(--bd);
+      }
+      .lg .grow {
+        flex: 1;
+        min-width: 0;
+      }
       .dot {
         width: 10px;
         height: 10px;
         border-radius: 50%;
+        flex-shrink: 0;
       }
       .rday {
         font-size: 0.72rem;
         color: var(--text3);
-        margin: 12px 0 2px;
+        margin: 14px 0 2px;
       }
       .set h5 {
         font-size: 0.72rem;
         color: var(--text3);
-        margin: 16px 0 6px;
+        margin: 20px 0 6px;
         padding-bottom: 6px;
         border-bottom: 1px solid var(--border);
         font-weight: 500;
@@ -648,7 +835,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 0;
+        padding: 11px 0;
         gap: 10px;
         font-size: 0.88rem;
       }
@@ -677,6 +864,108 @@
       }
       .tog.on:after {
         left: 21px;
+      }
+      /* day popup cards + hour bars */
+      .dcard {
+        width: 108px;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 8px;
+        text-align: center;
+        font-size: 0.76rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .dcard.on {
+        border-color: var(--blue);
+        background: var(--bd);
+      }
+      .dcard b {
+        font-family: var(--fd);
+        font-size: 0.78rem;
+      }
+      .dcard span {
+        font-family: var(--fd);
+        font-weight: 700;
+      }
+      .dcard small {
+        color: var(--text3);
+        font-size: 0.64rem;
+      }
+      .mini {
+        display: flex;
+        gap: 4px;
+        height: 32px;
+        align-items: flex-end;
+        justify-content: center;
+        margin: 6px 0;
+      }
+      .mini i {
+        display: block;
+        width: 12px;
+        border-radius: 3px 3px 0 0;
+      }
+      .balline {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.78rem;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+        padding: 11px 13px;
+      }
+      .hbars {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 4px 1px 8px;
+        scrollbar-width: none;
+      }
+      .hbars::-webkit-scrollbar {
+        display: none;
+      }
+      .hb {
+        flex: 0 0 34px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 4px 0;
+        border: 1px solid transparent;
+      }
+      .hb.on {
+        border-color: var(--blue);
+        background: var(--bd);
+      }
+      .hb .hv {
+        font-size: 0.58rem;
+        color: var(--text3);
+        height: 12px;
+      }
+      .hb .hbar {
+        width: 16px;
+        height: 90px;
+        background: var(--border);
+        border-radius: 5px;
+        display: flex;
+        align-items: flex-end;
+        overflow: hidden;
+      }
+      .hb .hbar div {
+        width: 100%;
+        background: linear-gradient(0deg, var(--blue), #60a5fa);
+        border-radius: 5px 5px 0 0;
+      }
+      .hb small {
+        font-size: 0.6rem;
+        color: var(--text3);
       }
       /* bottom nav */
       #bnav {
@@ -746,11 +1035,24 @@
         max-height: 92vh;
         overflow-y: auto;
       }
+      .mb.wide {
+        max-width: 760px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .mb.wide > * {
+        flex-shrink: 0;
+      }
       .mt {
         font-family: var(--fd);
         font-weight: 700;
         color: var(--bl);
         margin-bottom: 14px;
+      }
+      .mb.wide .mt {
+        margin: 0;
       }
       .mbt {
         display: flex;
@@ -824,7 +1126,7 @@
         display: flex;
         gap: 8px;
         align-items: center;
-        padding: 9px 0;
+        padding: 10px 0;
         border-bottom: 1px solid var(--border);
       }
       .smr.dup {
@@ -834,9 +1136,14 @@
         flex: 1;
         min-width: 0;
       }
-      .smr input[type="text"] {
+      .smr input[type="text"],
+      .smr input[type="datetime-local"] {
         padding: 6px 8px;
         font-size: 0.8rem;
+      }
+      .smr input[type="datetime-local"] {
+        margin-top: 5px;
+        font-size: 0.74rem;
       }
       .smr select {
         padding: 4px 22px 4px 8px;
@@ -939,13 +1246,74 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      /* ---------- responsive ---------- */
+      @media (max-width: 380px) {
+        .tb {
+          height: 68px;
+        }
+        .card {
+          padding: 16px;
+        }
+        .pills {
+          gap: 8px;
+        }
+        .hs b {
+          font-size: 0.8rem;
+        }
+        .mb {
+          padding: 16px;
+        }
+      }
       @media (min-width: 760px) {
+        #content {
+          max-width: 860px;
+          padding: 26px 24px 110px;
+        }
         #bnav {
           max-width: 520px;
           left: 50%;
           transform: translateX(-50%);
           border-radius: 18px 18px 0 0;
           border: 1px solid var(--border);
+        }
+        .card {
+          padding: 24px;
+        }
+        .msg {
+          max-width: 80%;
+        }
+        table.dt {
+          min-width: 0;
+        }
+      }
+      @media (min-width: 1100px) {
+        #content {
+          max-width: 1040px;
+        }
+        #page-home.on {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+          gap: 18px;
+          align-items: start;
+        }
+        #page-home > .card:last-child {
+          grid-column: 2;
+          grid-row: 1 / span 4;
+        }
+        #page-hub.on {
+          max-width: 780px;
+          margin: 0 auto;
+          width: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .msg,
+        .msg .fill,
+        .typing i {
+          animation: none;
+        }
+        #ai-log {
+          scroll-behavior: auto;
         }
       }
     </style>
@@ -984,15 +1352,23 @@
     </div>
 
     <header id="top">
-  <div class="logo"><i></i>CashSplit</div>
-  <div class="row">
-    <a class="btn bg sm" id="eco-link" href="economy.html">🏛 Economy</a>
-    <button class="btn bg sm" id="pbtn" onclick="toggleProfile(event)">
-      <span id="pname">🧑</span> ▾
-    </button>
-  </div>
-  <div id="pm"></div>
-</header>
+      <div class="logo"><i></i>CashSplit</div>
+      <div class="topr">
+        <button
+          class="btn bg sm"
+          id="hbtn"
+          onclick="openHours()"
+          title="Productive hours"
+          aria-label="Productive hours chart"
+        >
+          🕒 Hours
+        </button>
+        <button class="btn bg sm" id="pbtn" onclick="toggleProfile(event)">
+          <span id="pname">🧑</span> ▾
+        </button>
+      </div>
+      <div id="pm"></div>
+    </header>
 
     <main id="content">
       <!-- HOME -->
@@ -1002,14 +1378,17 @@
           <div class="ha" id="h-amt">0.00</div>
           <div id="spark"></div>
           <div class="hr">
-            <div class="hs">
+            <div class="hs" onclick="openDay('in')">
               <small>Today in</small><b class="g" id="s-in">0</b>
             </div>
-            <div class="hs">
+            <div class="hs" onclick="openDay('out')">
               <small>Today out</small><b class="rd" id="s-out">0</b>
             </div>
-            <div class="hs"><small>Today net</small><b id="s-net">0</b></div>
+            <div class="hs" onclick="openDay('all')">
+              <small>Today net</small><b id="s-net">0</b>
+            </div>
           </div>
+          <div class="hint">Tap in / out / net for details &amp; trends</div>
           <button class="setbal" onclick="setBalance()">
             ⟲ Set or reset balance
           </button>
@@ -1048,44 +1427,41 @@
         </div>
       </section>
 
-      <!-- ASSISTANT HUB -->
+      <!-- ASSISTANT: clean chat page -->
       <section id="page-hub" class="page">
-        <div class="card">
-          <div class="ct">🧰 Tools</div>
-          <div class="tiles">
-            <div class="tile" onclick="showPage('stats')">
-              <span>📊</span>Stats
-            </div>
-            <div class="tile" onclick="showPage('records')">
-              <span>🗓</span>Months
-            </div>
-            <div class="tile" onclick="showPage('goals')">
-              <span>🎯</span>Goals
-            </div>
-            <div class="tile" onclick="showPage('shortcuts')">
-              <span>⚡</span>Shortcuts
-            </div>
-            <div class="tile" onclick="showPage('recurring')">
-              <span>🔁</span>Recurring
-            </div>
-            <div class="tile" onclick="openAdd('sms')">
-              <span>📩</span>Smart Add
-            </div>
-            <a class="tile" href="bere.html"><span>🧮</span>Bere</a>
-            <a class="tile" href="dere.html"><span>🚖</span>Kadere</a>
+        <div class="strip" id="tools">
+          <div class="tile" onclick="showPage('stats')">
+            <span>📊</span>Stats
           </div>
+          <div class="tile" onclick="showPage('records')">
+            <span>🗓</span>Months
+          </div>
+          <div class="tile" onclick="showPage('goals')">
+            <span>🎯</span>Goals
+          </div>
+          <div class="tile" onclick="showPage('shortcuts')">
+            <span>⚡</span>Shortcuts
+          </div>
+          <div class="tile" onclick="showPage('recurring')">
+            <span>🔁</span>Recurring
+          </div>
+          <div class="tile" onclick="openAdd('sms')">
+            <span>📩</span>Smart Add
+          </div>
+          <a class="tile" href="bere.html"><span>🧮</span>Bere</a>
+          <a class="tile" href="dere.html"><span>🚖</span>Kadere</a>
         </div>
-        <div class="card">
-          <div class="ct">🤖 Finance assistant</div>
-          <div id="ai-log"></div>
-          <div class="chips" id="ai-chips"></div>
-          <div class="row">
-            <input
-              type="text"
-              id="ai-inp"
-              placeholder="Ask anything about your money…"
-            /><button class="btn bp" onclick="aiSend()">➤</button>
-          </div>
+        <div class="strip" id="ai-chips"></div>
+        <div id="ai-log"></div>
+        <div class="composer">
+          <input
+            type="text"
+            id="ai-inp"
+            placeholder="Ask anything about your money…"
+            autocomplete="off"
+          /><button class="btn bp" onclick="aiSend()" aria-label="Send">
+            ➤
+          </button>
         </div>
       </section>
 
@@ -1158,12 +1534,12 @@
             id="rec-q"
             placeholder="Search name or note…"
             oninput="renderRecords()"
-            style="margin: 12px 0"
+            style="margin: 14px 0"
           />
           <div id="rec-list"></div>
           <button
             class="btn bg sm"
-            style="margin-top: 12px"
+            style="margin-top: 14px"
             onclick="recExport()"
           >
             📤 Export this month
@@ -1197,7 +1573,7 @@
             <span>Quick shortcuts</span
             ><button class="btn bg sm" onclick="openShortcut()">＋ New</button>
           </div>
-          <div class="xs muted" style="margin-bottom: 10px">
+          <div class="xs muted" style="margin-bottom: 12px">
             Tap to log instantly · ✕ to delete (max 8)
           </div>
           <div class="pills" id="sc-list"></div>
@@ -1407,7 +1783,7 @@
           <textarea
             id="sm-text"
             rows="5"
-            placeholder="Paste one or many M-Pesa messages. Decode, then paste more — they all add to the list below."
+            placeholder="Paste one or many M-Pesa messages. The exact date and time in each message is used. Decode, then paste more — they all add to the list below."
             style="resize: none"
           ></textarea>
           <div class="row" style="margin-top: 10px">
@@ -1470,6 +1846,81 @@
         >
           Close
         </button>
+      </div>
+    </div>
+
+    <!-- DAILY ACTIVITY POPUP (Today in / out / net) -->
+    <div class="ov" id="day-modal">
+      <div class="mb wide">
+        <div class="row sp">
+          <div class="mt">📆 Daily activity</div>
+          <button class="btn bg sm" onclick="closeModal('day-modal')">✕</button>
+        </div>
+        <div class="strip" id="dy-ctl">
+          <button class="btn bg sm" id="dyr-1" onclick="setDyRange('1')">
+            Today</button
+          ><button class="btn bg sm" id="dyr-7" onclick="setDyRange('7')">
+            7 days</button
+          ><button class="btn bg sm" id="dyr-30" onclick="setDyRange('30')">
+            30 days</button
+          ><button class="btn bg sm" id="dyr-all" onclick="setDyRange('all')">
+            All time</button
+          ><button class="btn bg sm" id="dyf-all" onclick="setDyFilter('all')">
+            All</button
+          ><button class="btn bg sm" id="dyf-in" onclick="setDyFilter('in')">
+            In only</button
+          ><button class="btn bg sm" id="dyf-out" onclick="setDyFilter('out')">
+            Out only
+          </button>
+        </div>
+        <div class="strip" id="dy-days"></div>
+        <div id="dy-sum"></div>
+        <input
+          type="text"
+          id="dy-q"
+          placeholder="Search name or note…"
+          oninput="
+            dyQ = this.value;
+            dyRender(true);
+          "
+        />
+        <div id="dy-tbl"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTIVE HOURS POPUP -->
+    <div class="ov" id="hour-modal">
+      <div class="mb wide">
+        <div class="row sp">
+          <div class="mt">🕒 Hours of the day</div>
+          <button class="btn bg sm" onclick="closeModal('hour-modal')">
+            ✕
+          </button>
+        </div>
+        <div class="strip">
+          <button
+            class="btn bg sm"
+            id="hrt-income"
+            onclick="setHrType('income')"
+          >
+            💰 Earnings</button
+          ><button
+            class="btn bg sm"
+            id="hrt-expense"
+            onclick="setHrType('expense')"
+          >
+            💸 Spending</button
+          ><button class="btn bg sm" id="hrr-1" onclick="setHrRange('1')">
+            Today</button
+          ><button class="btn bg sm" id="hrr-7" onclick="setHrRange('7')">
+            7 days</button
+          ><button class="btn bg sm" id="hrr-30" onclick="setHrRange('30')">
+            30 days</button
+          ><button class="btn bg sm" id="hrr-all" onclick="setHrRange('all')">
+            All time
+          </button>
+        </div>
+        <div id="hr-body"></div>
       </div>
     </div>
 
@@ -1738,16 +2189,13 @@
               "'": "&#39;",
             })[c],
         );
-      const todayKey = () => {
-        const d = new Date();
-        return (
-          d.getFullYear() +
-          "-" +
-          String(d.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(d.getDate()).padStart(2, "0")
-        );
-      };
+      const dk = (d) =>
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0");
+      const todayKey = () => dk(new Date());
       const mk = (d) =>
         d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
       const monthLabel = (k) => {
@@ -1787,6 +2235,26 @@
             minimumFractionDigits: a >= 1000 ? 0 : 2,
             maximumFractionDigits: a >= 1000 ? 0 : 2,
           })
+        );
+      };
+      const short = (n) => {
+        n = Math.abs(Number(n) || 0);
+        return n >= 1000
+          ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k"
+          : String(Math.round(n));
+      };
+      const toLocalIn = (d) => {
+        const p = (n) => String(n).padStart(2, "0");
+        return (
+          d.getFullYear() +
+          "-" +
+          p(d.getMonth() + 1) +
+          "-" +
+          p(d.getDate()) +
+          "T" +
+          p(d.getHours()) +
+          ":" +
+          p(d.getMinutes())
         );
       };
       const haptic = (p) => {
@@ -1913,6 +2381,7 @@
           .querySelectorAll(".bi[data-nav]")
           .forEach((b) => b.classList.toggle("on", b.dataset.nav === nav));
         currentPage = n;
+        $("content").classList.toggle("chatmode", n === "hub");
         $("content").scrollTop = 0;
         if (n === "hub") aiInit();
         if (n === "stats") renderStats();
@@ -1931,14 +2400,7 @@
           exp = 0;
         state.history.forEach((h) => {
           if (!h.timestamp) return;
-          const d = new Date(h.timestamp);
-          const k =
-            d.getFullYear() +
-            "-" +
-            String(d.getMonth() + 1).padStart(2, "0") +
-            "-" +
-            String(d.getDate()).padStart(2, "0");
-          if (k !== t) return;
+          if (dk(new Date(h.timestamp)) !== t) return;
           if (h.type === "income") inc += h.amount;
           else if (h.type === "expense") exp += h.amount;
         });
@@ -2011,6 +2473,8 @@
         if (currentPage === "shortcuts") renderShortcuts();
         if (currentPage === "recurring") renderRecurring();
         if (currentPage === "records") renderRecords();
+        if ($("day-modal").classList.contains("open")) dyRender(true);
+        if ($("hour-modal").classList.contains("open")) renderHours();
         aiInsightRefresh();
       }
       function renderHero() {
@@ -2049,36 +2513,50 @@
               esc(h.name || "") +
               (h.recurring ? " 🔁" : "");
       }
+      /* shared real <table> */
+      function txTable(items, o = {}) {
+        if (!items.length)
+          return '<div class="empty">No transactions to show</div>';
+        return (
+          '<div class="tw"><table class="dt"><thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Type</th><th class="r">Amount</th>' +
+          (o.del ? "<th></th>" : "") +
+          "</tr></thead><tbody>" +
+          items
+            .map((h) => {
+              const d = new Date(h.timestamp),
+                r = h.type === "reset",
+                cls = r ? "" : h.type === "income" ? "pos" : "neg";
+              return `<tr><td>${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "2-digit" })}</td><td>${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td class="nm" title="${esc(h.note || "")}">${esc(h.name || "")}</td><td>${r ? "balance" : h.type}</td><td class="r ${cls}">${r ? "= " : h.type === "income" ? "+" : "−"}${fmt(h.amount)}</td>${o.del ? `<td><button class="btn bg sm" onclick="deleteItem(${state.history.indexOf(h)})">✕</button></td>` : ""}</tr>`;
+            })
+            .join("") +
+          "</tbody></table></div>"
+        );
+      }
       function renderHist() {
         const v = settings.activityView;
         $("v-list").classList.toggle("on", v === "list");
         $("v-table").classList.toggle("on", v === "table");
         const c = $("hist"),
-          items = state.history.slice(0, 40);
+          items = state.history.slice(0, 10);
         if (!items.length) {
           c.innerHTML =
             '<div class="empty">No transactions yet. Tap + to add your first one.</div>';
           return;
         }
-        if (v === "table") {
+        const more =
+          state.history.length > 10
+            ? '<button class="btn bg sm bk" style="margin-top:14px" onclick="recKey=mk(new Date());showPage(\'records\')">View all records ›</button>'
+            : "";
+        if (v === "table") c.innerHTML = txTable(items, { del: true }) + more;
+        else
           c.innerHTML =
-            '<div class="tw"><table><tr><th>Date</th><th>Name</th><th>Type</th><th style="text-align:right">Amount</th><th></th></tr>' +
             items
               .map((h, i) => {
-                const d = new Date(h.timestamp),
-                  r = h.type === "reset";
-                return `<tr><td>${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td>${esc(h.name || "")}</td><td>${r ? "balance" : h.type}</td><td class="n ${r ? "" : h.type === "income" ? "pos" : "neg"}">${r ? "" : h.type === "income" ? "+" : "−"}${fmt(h.amount)}</td><td><button class="btn bg sm" onclick="deleteItem(${i})">✕</button></td></tr>`;
-              })
-              .join("") +
-            "</table></div>";
-        } else
-          c.innerHTML = items
-            .map((h, i) => {
-              const r = h.type === "reset";
-              return `<div class="hi"><div><div style="font-size:.9rem">${histLabel(h)}</div>${h.note ? `<div class="xs muted">${esc(h.note)}</div>` : ""}<div class="xs muted">${new Date(h.timestamp).toLocaleString()}</div></div>
+                const r = h.type === "reset";
+                return `<div class="hi"><div><div style="font-size:.9rem">${histLabel(h)}</div>${h.note ? `<div class="xs muted">${esc(h.note)}</div>` : ""}<div class="xs muted">${new Date(h.timestamp).toLocaleString()}</div></div>
     <div class="row"><span class="hamt ${r ? "" : h.type === "income" ? "pos" : "neg"}">${r ? "= " : h.type === "income" ? "+ " : "− "}${fmt(h.amount)}</span><button class="btn bg sm" onclick="deleteItem(${i})">✕</button></div></div>`;
-            })
-            .join("");
+              })
+              .join("") + more;
       }
       function setView(v) {
         settings.activityView = v;
@@ -2096,6 +2574,274 @@
               `<div class="pill ${s.type}" onclick="useShortcut(${i})"><b>${esc(s.label)}</b><small>${s.type === "income" ? "+" : "−"} ${fmt(s.amount)}</small></div>`,
           )
           .join("");
+      }
+
+      /* ================= DAILY ACTIVITY POPUP ================= */
+      let dyRange = "7",
+        dyFilter = "all",
+        dySel = null,
+        dyQ = "";
+      const dyLabels = {
+        1: "Today",
+        7: "7 days",
+        30: "30 days",
+        all: "All time",
+      };
+      function dayLabel(k) {
+        if (k === todayKey()) return "Today";
+        if (k === dk(new Date(Date.now() - 864e5))) return "Yesterday";
+        const [Y, M, D] = k.split("-");
+        return new Date(+Y, +M - 1, +D).toLocaleDateString(undefined, {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        });
+      }
+      function openDay(f) {
+        dyFilter = f || "all";
+        dyRange = "7";
+        dySel = todayKey();
+        dyQ = "";
+        $("dy-q").value = "";
+        openModal("day-modal");
+        dyRender();
+      }
+      function setDyRange(r) {
+        dyRange = r;
+        dySel = r === "1" ? todayKey() : null;
+        dyRender();
+      }
+      function setDyFilter(f) {
+        dyFilter = f;
+        dyRender(true);
+      }
+      function dayList() {
+        const now = new Date(),
+          lim = dyRange === "all" ? 0 : +dyRange,
+          cut = lim
+            ? new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate() - (lim - 1),
+              )
+            : null,
+          m = {};
+        state.history.forEach((h) => {
+          if (!h.timestamp || (h.type !== "income" && h.type !== "expense"))
+            return;
+          const d = new Date(h.timestamp);
+          if (cut && d < cut) return;
+          const k = dk(d);
+          const o = m[k] || (m[k] = { k, inc: 0, exp: 0, items: [] });
+          if (h.type === "income") o.inc += h.amount;
+          else o.exp += h.amount;
+          o.items.push(h);
+        });
+        const t = todayKey();
+        if (!m[t]) m[t] = { k: t, inc: 0, exp: 0, items: [] };
+        const arr = Object.values(m).sort((a, b) => (a.k < b.k ? 1 : -1));
+        arr.forEach((d) =>
+          d.items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
+        );
+        return arr;
+      }
+      /* walks backwards from current balance to find each day's opening / closing balance */
+      function dayBal() {
+        const items = state.history
+          .filter((h) => h.timestamp)
+          .slice()
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        let bal = state.balance;
+        const m = {};
+        items.forEach((h) => {
+          const k = dk(new Date(h.timestamp));
+          if (!m[k]) m[k] = { close: bal, open: bal };
+          if (bal !== null) {
+            if (h.type === "income") bal -= h.amount;
+            else if (h.type === "expense") bal += h.amount;
+            else if (h.type === "reset") bal = null;
+          }
+          m[k].open = bal;
+        });
+        return m;
+      }
+      function dyRender(keep) {
+        ["1", "7", "30", "all"].forEach((r) =>
+          $("dyr-" + r).classList.toggle("on", dyRange === r),
+        );
+        ["all", "in", "out"].forEach((f) =>
+          $("dyf-" + f).classList.toggle("on", dyFilter === f),
+        );
+        const days = dayList();
+        if (dySel && !days.some((d) => d.k === dySel)) dySel = null;
+        const mx = Math.max(1, ...days.map((d) => Math.max(d.inc, d.exp)));
+        const hgt = (v) => (v > 0 ? Math.max(8, (v / mx) * 100) : 0);
+        $("dy-days").innerHTML =
+          `<div class="dcard ${dySel ? "" : "on"}" data-k=""><b>All days</b><span class="tbl">${days.length}</span><small>${dyLabels[dyRange]}</small></div>` +
+          days
+            .map((d) => {
+              const net = d.inc - d.exp;
+              return `<div class="dcard ${dySel === d.k ? "on" : ""}" data-k="${d.k}"><b>${dayLabel(d.k)}</b><span class="${net >= 0 ? "tg" : "tr"}">${fmtS(net)}</span><div class="mini"><i style="height:${hgt(d.inc)}%;background:var(--green)"></i><i style="height:${hgt(d.exp)}%;background:var(--red)"></i></div><small>+${short(d.inc)} −${short(d.exp)}</small></div>`;
+            })
+            .join("");
+        const sel = dySel ? days.filter((d) => d.k === dySel) : days,
+          inc = sel.reduce((a, d) => a + d.inc, 0),
+          exp = sel.reduce((a, d) => a + d.exp, 0),
+          net = inc - exp,
+          cnt = sel.reduce((a, d) => a + d.items.length, 0);
+        let bl = "";
+        if (dySel) {
+          let b = dayBal()[dySel];
+          if (!b && dySel === todayKey())
+            b = { open: state.balance, close: state.balance };
+          const f = (x) => (x == null ? "—" : fmt(x));
+          bl = `<div class="balline"><span>Attained <b class="${net >= 0 ? "tg" : "tr"}">${fmtS(net)}</b> <span class="muted">(before balance)</span></span><span class="muted">Opening <b style="color:var(--text)">${b ? f(b.open) : "—"}</b> → Closing <b style="color:var(--text)">${b ? f(b.close) : "—"}</b></span></div>`;
+        } else {
+          const best = days
+            .slice()
+            .sort((a, b) => b.inc - b.exp - (a.inc - a.exp))[0];
+          bl = `<div class="balline"><span>Avg net / day <b class="${net >= 0 ? "tg" : "tr"}">${fmtS(net / Math.max(1, days.length))}</b></span><span class="muted">${best && best.items.length ? "Best day: <b style='color:var(--text)'>" + dayLabel(best.k) + "</b> " + fmtS(best.inc - best.exp) : "Balance now " + fmt(state.balance)}</span></div>`;
+        }
+        $("dy-sum").innerHTML =
+          `<div class="g3" style="margin-bottom:10px"><div class="stat cl ${dyFilter === "in" ? "on" : ""}" data-f="in"><b class="tg" style="font-size:.85rem">${fmtS(inc)}</b><small>In</small></div><div class="stat cl ${dyFilter === "out" ? "on" : ""}" data-f="out"><b class="tr" style="font-size:.85rem">${fmtS(exp)}</b><small>Out</small></div><div class="stat cl ${dyFilter === "all" ? "on" : ""}" data-f="all"><b class="${net >= 0 ? "tg" : "tr"}" style="font-size:.85rem">${fmtS(net)}</b><small>Net · ${cnt} txn${cnt === 1 ? "" : "s"}</small></div></div>` +
+          bl;
+        const q = dyQ.toLowerCase();
+        const items = sel
+          .flatMap((d) => d.items)
+          .filter(
+            (h) =>
+              (dyFilter === "all" ||
+                (dyFilter === "in"
+                  ? h.type === "income"
+                  : h.type === "expense")) &&
+              (!q ||
+                ((h.name || "") + " " + (h.note || ""))
+                  .toLowerCase()
+                  .includes(q)),
+          );
+        $("dy-tbl").innerHTML = txTable(items, { del: true });
+        if (!keep) {
+          const s = document.querySelector("#dy-days .dcard.on");
+          if (s) s.scrollIntoView({ inline: "center", block: "nearest" });
+        }
+      }
+
+      /* ================= PRODUCTIVE HOURS POPUP ================= */
+      let hrType = "income",
+        hrRange = "30",
+        hrSel = null,
+        hrOther = [],
+        hrSlices = [];
+      const fmtHour = (h) => (h % 12 || 12) + " " + (h < 12 ? "AM" : "PM");
+      const hourSpan = (h) => fmtHour(h) + " – " + fmtHour((h + 1) % 24);
+      function openHours() {
+        hrSel = null;
+        openModal("hour-modal");
+        renderHours();
+      }
+      function setHrType(t) {
+        hrType = t;
+        hrSel = null;
+        renderHours();
+      }
+      function setHrRange(r) {
+        hrRange = r;
+        hrSel = null;
+        renderHours();
+      }
+      function renderHours() {
+        ["income", "expense"].forEach((t) =>
+          $("hrt-" + t).classList.toggle("on", hrType === t),
+        );
+        ["1", "7", "30", "all"].forEach((r) =>
+          $("hrr-" + r).classList.toggle("on", hrRange === r),
+        );
+        const now = new Date(),
+          lim = hrRange === "all" ? 0 : +hrRange,
+          cut = lim
+            ? new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate() - (lim - 1),
+              )
+            : null;
+        const by = Array.from({ length: 24 }, () => ({
+          amt: 0,
+          n: 0,
+          items: [],
+        }));
+        state.history.forEach((h) => {
+          if (h.type !== hrType || !h.timestamp) return;
+          const d = new Date(h.timestamp);
+          if (cut && d < cut) return;
+          const x = by[d.getHours()];
+          x.amt += h.amount;
+          x.n++;
+          x.items.push(h);
+        });
+        const total = by.reduce((a, x) => a + x.amt, 0),
+          body = $("hr-body");
+        if (!total) {
+          body.innerHTML = `<div class="empty">No ${hrType === "income" ? "earnings" : "spending"} recorded for this period.</div>`;
+          return;
+        }
+        const ranked = by
+          .map((x, h) => ({ h, ...x }))
+          .filter((x) => x.amt > 0)
+          .sort((a, b) => b.amt - a.amt);
+        const top = ranked.slice(0, 7),
+          rest = ranked.slice(7);
+        hrSlices = top.map((x) => ({ h: x.h, amt: x.amt, n: x.n }));
+        hrOther = rest.map((x) => x.h);
+        if (rest.length)
+          hrSlices.push({
+            h: -1,
+            amt: rest.reduce((a, x) => a + x.amt, 0),
+            n: rest.reduce((a, x) => a + x.n, 0),
+          });
+        const col = (i, s) => (s.h === -1 ? "#64748b" : PAL[i % PAL.length]);
+        let acc = 0;
+        const stops = hrSlices
+          .map((s, i) => {
+            const a = (acc / total) * 100;
+            acc += s.amt;
+            return `${col(i, s)} ${a}% ${(acc / total) * 100}%`;
+          })
+          .join(",");
+        const mx = Math.max(...by.map((x) => x.amt)),
+          lab = (h) => (h % 12 || 12) + (h < 12 ? "a" : "p");
+        const bars = by
+          .map(
+            (x, h) =>
+              `<div class="hb ${hrSel === h ? "on" : ""}" data-h="${h}"><div class="hv">${x.amt ? short(x.amt) : ""}</div><div class="hbar"><div style="height:${x.amt ? Math.max(6, (x.amt / mx) * 100) : 0}%"></div></div><small>${lab(h)}</small></div>`,
+          )
+          .join("");
+        const legend = hrSlices
+          .map(
+            (s, i) =>
+              `<div class="lg cl ${hrSel === s.h ? "on" : ""}" data-h="${s.h}"><span class="dot" style="background:${col(i, s)}"></span><span class="grow">${s.h === -1 ? "Other hours (" + hrOther.length + ")" : hourSpan(s.h)}</span><span class="muted xs">${fmt(s.amt)} · ${Math.round((s.amt / total) * 100)}% · ${s.n}×</span></div>`,
+          )
+          .join("");
+        let det =
+          '<div class="xs muted" style="text-align:center;margin-top:8px">Tap a slice, bar or row to see the figures</div>';
+        if (hrSel !== null) {
+          const hrs = hrSel === -1 ? hrOther : [hrSel],
+            its = hrs
+              .flatMap((h) => by[h].items)
+              .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
+            sum = its.reduce((a, h) => a + h.amount, 0);
+          det = `<div class="balline" style="margin:10px 0"><span><b>${hrSel === -1 ? "Other hours" : hourSpan(hrSel)}</b></span><span class="${hrType === "income" ? "tg" : "tr"}"><b>${fmt(sum)}</b> · ${its.length} transaction${its.length === 1 ? "" : "s"}</span></div>${txTable(its)}`;
+        }
+        const b = top[0];
+        body.innerHTML =
+          `<div class="balline" style="margin-bottom:14px"><span>${hrType === "income" ? "🏆 Most productive hour" : "💥 Biggest spending hour"}: <b>${hourSpan(b.h)}</b></span><span class="muted">${fmt(b.amt)} · ${b.n} txn${b.n === 1 ? "" : "s"}</span></div>` +
+          `<div class="donut big"><div class="ring" id="hr-ring" style="background:conic-gradient(${stops})"></div><div class="dc">${fmt(total)}<span class="muted xs" style="font-weight:400">${hrType === "income" ? "earned" : "spent"}</span></div></div>` +
+          `<div class="xs muted" style="margin:4px 0">All 24 hours · swipe →</div><div class="hbars">${bars}</div>` +
+          `<div style="margin-top:6px">${legend}</div>${det}`;
+      }
+      function hrPick(h) {
+        hrSel = hrSel === h ? null : h;
+        renderHours();
       }
 
       /* ================= ADD SHEET ================= */
@@ -2263,20 +3009,25 @@
           type = "income";
           name = "M-Pesa Income";
         }
-        let ts = new Date();
+        /* exact date + time straight from the message (d/m/yy at h:mm AM/PM) */
+        let ts = new Date(),
+          timeFound = false;
         const d = t.match(
-          /on\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+at\s+(\d{1,2}):(\d{2})\s*(AM|PM)?)?/i,
+          /on\s+(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:\s*(?:at|@)?\s*(\d{1,2})[:.](\d{2})(?::\d{2})?\s*([AaPp]\.?\s?[Mm]\.?)?)?/i,
         );
         if (d) {
           let y = +d[3];
           if (y < 100) y += 2000;
           let hh = d[4] ? +d[4] : 12;
           const mm = d[5] ? +d[5] : 0,
-            ap = (d[6] || "").toUpperCase();
+            ap = (d[6] || "").replace(/[.\s]/g, "").toUpperCase();
           if (ap === "PM" && hh < 12) hh += 12;
           if (ap === "AM" && hh === 12) hh = 0;
           const dt = new Date(y, +d[2] - 1, +d[1], hh, mm);
-          if (!isNaN(dt)) ts = dt;
+          if (!isNaN(dt) && hh < 24 && mm < 60) {
+            ts = dt;
+            timeFound = !!d[4];
+          }
         }
         const cost = (t.match(
           /Transaction cost,?\s*Ksh\.?\s*([\d,]+(?:\.\d{1,2})?)/i,
@@ -2297,6 +3048,7 @@
           amount,
           cost: cost ? num(cost) : 0,
           ts,
+          timeFound,
           note,
           on: true,
           dup: false,
@@ -2365,12 +3117,12 @@
                 it,
                 i,
               ) => `<div class="smr ${it.dup ? "dup" : ""}"><input type="checkbox" data-i="${i}" data-k="on" ${it.on ? "checked" : ""}>
-    <div class="m"><input type="text" data-i="${i}" data-k="name" value="${esc(it.name)}"><div class="xs muted">${it.ts.toLocaleString()} · ${esc(it.code || "no code")}${it.cost ? " · fee " + fmt(it.cost) : ""}${it.dup ? " · already added" : ""}</div></div>
+    <div class="m"><input type="text" data-i="${i}" data-k="name" value="${esc(it.name)}"><input type="datetime-local" data-i="${i}" data-k="ts" value="${toLocalIn(it.ts)}"><div class="xs muted" style="margin-top:4px">${it.timeFound ? "🕒 time from message" : '<span class="ty">⚠ no time in message — check above</span>'} · ${esc(it.code || "no code")}${it.cost ? " · fee " + fmt(it.cost) : ""}${it.dup ? " · already added" : ""}</div></div>
     <div style="text-align:right"><select data-i="${i}" data-k="type"><option value="expense" ${it.type === "expense" ? "selected" : ""}>Expense</option><option value="income" ${it.type === "income" ? "selected" : ""}>Income</option></select>
     <div class="${it.type === "income" ? "tg" : "tr"} xs" style="font-weight:700;margin-top:3px">${it.type === "income" ? "+" : "−"}${fmt(it.amount)}</div></div></div>`,
             )
             .join("") +
-          `<label class="fl2"><span class="row"><input type="checkbox" id="sm-fee" ${$("sm-fee") && !$("sm-fee").checked ? "" : "checked"}> Also record M-Pesa charges</span></label><label class="fl2"><span class="row"><input type="checkbox" id="sm-today" ${$("sm-today") && $("sm-today").checked ? "checked" : ""}> Use today's date (count in Today in / out)</span></label>`;
+          `<label class="fl2"><span class="row"><input type="checkbox" id="sm-fee" ${$("sm-fee") && !$("sm-fee").checked ? "" : "checked"}> Also record M-Pesa charges</span></label>`;
         const s = $("sm-save");
         s.hidden = false;
         s.textContent = `Add ${on.length} record${on.length === 1 ? "" : "s"}`;
@@ -2385,7 +3137,14 @@
         if (k === "on") it.on = el.checked;
         else if (k === "name") it.name = el.value.trim() || it.name;
         else if (k === "type") it.type = el.value;
-        if (k !== "name") smRender();
+        else if (k === "ts") {
+          const d = new Date(el.value);
+          if (!isNaN(d)) {
+            it.ts = d;
+            it.timeFound = true;
+          }
+        }
+        if (k !== "name" && k !== "ts") smRender();
       }
       function xAdd(type, name, amount, ts, note, ref, party) {
         state.balance += type === "income" ? amount : -amount;
@@ -2401,12 +3160,11 @@
         });
       }
       function smSave() {
-        const feeOn = $("sm-fee") ? $("sm-fee").checked : true,
-          useToday = $("sm-today") && $("sm-today").checked;
+        const feeOn = $("sm-fee") ? $("sm-fee").checked : true;
         let n = 0;
         smItems.forEach((it) => {
           if (!it.on) return;
-          const ts = useToday ? new Date() : it.ts;
+          const ts = it.ts; /* always the exact time from the message */
           xAdd(it.type, it.name, it.amount, ts, it.note, it.code, it.party);
           n++;
           if (feeOn && it.cost > 0 && it.type === "expense")
@@ -2512,7 +3270,7 @@
           smFiles = [];
           smQueue();
           p.textContent = total
-            ? `Done — ${total} transaction(s) added to the list below. Review and press Add.`
+            ? `Done — ${total} transaction(s) added to the list below. Review times and press Add.`
             : "No M-Pesa transactions found in those screenshots.";
         } catch (e) {
           p.textContent =
@@ -2820,7 +3578,7 @@
         $("trend").innerHTML = rows
           .map(
             (r) =>
-              `<div style="margin-bottom:12px"><div class="xs" style="font-weight:700;margin-bottom:4px">${r.l}</div><div class="bar" style="margin:2px 0"><div class="fill" style="width:${(r.s.inc / mx) * 100}%;background:#22c55e"></div></div><div class="bar" style="margin:2px 0"><div class="fill" style="width:${(r.s.exp / mx) * 100}%;background:#ef4444"></div></div><div class="row sp xs"><span class="tg">${fmt(r.s.inc)}</span><span class="tr">${fmt(r.s.exp)}</span></div></div>`,
+              `<div style="margin-bottom:14px"><div class="xs" style="font-weight:700;margin-bottom:4px">${r.l}</div><div class="bar" style="margin:2px 0"><div class="fill" style="width:${(r.s.inc / mx) * 100}%;background:#22c55e"></div></div><div class="bar" style="margin:2px 0"><div class="fill" style="width:${(r.s.exp / mx) * 100}%;background:#ef4444"></div></div><div class="row sp xs"><span class="tg">${fmt(r.s.inc)}</span><span class="tr">${fmt(r.s.exp)}</span></div></div>`,
           )
           .join("");
         const s = mstats(mk(now)),
@@ -3259,13 +4017,78 @@
         }
         return null;
       }
+      /* chat engine: typing dots → message pops in → text types out */
+      const aiScroll = () => {
+        const l = $("ai-log");
+        l.scrollTop = l.scrollHeight;
+      };
       function aiPush(cls, html) {
-        const l = $("ai-log"),
-          d = document.createElement("div");
+        const d = document.createElement("div");
         d.className = "msg " + cls;
         d.innerHTML = html;
-        l.appendChild(d);
-        l.scrollTop = l.scrollHeight;
+        $("ai-log").appendChild(d);
+        aiScroll();
+      }
+      function typeInto(el, html, done) {
+        el.innerHTML = html;
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          done && done();
+          return;
+        }
+        const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT),
+          nodes = [];
+        let n;
+        while ((n = w.nextNode()))
+          if (n.nodeValue.trim()) {
+            nodes.push([n, n.nodeValue]);
+            n.nodeValue = "";
+          }
+        const total = nodes.reduce((a, x) => a + x[1].length, 0),
+          step = Math.max(2, Math.ceil(total / 60));
+        let c = 0;
+        el.classList.add("tn");
+        const iv = setInterval(() => {
+          c += step;
+          let off = 0;
+          nodes.forEach(([nd, txt]) => {
+            nd.nodeValue = txt.slice(
+              0,
+              Math.max(0, Math.min(txt.length, c - off)),
+            );
+            off += txt.length;
+          });
+          aiScroll();
+          if (c >= total) {
+            clearInterval(iv);
+            el.classList.remove("tn");
+            aiScroll();
+            done && done();
+          }
+        }, 18);
+      }
+      let aiQ = Promise.resolve();
+      function aiBot(html) {
+        aiQ = aiQ.then(
+          () =>
+            new Promise((res) => {
+              const l = $("ai-log"),
+                t = document.createElement("div");
+              t.className = "msg bot typing";
+              t.innerHTML = "<i></i><i></i><i></i>";
+              l.appendChild(t);
+              aiScroll();
+              setTimeout(
+                () => {
+                  t.remove();
+                  const d = document.createElement("div");
+                  d.className = "msg bot";
+                  l.appendChild(d);
+                  typeInto(d, html, res);
+                },
+                600 + Math.random() * 300,
+              );
+            }),
+        );
       }
       const aiActs = (a) =>
         a && a.length
@@ -3273,7 +4096,7 @@
           : "";
       function aiAnswer(k) {
         const r = AI[k]();
-        aiPush("bot", r.html + aiActs(r.acts));
+        aiBot(r.html + aiActs(r.acts));
       }
       function aiClick(e) {
         const b = e.target.closest("[data-act]");
@@ -3343,7 +4166,7 @@
           if (k === "search") {
             const r = aiSearch(t);
             if (r) {
-              aiPush("bot", r.html);
+              aiBot(r.html);
               return;
             }
             continue;
@@ -3363,11 +4186,9 @@
           (c) =>
             `<div class="chip" data-act="ask" data-arg="${c[0]}">${c[1]}</div>`,
         ).join("");
-        aiPush(
-          "bot",
-          "<h4>👋 Hi, I am your CashSplit assistant</h4>I read your own records right on this phone — private and fully offline. Tap a chip or ask me anything.",
+        aiBot(
+          "<h4>👋 Hi, I am your CashSplit assistant</h4>I read your own records right on this phone — private and fully offline. Tap a chip above or just ask me anything.",
         );
-        aiAnswer("report");
       }
 
       /* ================= PROFILES ================= */
@@ -3894,7 +4715,7 @@
           .map(
             (
               c,
-            ) => `<div style="padding:14px 0;border-bottom:1px solid var(--border)">
+            ) => `<div style="padding:16px 0;border-bottom:1px solid var(--border)">
     <div class="row" style="margin-bottom:8px"><img src="${avatar(c.nickname)}" width="36" height="36" style="border-radius:50%"><div style="flex:1"><b class="tbl" style="font-size:.88rem">${esc(c.nickname || "Anonymous")}</b><div class="xs muted">${new Date(c.timestamp).toLocaleString()}</div></div>${c.seen ? '<span class="xs tg">✓ seen</span>' : '<span class="xs muted">● new</span>'}</div>
     <div style="font-size:.9rem;line-height:1.5">${esc(c.text)}</div>
     ${c.imageUrl ? `<img src="${esc(c.imageUrl)}" loading="lazy" style="width:100%;border-radius:8px;margin-top:8px;max-height:220px;object-fit:cover">` : ""}
@@ -4039,6 +4860,38 @@
       $("ai-chips").addEventListener("click", aiClick);
       $("ai-inp").addEventListener("keydown", (e) => {
         if (e.key === "Enter") aiSend();
+      });
+      /* day popup: pick a day card, or tap In / Out / Net to filter */
+      $("dy-days").addEventListener("click", (e) => {
+        const c = e.target.closest(".dcard");
+        if (!c) return;
+        dySel = c.dataset.k || null;
+        dyRender(true);
+      });
+      $("dy-sum").addEventListener("click", (e) => {
+        const c = e.target.closest(".stat.cl");
+        if (c) setDyFilter(c.dataset.f);
+      });
+      /* hours popup: tap pie slice, bar or legend row */
+      $("hr-body").addEventListener("click", (e) => {
+        const r = e.target.closest("#hr-ring");
+        if (r) {
+          const b = r.getBoundingClientRect(),
+            dx = e.clientX - (b.left + b.width / 2),
+            dy = e.clientY - (b.top + b.height / 2);
+          if (Math.hypot(dx, dy) < b.width * 0.3) return;
+          let a = (Math.atan2(dx, -dy) * 180) / Math.PI;
+          if (a < 0) a += 360;
+          const total = hrSlices.reduce((s, x) => s + x.amt, 0);
+          let acc = 0;
+          for (const s of hrSlices) {
+            acc += (s.amt / total) * 360;
+            if (a <= acc) return hrPick(s.h);
+          }
+          return;
+        }
+        const t = e.target.closest("[data-h]");
+        if (t) hrPick(+t.dataset.h);
       });
 
       window.addEventListener("load", () => {
