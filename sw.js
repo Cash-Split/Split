@@ -15,6 +15,7 @@ const SHELL_ASSETS = [
   "./manifest.json",
   "./bere.html",
   "./dere.html",
+   "./kiswahili.js",
 ];
 const OCR_JS =
   "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";

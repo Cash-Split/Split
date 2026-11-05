@@ -1246,6 +1246,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      #lang-sel { width: auto; padding: 6px 26px 6px 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
       /* ---------- responsive ---------- */
       @media (max-width: 380px) {
         .tb {
@@ -1354,6 +1355,10 @@
     <header id="top">
       <div class="logo"><i></i>CashSplit</div>
       <div class="topr">
+        <select id="lang-sel" aria-label="Language" title="Language" onchange="I18N.set(this.value)">
+  <option value="en">🌐 EN</option>
+  <option value="sw">🌐 SW</option>
+</select>
         <button
           class="btn bg sm"
           id="hbtn"
@@ -2114,6 +2119,8 @@
         </div>
       </div>
     </div>
+
+    <script src="./kiswahili.js"></script>
 
     <script>
       /* ================= STATE ================= */
@@ -4401,6 +4408,7 @@
       }
       let aiQ = Promise.resolve();
       function aiBot(html) {
+        html = I18N.html(html);
         aiQ = aiQ.then(() => new Promise((res) => {
           const l = $("ai-log"), t = document.createElement("div");
           t.className = "msg bot typing";
@@ -4439,7 +4447,7 @@
         if (!b) return;
         const a = b.dataset.act, g = b.dataset.arg;
         if (a === "ask") {
-          if (b.classList.contains("chip")) aiPush("me", esc((CHIPS.find((c) => c[0] === g) || [0, g])[1]));
+          if (b.classList.contains("chip")) aiPush("me", esc(I18N.t((CHIPS.find((c) => c[0] === g) || [0, g])[1])));
           aiAnswer(g);
           return;
         }
@@ -4500,6 +4508,7 @@
 
       /* ---------- the router: never a dead end ---------- */
       function aiRoute(t) {
+         t = I18N.query(t);
         const raw = String(t).trim(), p = aiParse(raw), l = p.l, n = p.toks.length;
         const say = (r) => aiBot(r.html + aiActs(r.acts));
 
