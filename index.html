@@ -3967,61 +3967,414 @@
           };
         },
       };
-      function aiSearch(text) {
-        const stop = [
-          "much",
-          "spend",
-          "spent",
-          "what",
-          "have",
-          "your",
-          "this",
-          "that",
-          "month",
-          "money",
-          "with",
-          "from",
-          "about",
-          "show",
-          "tell",
-          "many",
-          "times",
-          "last",
-          "week",
-        ];
-        for (const w of (
-          text.toLowerCase().match(/[a-z0-9]{4,}/g) || []
-        ).filter((w) => !stop.includes(w))) {
-          const hits = state.history.filter(
-            (h) =>
-              (h.type === "income" || h.type === "expense") &&
-              (h.name || "").toLowerCase().includes(w),
-          );
-          if (!hits.length) continue;
-          const m = mk(new Date());
-          let ex = 0,
-            inc = 0,
-            tm = 0;
-          hits.forEach((h) => {
-            if (h.type === "expense") {
-              ex += h.amount;
-              if (h.timestamp.slice(0, 7) === m) tm += h.amount;
-            } else inc += h.amount;
-          });
-          const l = hits
-            .slice()
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
-          return {
-            html: `<h4>🔎 "${esc(w)}"</h4>${hits.length} record(s). Spent <b class="tr">${fmt(ex)}</b> (this month ${fmt(tm)}), received <b class="tg">${fmt(inc)}</b>.<br>Last: ${esc(l.name)} ${fmt(l.amount)} on ${new Date(l.timestamp).toLocaleDateString()}.`,
-          };
+
+      /* =====================================================================
+         SMARTER ASSISTANT (replaces old aiSearch → aiRoute)
+         ===================================================================== */
+
+      /* ---------- memory + language toolkit ---------- */
+      const AIM = {
+        intent: null,
+        period: null,
+        ents: [],
+        offer: null,
+        pending: null,
+        name: (() => {
+          try {
+            return localStorage.getItem("cashsplit_aiuser") || "";
+          } catch (e) {
+            return "";
+          }
+        })(),
+      };
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      const DAYMS = 864e5;
+      /* typo-tolerant distance (handles swapped letters: "foreacst") */
+      const lev = (a, b) => {
+        if (a === b) return 0;
+        if (Math.abs(a.length - b.length) > 2) return 9;
+        const m = [];
+        for (let i = 0; i <= a.length; i++) m[i] = [i];
+        for (let j = 1; j <= b.length; j++) m[0][j] = j;
+        for (let i = 1; i <= a.length; i++)
+          for (let j = 1; j <= b.length; j++) {
+            m[i][j] = Math.min(
+              m[i - 1][j] + 1,
+              m[i][j - 1] + 1,
+              m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+            );
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+              m[i][j] = Math.min(m[i][j], m[i - 2][j - 2] + 1);
+          }
+        return m[a.length][b.length];
+      };
+      const like = (w, k) => {
+        if (w === k) return true;
+        if (k.length < 4 || w.length < 3) return false;
+        if (w.startsWith(k) && w.length <= k.length + 4) return true;
+        if (k.length < 5) return false;
+        return lev(w, k) <= (k.length >= 8 ? 2 : 1);
+      };
+      const amtOf = (s) => {
+        const m = String(s)
+          .replace(/,/g, "")
+          .match(/(\d+(?:\.\d+)?)\s*(k|m|thousand|elfu|million)?\b/i);
+        if (!m) return 0;
+        let v = parseFloat(m[1]);
+        const u = (m[2] || "").toLowerCase();
+        if (u === "k" || u === "thousand" || u === "elfu") v *= 1e3;
+        else if (u === "m" || u === "million") v *= 1e6;
+        return v;
+      };
+      const STOP = new Set(
+        "the and for you are was did does how what when why who can could would should show tell give about with that this have has had from into your mine please just any all get got much many some than then them they there here like want need know let its not but out off now too very really also still will ever per each over only where which whose whom been being were own way via".split(
+          " ",
+        ),
+      );
+      const EXCL = new Set(
+        "spent spend spending expense expenses income earned earn received paid bought money total transaction transactions record records times month week today yesterday year day days last this balance pesa much many date far time weeks months years me myself".split(
+          " ",
+        ),
+      );
+
+      /* word families so "lunch" finds "Food", "matatu" finds "Transport", etc. */
+      const SYNG = [
+        ["food","lunch","dinner","breakfast","chakula","groceries","grocery","restaurant","supper","snack","meal","eating","cafe","kfc","naivas","quickmart","carrefour"],
+        ["transport","fare","matatu","uber","bolt","fuel","petrol","nauli","bus","taxi","boda","travel","parking"],
+        ["rent","kodi","landlord"],
+        ["airtime","bundles","safaricom","credo","tokens"],
+        ["bills","kplc","electricity","water","wifi","internet","zuku","dstv","gotv"],
+        ["salary","wage","mshahara","payroll"],
+        ["withdrawal","withdraw","atm","agent"],
+        ["health","hospital","medicine","pharmacy","clinic","doctor","dawa"],
+        ["shopping","clothes","shoes","mall","jumia"],
+        ["school","tuition","books"],
+        ["entertainment","movie","netflix","showmax","bar","drinks","beer","party","betting","sportpesa","betika"],
+      ];
+
+      /* ---------- vocabulary (word* = strong signal). Swahili / Sheng included ---------- */
+      const LEX_SRC = {
+        forecast: ["forecast*","predict*","project*","projection*","runway*","future","estimate","expect","tomorrow","ahead"],
+        compare: ["compare*","comparison*","versus","vs","trend*","trends*","change","changed","growth","better","worse","progress"],
+        fees: ["fee*","fees*","charge*","charges*","tariff*"],
+        goals: ["goal*","goals*","target*","targets*","milestone"],
+        report: ["report*","summary*","summarize*","summarise*","overview*","analysis*","analyze*","analyse*","status*","insight*","insights*","review*","performance","health","snapshot"],
+        where: ["where*","categor*","breakdown*","distribution","split","went","leak","leaks","leaking","goes","vanish","disappear"],
+        save: ["save*","saving*","savings*","cut*","reduce*","tip*","tips*","advice*","advise*","improve*","cheaper","economize","tighten","recommend*","suggest*","frugal","waste","wasting","control"],
+        people: ["people*","payee*","payees*","person","recipient*","sender*","contact*","friends","who*"],
+        hours: ["hour*","hours*","productive*","busiest","peak"],
+        days: ["weekday*","weekdays*"],
+        balance: ["balance*","wallet*","salio*","afford*","left","remain","remaining","worth","funds","money","cash","have","pesa"],
+        spend: ["spent*","spend*","spending*","expense*","expenses*","cost*","costs*","paid","bought","purchase*","purchases*","matumizi*","nimetumia*","nimelipa*","gharama*","buy","used","outflow*","deducted","wasted","sent"],
+        income: ["earned*","earn*","earning*","earnings*","income*","incomes*","received*","receive*","revenue*","salary*","mapato*","nimepata*","nimepokea*","made","got","inflow*","deposit*","profit","credited","payday","mshahara*"],
+        net: ["net*","surplus*","deficit*","leftover","breakeven"],
+      };
+      const LEXR = {};
+      Object.keys(LEX_SRC).forEach(
+        (k) =>
+          (LEXR[k] = LEX_SRC[k].map((s) =>
+            s.endsWith("*") ? [s.slice(0, -1), 2] : [s, 1],
+          )),
+      );
+      const scoreOf = (toks, k) => {
+        let s = 0;
+        for (const w of toks) {
+          let best = 0;
+          for (const [kw, wt] of LEXR[k]) if (like(w, kw)) best = Math.max(best, wt);
+          s += best;
+        }
+        return s;
+      };
+      /* whole-phrase intents are checked first */
+      const PH = [
+        ["afford", /\bafford|can i buy|worth buying/],
+        ["forecast", /run\s*out|end of (the )?month|last (me )?(till|until|through)|how long (will|can|does|do)|enough (money|for)|runway/],
+        ["net", /(did|have|do)\s+i\s+(save|saved)|how much (have |did )?i\s+saved|am i (saving|in the (red|green))|\bprofit|\bsurplus|\bdeficit/],
+        ["budget", /safe\s+(to\s+)?spend|daily (budget|limit|allowance)|how much can i (spend|use)|spend per day|allowance|\bbudget\b/],
+        ["report", /how am i doing|how'?s my (money|spending|finances)|how are my (finances|spending)/],
+        ["why", /\bwhy\b|how come|reason for/],
+        ["biggest", /biggest|largest|highest|most expensive|costliest|top (spend|expense|transaction)/],
+        ["count", /how many (times|transactions|records|payments|purchases|entries)|how often|number of (times|transactions)/],
+        ["last", /(last|latest|most recent|recent)\s+(transaction|payment|spend|expense|income|record|entry|activity|purchase|transfer)s?|show (me )?(my )?(recent|history|transactions)/],
+        ["avg", /average|on average|\bavg\b|per day|daily (average|spend|spending)|typical|usually/],
+        ["days", /which day|what day (do|did)|day of (the )?week|days? (do|did) i (spend|earn)/],
+        ["hours", /what time (do|did|am)|which hour|best time|time of day|most productive|busiest|peak hour/],
+        ["people", /\bwho\b|who do i (pay|send)|who pays me/],
+      ];
+      const QINT = ["spend","income","net","count","biggest","last","avg","days","hours"];
+      const NEXT = { report:"forecast", where:"save", forecast:"save", save:"goals", compare:"report", fees:"save", balance:"forecast", spend:"where", net:"report", people:"where" };
+      const OFFERTXT = { forecast:"your month-end forecast", save:"a savings plan", goals:"a goal check", report:"your full report", where:"the spending breakdown" };
+
+      /* ---------- time phrases ---------- */
+      const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+      const MONFULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      function parsePeriod(l) {
+        const n = new Date(),
+          y = n.getFullYear(),
+          mo = n.getMonth(),
+          t = new Date(y, mo, n.getDate()),
+          P = (from, to, label, src, m) => ({ from, to, label, src, mo: !!m });
+        let m;
+        if ((m = l.match(/\b(?:yesterday|jana)\b/))) return P(new Date(+t - DAYMS), t, "yesterday", m[0]);
+        if ((m = l.match(/\b(?:today|leo|tonight|so far today)\b/))) return P(t, new Date(+t + DAYMS), "today", m[0]);
+        const mon = new Date(+t - ((t.getDay() + 6) % 7) * DAYMS);
+        if ((m = l.match(/\blast\s+week\b|\bwiki\s+iliyopita\b/))) return P(new Date(+mon - 7 * DAYMS), mon, "last week", m[0]);
+        if ((m = l.match(/\bthis\s+week\b|\bwiki\s+hii\b/))) return P(mon, new Date(+t + DAYMS), "this week", m[0]);
+        if ((m = l.match(/\blast\s+month\b|\bmwezi\s+uliopita\b|\bprevious\s+month\b/))) return P(new Date(y, mo - 1, 1), new Date(y, mo, 1), "last month", m[0], 1);
+        if ((m = l.match(/\bthis\s+month\b|\bmwezi\s+huu\b/))) return P(new Date(y, mo, 1), new Date(y, mo + 1, 1), "this month", m[0], 1);
+        if ((m = l.match(/\b(?:last|past|previous)\s+(\d{1,3})\s+days?\b/))) { const k = +m[1]; return P(new Date(+t - (k - 1) * DAYMS), new Date(+t + DAYMS), "the last " + k + " days", m[0]); }
+        if ((m = l.match(/\b(?:last|past|previous)\s+(\d{1,2})\s+months?\b/))) { const k = +m[1]; return P(new Date(y, mo - k + 1, 1), new Date(y, mo + 1, 1), "the last " + k + " months", m[0]); }
+        if ((m = l.match(/\bthis\s+year\b|\bmwaka\s+huu\b/))) return P(new Date(y, 0, 1), new Date(y + 1, 0, 1), "this year", m[0]);
+        if ((m = l.match(/\blast\s+year\b/))) return P(new Date(y - 1, 0, 1), new Date(y, 0, 1), "last year", m[0]);
+        if ((m = l.match(/\b(?:all\s+time|ever|overall|lifetime|since\s+(?:i\s+)?started)\b/))) { const p = P(new Date(0), new Date(8.64e15), "all time", m[0]); p.all = true; return p; }
+        const mm = l.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b(?:\s+(\d{4}))?/);
+        if (mm && (mm[1] !== "may" || /\b(?:in|during|for|of|on)\s+may\b/.test(l))) {
+          const mi = MON.indexOf(mm[1].slice(0, 3)),
+            yy = mm[2] ? +mm[2] : mi > mo ? y - 1 : y;
+          return P(new Date(yy, mi, 1), new Date(yy, mi + 1, 1), MONFULL[mi] + " " + yy, mm[0], 1);
         }
         return null;
       }
-      /* chat engine: typing dots → message pops in → text types out */
-      const aiScroll = () => {
-        const l = $("ai-log");
-        l.scrollTop = l.scrollHeight;
+      const thisMonthP = () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth(), 1), to: new Date(n.getFullYear(), n.getMonth() + 1, 1), label: "this month", mo: true }; };
+      const inP = (h, p) => { if (!p) return true; const d = new Date(h.timestamp); return d >= p.from && d < p.to; };
+      const prevP = (p) => {
+        if (!p || p.all) return null;
+        if (p.mo) return { from: new Date(p.from.getFullYear(), p.from.getMonth() - 1, 1), to: p.from, label: "the month before" };
+        const len = p.to - p.from;
+        return { from: new Date(+p.from - len), to: p.from, label: "the period before" };
       };
+      function dayCount(p) {
+        const now = new Date();
+        if (!p || p.all) {
+          const ts = state.history.map((h) => +new Date(h.timestamp)).filter(Boolean);
+          return Math.max(1, Math.ceil((+now - (ts.length ? Math.min(...ts) : +now)) / DAYMS));
+        }
+        return Math.max(1, Math.ceil((Math.min(+p.to, +now + DAYMS) - p.from) / DAYMS));
+      }
+
+      /* ---------- understanding a sentence ---------- */
+      function nameIndex() {
+        const m = {};
+        state.history.forEach((h) => { if (h.name && h.type !== "reset") m[h.name] = 1; });
+        return Object.keys(m);
+      }
+      function findEnts(toks) {
+        const hit = new Set(),
+          low = nameIndex().map((n) => [n, n.toLowerCase(), n.toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length >= 3)]);
+        toks
+          .filter((w) => w.length >= 3 && !STOP.has(w) && !EXCL.has(w) && !/^\d/.test(w))
+          .forEach((t) => {
+            if (t === "mpesa") low.forEach(([n, ln]) => { if (ln.startsWith("m-pesa")) hit.add(n); });
+            low.forEach(([n, , ws]) => {
+              if (ws.some((w) => w === t || (t.length >= 4 && w.startsWith(t)) || (w.length >= 4 && t.startsWith(w)) || (t.length >= 5 && like(t, w)))) hit.add(n);
+            });
+            SYNG.forEach((g) => {
+              if (g.some((w) => w === t || (t.length >= 5 && w.length >= 5 && like(t, w))))
+                low.forEach(([n, ln]) => { if (g.some((w) => ln.includes(w))) hit.add(n); });
+            });
+          });
+        return [...hit];
+      }
+      function aiParse(raw) {
+        const l = String(raw).toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9'\s.,/=\-?]/g, " ").replace(/\s+/g, " ").trim();
+        const period = parsePeriod(l),
+          ps = period ? l.replace(period.src, " ") : l,
+          toks = (ps.replace(/[.,?]/g, " ").match(/[a-z0-9'-]+/g) || []).map((w) => w.replace(/^'+|'+$/g, "")).filter(Boolean);
+        let ents = findEnts(toks),
+          words = [];
+        if (!ents.length) {
+          const m = ps.match(/\b(?:on|for|at|to|from|kwa|kutoka)\s+(?:my\s+|the\s+|a\s+|an\s+)?([a-z][a-z ]{2,24})/);
+          if (m) words = m[1].split(" ").filter((w) => w.length >= 3 && !STOP.has(w) && !EXCL.has(w));
+        }
+        const sp = scoreOf(toks, "spend"), ic = scoreOf(toks, "income");
+        return { raw, l, ps, toks, period, ents, words, type: sp > ic ? "expense" : ic > sp ? "income" : null, amount: /\d/.test(ps) ? amtOf(ps) : 0 };
+      }
+      function aiIntent(p) {
+        for (const [k, re] of PH) if (re.test(p.ps)) return k;
+        let best = null, bs = 0;
+        for (const k of Object.keys(LEXR)) { const s = scoreOf(p.toks, k); if (s > bs) { bs = s; best = k; } }
+        return bs >= 1 ? best : null;
+      }
+
+      /* ---------- data helpers ---------- */
+      const aiTx = (q, type) =>
+        state.history.filter((h) => (h.type === "income" || h.type === "expense") && h.timestamp && (!type || h.type === type) && inP(h, q.period) && (!q.ents.length || q.ents.includes(h.name)));
+      const sumOf = (l) => l.reduce((a, h) => a + h.amount, 0);
+      const ALLP = { from: new Date(0), to: new Date(8.64e15), label: "all time", all: true, mo: false };
+      const withP = (q, d) => Object.assign({}, q, { period: q.period || d || thisMonthP() });
+      const byName = (l) => { const m = {}; l.forEach((h) => (m[h.name] = (m[h.name] || 0) + h.amount)); return topN(m, 50); };
+      const nm = (a) => esc(a.length > 2 ? a.slice(0, 2).join(", ") + " +" + (a.length - 2) : a.join(", "));
+      function topNames(type, n = 4) {
+        const m = {};
+        state.history.forEach((h) => { if (h.type === type && h.name && h.name !== XFEE && !GENERIC.includes(h.name)) m[h.name] = (m[h.name] || 0) + h.amount; });
+        return topN(m, n).map((x) => x[0]);
+      }
+      const vs = (cur, prev, lab) => {
+        if (!(prev > 0)) return "";
+        const ch = Math.round(((cur - prev) / prev) * 100);
+        return `<div class="xs muted" style="margin-top:6px">${ch >= 0 ? "▲" : "▼"} ${Math.abs(ch)}% vs ${lab} (${fmt(prev)})</div>`;
+      };
+      const sayBtns = (arr) => arr.map((t) => [t[0], "say", t[1]]);
+      function noRec(q, type) {
+        const w = q.words.join(" "),
+          sug = topNames(type === "income" ? "income" : "expense", 4);
+        return {
+          html: `<h4>🤔 Hmm, nothing matches</h4>I couldn't find any records for <b>"${esc(w)}"</b>${sug.length ? ". Here is what I do have — tap one:" : ". Once you log some, I'll be able to track it."}`,
+          acts: sayBtns(sug.map((s) => [s, (type === "income" ? "how much did I get from " : "how much did I spend on ") + s])),
+        };
+      }
+      function flow(q, type) {
+        const ex = type === "expense", c = ex ? "tr" : "tg";
+        const qq = Object.assign({}, q);
+        if (!qq.period && !qq.ents.length && !qq.words.length) qq.period = thisMonthP();
+        if (!qq.ents.length && qq.words.length) return noRec(qq, type);
+        const L = aiTx(qq, type), s = sumOf(L), lab = qq.period ? qq.period.label : "in total", what = qq.ents.length ? (ex ? " on " : " from ") + "<b>" + nm(qq.ents) + "</b>" : "";
+        const head = `<h4>${ex ? "💸 Spending" : "💰 Income"}</h4>`;
+        if (!L.length) {
+          const all = sumOf(aiTx(Object.assign({}, qq, { period: null }), type));
+          return { html: head + `Nothing ${ex ? "spent" : "received"}${what} ${lab}.` + (all ? ` Across all time it's <b>${fmt(all)}</b>.` : ""), acts: [["📊 Report", "ask", "report"]] };
+        }
+        let h = head + `${ex ? "You spent" : "You received"} <b class="${c}">${fmt(s)}</b>${what} ${qq.period ? lab : "in total"} — ${L.length} transaction${L.length === 1 ? "" : "s"}.`;
+        const pp = prevP(qq.period);
+        if (pp) h += vs(s, sumOf(aiTx({ period: pp, ents: qq.ents }, type)), pp.label);
+        if (!qq.ents.length) h += bars(byName(L).slice(0, 4), s, ex ? "#ef4444" : "#22c55e");
+        else {
+          const last = L.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+          h += `<div class="xs muted" style="margin-top:6px">Average ${fmt(s / L.length)} each · last on ${new Date(last.timestamp).toLocaleDateString()}</div>`;
+        }
+        return { html: h, acts: [qq.ents.length ? ["🔍 Where else", "ask", "where"] : ["🔍 Full breakdown", "ask", "where"]] };
+      }
+
+      /* ---------- new answers (merged into the existing AI object) ---------- */
+      Object.assign(AI, {
+        balance() {
+          const t = todayStats(), c = ctx(), avg = c.s.exp / c.dim;
+          let h = `<h4>💰 Balance</h4>You have <b>${fmt(state.balance)}</b>.`;
+          if (t.inc || t.exp) h += `<br>Today: in <b class="tg">${fmt(t.inc)}</b>, out <b class="tr">${fmt(t.exp)}</b>.`;
+          if (state.balance < 0) h += "<br>⚠️ You are in the negative.";
+          else if (avg > 0) h += `<br>At your usual <b>${fmt(avg)}/day</b> that lasts about <b>${Math.floor(state.balance / avg)} days</b>.`;
+          return { html: h, acts: [["🔮 Forecast", "ask", "forecast"], ["📊 Report", "ask", "report"]] };
+        },
+        spend: (q) => flow(q, "expense"),
+        income: (q) => flow(q, "income"),
+        net(q) {
+          const qq = withP(q), L = aiTx(qq), inc = sumOf(L.filter((h) => h.type === "income")), exp = sumOf(L.filter((h) => h.type === "expense")), n = inc - exp;
+          let h = `<h4>⚖️ Net — ${qq.period.label}</h4>In <b class="tg">${fmt(inc)}</b> · Out <b class="tr">${fmt(exp)}</b> · Net <b class="${n >= 0 ? "tg" : "tr"}">${fmt(n)}</b>`;
+          if (inc) h += ` (${Math.round((n / inc) * 100)}% kept)`;
+          if (!L.length) h = `<h4>⚖️ Net — ${qq.period.label}</h4>No transactions in that period.`;
+          const pp = prevP(qq.period);
+          if (pp && L.length) { const pl = aiTx({ period: pp, ents: [] }); h += vs(n, sumOf(pl.filter((x) => x.type === "income")) - sumOf(pl.filter((x) => x.type === "expense")), pp.label); }
+          h += bars(byName(L.filter((x) => x.type === "expense")).slice(0, 3), exp, "#ef4444");
+          return { html: h, acts: [["💡 Savings plan", "ask", "save"]] };
+        },
+        where(q) {
+          const qq = withP(q), L = aiTx(qq, "expense"), s = sumOf(L);
+          if (!L.length) return { html: `<h4>🔍 Where it went</h4>No expenses ${qq.period.label}.` };
+          const big = L.slice().sort((a, b) => b.amount - a.amount)[0];
+          return { html: `<h4>🔍 Where your money went — ${qq.period.label}</h4>${bars(byName(L).slice(0, 6), s, "#ef4444")}💥 Biggest single spend: <b>${esc(big.name)}</b> ${fmt(big.amount)}.`, acts: [["💡 How to cut", "ask", "save"]] };
+        },
+        count(q) {
+          const qq = withP(q, q.ents.length ? ALLP : null), L = aiTx(qq, q.type), s = sumOf(L);
+          if (!L.length) return { html: `<h4>🔢 Count</h4>No matching transactions ${qq.period.label}.` };
+          return { html: `<h4>🔢 Count</h4><b>${L.length}</b> transaction${L.length === 1 ? "" : "s"}${q.ents.length ? " for <b>" + nm(q.ents) + "</b>" : ""} ${qq.period.label}, totalling <b>${fmt(s)}</b> (about ${fmt(s / L.length)} each).` };
+        },
+        biggest(q) {
+          const type = q.type || "expense", qq = withP(q, q.ents.length ? ALLP : null), L = aiTx(qq, type).sort((a, b) => b.amount - a.amount).slice(0, 3);
+          if (!L.length) return { html: `<h4>🏆 Biggest</h4>No ${type === "income" ? "income" : "spending"} ${qq.period.label}.` };
+          return { html: `<h4>${type === "income" ? "🏆 Biggest income" : "💥 Biggest spends"} — ${qq.period.label}</h4>` + L.map((h, i) => `${i + 1}. <b>${esc(h.name)}</b> ${fmt(h.amount)} <span class="muted xs">· ${new Date(h.timestamp).toLocaleDateString()}</span>`).join("<br>") };
+        },
+        last(q) {
+          const L = aiTx(q, q.type).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+          if (!L.length) return { html: "<h4>🕘 Recent</h4>No matching transactions yet." };
+          return { html: "<h4>🕘 Most recent</h4>" + L.map((h) => `${h.type === "income" ? "💰" : "💸"} <b>${esc(h.name)}</b> ${h.type === "income" ? "+" : "−"}${fmt(h.amount)} <span class="muted xs">· ${new Date(h.timestamp).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>`).join("<br>") };
+        },
+        avg(q) {
+          const type = q.type || "expense", qq = withP(q, q.ents.length ? ALLP : null), L = aiTx(qq, type), s = sumOf(L), d = dayCount(qq.period);
+          if (!L.length) return { html: `<h4>📏 Average</h4>No data ${qq.period.label}.` };
+          return { html: `<h4>📏 Average ${type === "income" ? "income" : "spend"}</h4><b>${fmt(Math.round(s / d))}</b> per day and <b>${fmt(s / L.length)}</b> per transaction (${qq.period.label}, ${L.length} transactions).` };
+        },
+        days(q) {
+          const L = aiTx(q, q.type || "expense");
+          if (!L.length) return { html: "<h4>📅 Days</h4>Not enough data yet." };
+          const nmz = ["Sundays","Mondays","Tuesdays","Wednesdays","Thursdays","Fridays","Saturdays"], m = {};
+          L.forEach((h) => { const d = new Date(h.timestamp).getDay(); m[nmz[d]] = (m[nmz[d]] || 0) + h.amount; });
+          const top = topN(m, 7);
+          return { html: `<h4>📅 By day of the week</h4>You ${q.type === "income" ? "earn" : "spend"} most on <b>${top[0][0]}</b>.` + bars(top, sumOf(L), "#3b82f6") };
+        },
+        hours() {
+          const best = (type) => { const a = Array(24).fill(0); state.history.forEach((h) => { if (h.type === type && h.timestamp) a[new Date(h.timestamp).getHours()] += h.amount; }); const mx = Math.max(...a); return mx > 0 ? a.indexOf(mx) : -1; };
+          const i = best("income"), e = best("expense");
+          if (i < 0 && e < 0) return { html: "<h4>🕒 Hours</h4>Log a few transactions and I'll find your best hours." };
+          return { html: `<h4>🕒 Your hours</h4>${i >= 0 ? `🏆 Most productive: <b>${hourSpan(i)}</b><br>` : ""}${e >= 0 ? `💥 Heaviest spending: <b>${hourSpan(e)}</b>` : ""}`, acts: [["🕒 Open hours chart", "fn", "openHours"]] };
+        },
+        afford(q) {
+          if (!q.amount) { AIM.pending = "afford"; return { html: "<h4>🛍 Can you afford it?</h4>Sure — what is the price? (e.g. <i>3500</i> or <i>2k</i>)" }; }
+          AIM.pending = null;
+          const c = ctx(), a = q.amount, after = state.balance - a, avg = (c.s.exp || c.p.exp) / (c.s.exp ? c.dim : c.pdt) || 0, left = Math.max(1, c.dt - c.dim), need = avg * left;
+          let v;
+          if (a > state.balance) v = `❌ Not right now — you'd be short by <b class="tr">${fmt(a - state.balance)}</b>.`;
+          else if (after < need) v = `⚠️ You <i>can</i>, but it leaves <b>${fmt(after)}</b>, which may not cover about <b>${fmt(need)}</b> of normal spending for the ${left} days left.`;
+          else v = `✅ Yes, comfortably. You'd still have <b class="tg">${fmt(after)}</b>${avg ? ` — about ${Math.floor(after / avg)} days of normal spending` : ""}.`;
+          return { html: `<h4>🛍 Buying for ${fmt(a)}</h4>${v}`, acts: [["🔮 Forecast", "ask", "forecast"]] };
+        },
+        budget() {
+          const c = ctx(), left = c.dt - c.dim + 1, safe = Math.max(0, state.balance) / left, t = todayStats();
+          return { html: `<h4>🧮 Safe daily spend</h4>To make your balance last to month end, keep to about <b>${fmt(Math.round(safe))}/day</b> (${left} days incl. today).<br>Spent today: <b class="tr">${fmt(t.exp)}</b> → <b class="${safe - t.exp >= 0 ? "tg" : "tr"}">${fmt(Math.round(safe - t.exp))}</b> left for today.` };
+        },
+        why(q) {
+          const c = ctx();
+          if (!c.p.exp) return { html: "<h4>🧐 Why?</h4>I need a full previous month of data to explain changes. Keep logging and ask me again next month!" };
+          const diffs = Object.keys(Object.assign({}, c.s.cats, c.p.cats)).map((k) => [k, (c.s.cats[k] || 0) - (c.p.cats[k] || 0)]).sort((a, b) => b[1] - a[1]);
+          const up = diffs.filter((d) => d[1] > 0).slice(0, 3), dn = diffs.filter((d) => d[1] < 0).slice(-1)[0], tot = c.s.exp - c.p.exp;
+          return { html: `<h4>🧐 What changed</h4>Your spending is <b class="${tot > 0 ? "tr" : "tg"}">${tot >= 0 ? "up" : "down"} ${fmt(Math.abs(tot))}</b> vs last month so far.` + (up.length ? `<br>Biggest increases:` + up.map((d) => `<br>• ${esc(d[0])}: +${fmt(d[1])}`).join("") : "") + (dn ? `<br>Biggest drop: ${esc(dn[0])} (${fmt(Math.abs(dn[1]))} less).` : ""), acts: [["💡 How to cut", "ask", "save"]] };
+        },
+      });
+
+      /* ---------- small talk, with a personality ---------- */
+      const SMALL = [
+        ["identity", /\b(who|what)('s| is| are)?\s+(are\s+)?(you|u)\b|your name|are you (a |an )?(real|human|bot|ai|robot|person)|who (made|built|created|programmed) you|who r u/],
+        ["when", /what('s| is) (the )?(time|date)|what day is (it|today)|today'?s date/],
+        ["howare", /\bhow('s| is| are| r)?\s*(are\s+)?(you|u|things|it going|life)\b|how do you do|what'?s up|wassup|\bsup\b|how you (doing|been)|unaendeleaje|uko poa|uko aje|u poa/],
+        ["love", /love you|you('re| are) (the best|awesome|great|amazing|smart|clever|good|cool|helpful)|good bot|nice bot/],
+        ["insult", /\b(stupid|dumb|useless|idiot|rubbish|trash|garbage|nonsense|bad bot|you suck|hate you|worst|shut up|fool)\b/],
+        ["joke", /\bjoke|funny|make me laugh|riddle|something fun/],
+        ["thanks", /\b(thanks|thank you|thank u|thx|ty|asante|shukran|cheers|appreciate|nice one|well done|good job|great job|awesome|perfect|brilliant|cool|nice|great|wonderful|fantastic|amazing)\b/],
+        ["bye", /\b(bye|goodbye|good night|goodnight|see you|see ya|cya|later|kwaheri|tutaonana|ttyl|gtg)\b/],
+      ];
+      const SW = ["niaje","mambo","sasa","habari","jambo","hujambo","vipi","poa","oya"];
+      const GREET = /^(hi+|hello+|hey+|hallo|hola|yo+|sup|howdy|greetings|good\s*(morning|afternoon|evening|day)|morning|evening|afternoon|niaje|mambo|sasa|habari|jambo|hujambo|vipi|poa|heya|hiya|oya)\b/;
+      function statusLine() {
+        if (!state.history.length) return "Your records are empty — add your first transaction and I'll start learning your habits.";
+        const t = todayStats(), parts = [];
+        if (t.exp) parts.push(`spent <b class="tr">${fmt(t.exp)}</b>`);
+        if (t.inc) parts.push(`received <b class="tg">${fmt(t.inc)}</b>`);
+        return `Your balance is <b>${fmt(state.balance)}</b>` + (parts.length ? ` and today you've ${parts.join(" and ")}.` : " and nothing is logged yet today.");
+      }
+      const who = () => (AIM.name ? ", " + esc(AIM.name) : "");
+      const GACTS = [["📊 Report", "ask", "report"], ["🔍 Where it went", "ask", "where"], ["🔮 Forecast", "ask", "forecast"]];
+      function greetReply(p) {
+        const h = new Date().getHours(), part = h < 5 ? "Hey, night owl" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+        const sw = p.toks.some((w) => SW.includes(w));
+        const [base, em] = sw ? pick([["Poa sana", "😄"], ["Nzuri, karibu", "👋"], ["Habari yako", "👋"]]) : pick([[part, "👋"], ["Hey there", "😊"], ["Hello", "👋"], ["Hi, good to see you", "😊"]]);
+        return { html: `<h4>${base}${who()}! ${em}</h4>${statusLine()}<br>What would you like to look at?`, acts: GACTS };
+      }
+      function smallTalk(k, p) {
+        const jokes = ["Why did the wallet go to therapy? Too many issues with letting go. 💸", "My budget and I have a lot in common — we both look great on paper. 📄", "I told my savings account a joke. It didn't laugh… it has no interest. 🏦", "Money talks — mine mostly says goodbye. 👋"];
+        const now = new Date();
+        switch (k) {
+          case "identity": return { html: `<h4>🤖 I'm your CashSplit assistant</h4>I'm a built-in helper — not a person — that reads <b>only the records on your phone</b>. Nothing leaves your device. I can answer questions about spending, income, balance, people you pay, forecasts and more, and I can even log a transaction if you type it, like <i>"spent 250 on lunch"</i>.`, acts: GACTS };
+          case "when": return { html: `🗓 It's <b>${now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</b>, ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` };
+          case "howare": return { html: `<h4>${pick(["Doing great, thanks for asking! 😊", "All good here — ready to crunch numbers! 💪", "Sharp as ever! ✨"])}</h4>${statusLine()}<br>How are <i>you</i> — shall we look at your money?`, acts: GACTS };
+          case "love": return { html: pick(["Aww, thank you! 💙 Let's keep your money healthy together.", "That means a lot! 😊 Want to see how your month is going?"]), acts: [["📊 Report", "ask", "report"]] };
+          case "insult": return { html: pick(["Sorry I missed the mark 🙏 Try asking it differently, or tap one of these — I'll do better.", "Fair enough, I'm still learning your style. Tell me what you'd like to know and I'll give it another go."]), acts: GACTS };
+          case "joke": return { html: pick(jokes) + "<br>Now, shall we check how you're really doing?", acts: [["📊 Report", "ask", "report"]] };
+          case "thanks": return { html: pick(["You're welcome! 😊", "Anytime! 🙌", "Karibu! 😄", "Happy to help! 💙"]) + " Anything else on your mind?" };
+          case "bye": return { html: pick(["See you soon! 👋 Spend wisely.", "Kwaheri! 👋 Your records are safe on this phone.", "Bye for now! 💙"]) };
+        }
+      }
+
+      /* ---------- chat engine: typing dots → message pops in → text types out ---------- */
+      const aiScroll = () => { const l = $("ai-log"); l.scrollTop = l.scrollHeight; };
       function aiPush(cls, html) {
         const d = document.createElement("div");
         d.className = "msg " + cls;
@@ -4031,153 +4384,190 @@
       }
       function typeInto(el, html, done) {
         el.innerHTML = html;
-        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          done && done();
-          return;
-        }
-        const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT),
-          nodes = [];
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) { done && done(); return; }
+        const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = [];
         let n;
-        while ((n = w.nextNode()))
-          if (n.nodeValue.trim()) {
-            nodes.push([n, n.nodeValue]);
-            n.nodeValue = "";
-          }
-        const total = nodes.reduce((a, x) => a + x[1].length, 0),
-          step = Math.max(2, Math.ceil(total / 60));
+        while ((n = w.nextNode())) if (n.nodeValue.trim()) { nodes.push([n, n.nodeValue]); n.nodeValue = ""; }
+        const total = nodes.reduce((a, x) => a + x[1].length, 0), step = Math.max(2, Math.ceil(total / 60));
         let c = 0;
         el.classList.add("tn");
         const iv = setInterval(() => {
           c += step;
           let off = 0;
-          nodes.forEach(([nd, txt]) => {
-            nd.nodeValue = txt.slice(
-              0,
-              Math.max(0, Math.min(txt.length, c - off)),
-            );
-            off += txt.length;
-          });
+          nodes.forEach(([nd, txt]) => { nd.nodeValue = txt.slice(0, Math.max(0, Math.min(txt.length, c - off))); off += txt.length; });
           aiScroll();
-          if (c >= total) {
-            clearInterval(iv);
-            el.classList.remove("tn");
-            aiScroll();
-            done && done();
-          }
+          if (c >= total) { clearInterval(iv); el.classList.remove("tn"); aiScroll(); done && done(); }
         }, 18);
       }
       let aiQ = Promise.resolve();
       function aiBot(html) {
-        aiQ = aiQ.then(
-          () =>
-            new Promise((res) => {
-              const l = $("ai-log"),
-                t = document.createElement("div");
-              t.className = "msg bot typing";
-              t.innerHTML = "<i></i><i></i><i></i>";
-              l.appendChild(t);
-              aiScroll();
-              setTimeout(
-                () => {
-                  t.remove();
-                  const d = document.createElement("div");
-                  d.className = "msg bot";
-                  l.appendChild(d);
-                  typeInto(d, html, res);
-                },
-                600 + Math.random() * 300,
-              );
-            }),
-        );
+        aiQ = aiQ.then(() => new Promise((res) => {
+          const l = $("ai-log"), t = document.createElement("div");
+          t.className = "msg bot typing";
+          t.innerHTML = "<i></i><i></i><i></i>";
+          l.appendChild(t);
+          aiScroll();
+          setTimeout(() => {
+            t.remove();
+            const d = document.createElement("div");
+            d.className = "msg bot";
+            l.appendChild(d);
+            typeInto(d, html, res);
+          }, 500 + Math.random() * 300);
+        }));
       }
       const aiActs = (a) =>
         a && a.length
           ? `<div class="row" style="flex-wrap:wrap;margin-top:10px">${a.map((x) => `<button class="btn bg sm" data-act="${x[1]}" data-arg="${esc(String(x[2]))}">${x[0]}</button>`).join("")}</div>`
           : "";
-      function aiAnswer(k) {
-        const r = AI[k]();
-        aiBot(r.html + aiActs(r.acts));
+
+      /* ---------- answering + memory ---------- */
+      function aiDo(k, p, pre) {
+        if (k === "report" && p.period) k = "net"; /* "how was last month" */
+        const r = AI[k](p);
+        AIM.intent = k;
+        if (QINT.includes(k)) { AIM.period = p.period; AIM.ents = p.ents; }
+        AIM.offer = NEXT[k] || null;
+        let h = (pre || "") + r.html;
+        if (AIM.offer && !r.acts) h += `<div class="xs muted" style="margin-top:8px">Want ${OFFERTXT[AIM.offer]}? Just say <b>yes</b>.</div>`;
+        aiBot(h + aiActs(r.acts));
       }
+      function aiAnswer(k) { aiDo(k, aiParse("")); }
+      const FNS = { openHours: () => openHours() };
       function aiClick(e) {
         const b = e.target.closest("[data-act]");
         if (!b) return;
-        const a = b.dataset.act,
-          g = b.dataset.arg;
+        const a = b.dataset.act, g = b.dataset.arg;
         if (a === "ask") {
-          if (b.classList.contains("chip"))
-            aiPush("me", esc((CHIPS.find((c) => c[0] === g) || [0, g])[1]));
+          if (b.classList.contains("chip")) aiPush("me", esc((CHIPS.find((c) => c[0] === g) || [0, g])[1]));
           aiAnswer(g);
+          return;
+        }
+        if (a === "noop") { b.parentNode.querySelectorAll("button").forEach((x) => (x.disabled = true)); return; }
+        if (a === "say") { aiPush("me", esc(g)); setTimeout(() => aiRoute(g), 250); return; }
+        if (a === "fn" && FNS[g]) { FNS[g](); return; }
+        if (a === "tx") {
+          const [ty, am, ...n] = g.split("|");
+          logTx(ty, n.join("|") || (ty === "income" ? "Income" : "Expense"), +am);
+          aiBot(`✅ Done! New balance: <b>${fmt(state.balance)}</b>.`);
+          b.parentNode.querySelectorAll("button").forEach((x) => (x.disabled = true));
           return;
         }
         if (a === "goal") {
           const [n, v] = g.split("|");
-          goals.push({
-            id: Date.now(),
-            name: n,
-            target: +v,
-            saved: 0,
-            deadline: "",
-          });
+          goals.push({ id: Date.now(), name: n, target: +v, saved: 0, deadline: "" });
           saveAll();
           toast("Goal created 🎯");
         }
-        if (a === "alert") {
-          settings.lowBalThreshold = +g;
-          saveAll();
-          applySettings();
-          checkLow();
-          toast("Low-balance alert set");
-        }
-        if (a === "page") {
-          if (g === "records") recKey = mk(new Date());
-          showPage(g);
-        }
+        if (a === "alert") { settings.lowBalThreshold = +g; saveAll(); applySettings(); checkLow(); toast("Low-balance alert set"); }
+        if (a === "page") { if (g === "records") recKey = mk(new Date()); showPage(g); }
         if (b.tagName === "BUTTON") b.disabled = true;
       }
       function aiSend() {
-        const i = $("ai-inp"),
-          t = i.value.trim();
+        const i = $("ai-inp"), t = i.value.trim();
         if (!t) return;
         i.value = "";
         aiPush("me", esc(t));
         setTimeout(() => aiRoute(t), 250);
       }
-      function aiRoute(t) {
-        const l = t.toLowerCase();
-        const map = [
-          ["fees", /fee|charge|tariff/],
-          ["today", /today|tonight/],
-          ["search", null],
-          ["goals", /goal|target/],
-          [
-            "forecast",
-            /forecast|predict|end of (the )?month|projection|runway|will i|run out/,
-          ],
-          ["compare", /compare|versus|\bvs\b|last month|trend|previous/],
-          ["people", /\bwho\b|people|payee|recipient|sender/],
-          [
-            "save",
-            /sav(e|ing)|cut|reduce|budget|tip|advice|improve|spend less/,
-          ],
-          ["report", /report|summary|overview|how am i|analy|status/],
-          ["where", /where|categor|breakdown|biggest|largest|\btop\b|most/],
-        ];
-        for (const [k, re] of map) {
-          if (k === "search") {
-            const r = aiSearch(t);
-            if (r) {
-              aiBot(r.html);
-              return;
-            }
-            continue;
-          }
-          if (re.test(l)) {
-            aiAnswer(k);
-            return;
-          }
-        }
-        aiAnswer("help");
+
+      /* ---------- typed commands: "spent 250 on lunch", "got 5k from john" ---------- */
+      const NUMRE = "(?:ksh?s?\\.?|kes|shs?\\.?)?\\s*(\\d[\\d,]*(?:\\.\\d+)?\\s*(?:k|thousand|elfu)?)\\s*(?:/=)?";
+      const ADD_EXP = new RegExp("\\b(?:spent|paid|bought|used|sent|lost|nimetumia|nimelipa|nimetuma|expense(?:\\s+of)?)\\s*" + NUMRE + "(?:\\s+(?:on|for|to|at|kwa|towards|as)\\s+(.+))?$");
+      const ADD_EXP2 = new RegExp("\\b(?:bought|paid for|purchased)\\s+(.+?)\\s+(?:for|at|@|worth)\\s*" + NUMRE + "$");
+      const ADD_INC = new RegExp("\\b(received|got|earned|made|nimepata|nimepokea|income(?:\\s+of)?|salary(?:\\s+of)?)\\s*" + NUMRE + "(?:\\s+(?:from|for|as|via|kutoka|by)\\s+(.+))?$");
+      function parseAdd(l, raw) {
+        if (/\?/.test(raw) || /^(how|what|when|why|who|did|do|does|can|could|is|are|will|which)\b/.test(l)) return null;
+        const clean = (s, d) => { s = (s || "").replace(/\s+(today|yesterday|just now|now|earlier)$/, "").replace(/^(a|an|the|my)\s+/, "").trim(); return s ? title(s).slice(0, 40) : d; };
+        let m;
+        if ((m = l.match(ADD_EXP2))) return { type: "expense", amount: amtOf(m[2]), name: clean(m[1], "Expense") };
+        if ((m = l.match(ADD_EXP))) return { type: "expense", amount: amtOf(m[1]), name: clean(m[2], "Expense") };
+        if ((m = l.match(ADD_INC))) return { type: "income", amount: amtOf(m[2]), name: clean(m[3], /salary/.test(m[1]) ? "Salary" : "Income") };
+        return null;
       }
+      function aiNavigate(p) {
+        const l = p.l;
+        if (/\b(dark|night)\s*(mode|theme)\b|\bgo dark\b/.test(l) && (/\b(switch|turn|enable|use|change|set|on|go|want)\b/.test(l) || p.toks.length <= 4)) { if (settings.lightMode) toggleSetting("lightMode"); return { html: "🌙 Dark mode is on." }; }
+        if (/\blight\s*(mode|theme)\b|\bgo light\b/.test(l) && (/\b(switch|turn|enable|use|change|set|on|go|want)\b/.test(l) || p.toks.length <= 4)) { if (!settings.lightMode) toggleSetting("lightMode"); return { html: "☀️ Light mode is on." }; }
+        if (/^(add|log|record|new)\s+(an?\s+)?(expense|income|transaction|entry)$/.test(l)) { const t = /income/.test(l) ? "income" : "expense"; setTimeout(() => openAdd("manual", t), 400); return { html: `Opening the add sheet for ${t} ✍️` }; }
+        if (/smart add|screenshot|paste.*(sms|mpesa|m-pesa)|import.*(sms|mpesa|m-pesa)/.test(l)) { setTimeout(() => openAdd("sms"), 400); return { html: "Opening Smart Add 📩" }; }
+        if (/\b(open|go to|goto|take me|navigate|launch|switch to|bring up|fungua|nipeleke)\b/.test(l)) {
+          const T = [[/stat|chart|graph|donut|pie/, "stats", "Stats"],[/month|record|history/, "records", "Monthly records"],[/goal/, "goals", "Goals"],[/shortcut|quick/, "shortcuts", "Shortcuts"],[/recurr|repeat|subscri/, "recurring", "Recurring"],[/setting|prefer|option|currency|pin|backup|export/, "settings", "Settings"],[/wall|communit|post|feed/, "wall", "Community wall"],[/home|dashboard|main/, "home", "Home"]];
+          for (const [re, pg, lab] of T) if (re.test(l)) { setTimeout(() => showPage(pg), 400); return { html: `Taking you to <b>${lab}</b> ➜` }; }
+        }
+        return null;
+      }
+
+      /* ---------- the router: never a dead end ---------- */
+      function aiRoute(t) {
+        const raw = String(t).trim(), p = aiParse(raw), l = p.l, n = p.toks.length;
+        const say = (r) => aiBot(r.html + aiActs(r.acts));
+
+        if (!l) { say({ html: pick(["😊 Got it!", "👍 Noted!", "💙 Right back at you!"]) + " Ask me anything about your money, or tap a button.", acts: GACTS }); return; }
+
+        /* teach it your name */
+        let m = l.match(/\b(?:my name is|i am called|call me|naitwa)\s+([a-z]{2,15})/);
+        if (m) { AIM.name = title(m[1]); try { localStorage.setItem("cashsplit_aiuser", AIM.name); } catch (e) {} say({ html: `Nice to meet you, <b>${esc(AIM.name)}</b>! 😊 I'll remember that. ${statusLine()}`, acts: GACTS }); return; }
+
+        /* a pending question ("what is the price?" → "5000") */
+        if (AIM.pending === "afford" && p.amount && /^\D{0,14}\d[\d,.]*\s*(k|thousand)?\s*(shillings|bob|ksh)?$/.test(l)) { aiDo("afford", p); return; }
+        AIM.pending = null;
+
+        /* yes / no follow-ups */
+        if (/^(yes|yeah|yep|yup|sure|ok(ay)?|please|go ahead|do it|sawa|ndio|ndiyo|y|alright)\b/.test(l) && n <= 4) {
+          if (AIM.offer) { const k = AIM.offer; AIM.offer = null; aiDo(k, aiParse("")); } else say({ html: "Great! What would you like to check?", acts: GACTS });
+          return;
+        }
+        if (/^(no|nope|nah|hapana|not now|never ?mind|cancel|stop)\b/.test(l) && n <= 4) { AIM.offer = null; say({ html: "No problem 👍 I'm right here whenever you need me." }); return; }
+
+        /* commands */
+        const add = parseAdd(l, raw);
+        if (add && add.amount > 0) {
+          say({ html: `<h4>📝 Log this?</h4>${add.type === "income" ? "💰 Income" : "💸 Expense"} of <b>${fmt(add.amount)}</b> · <b>${esc(add.name)}</b>`, acts: [["✅ Log it", "tx", add.type + "|" + add.amount + "|" + add.name], ["✖ Cancel", "noop", ""]] });
+          return;
+        }
+        m = l.match(/(alert|warn|notify|remind|tell)\b.*\b(below|under|less than|drops?|falls?|lower than)\s*(?:to\s*)?(?:ksh?s?\.?)?\s*(\d[\d,.]*\s*k?)/);
+        if (m && amtOf(m[3])) { const v = Math.round(amtOf(m[3])); say({ html: `<h4>🔔 Low-balance alert</h4>Warn you when your balance drops below <b>${fmt(v)}</b>?`, acts: [["✅ Set alert", "alert", v], ["✖ No", "noop", ""]] }); return; }
+        const nav = aiNavigate(p);
+        if (nav) { say(nav); return; }
+
+        /* small talk (identity / mood / thanks / jokes …) when it is not a money question */
+        const finance = aiIntent(p);
+        for (const [k, re] of SMALL) {
+          if (re.test(l) && (k === "identity" || k === "when" || k === "howare" || k === "joke" || (!finance && n <= 8))) { say(smallTalk(k, p)); return; }
+        }
+
+        /* money questions — with follow-up memory */
+        let k = finance;
+        const followUp = /^(and|what about|how about|also|then|same for|now|so)\b/.test(l) || n <= 3;
+        if (!k && AIM.intent && QINT.includes(AIM.intent) && (p.period || p.ents.length || p.words.length) && followUp) k = AIM.intent;
+        if (!k && (p.ents.length || p.words.length)) k = "spend";
+        if (!k && p.period) k = "net";
+        if (k && QINT.includes(k) && followUp) {
+          if (!p.period && AIM.period && AIM.intent && QINT.includes(AIM.intent) && !GREET.test(l)) p.period = AIM.period;
+          if (!p.ents.length && !p.words.length && AIM.ents.length && (!finance || /\b(it|that|them|those|same)\b/.test(l))) p.ents = AIM.ents;
+        }
+        if (k === "help" || (!k && /\bhelp\b|what can you do|what do you do|how do you work|how to use|commands|features|what can i ask|guide me|options/.test(l))) {
+          say({ html: "<h4>👋 Here's what I understand</h4>• <i>\"How much did I spend on food last week?\"</i><br>• <i>\"What's my balance?\"</i> · <i>\"Will I run out before month end?\"</i><br>• <i>\"Can I afford 4,500?\"</i> · <i>\"Biggest spend in October\"</i><br>• <i>\"Who do I send most to?\"</i> · <i>\"Compare with last month\"</i><br>• <i>\"Spent 250 on lunch\"</i> — I'll log it for you<br>• <i>\"Open stats\"</i>, <i>\"dark mode\"</i>, <i>\"alert me below 500\"</i><br>I understand typos, Swahili/Sheng, and follow-ups like <i>\"and yesterday?\"</i>", acts: GACTS });
+          return;
+        }
+        const greeted = GREET.test(l);
+        if (k && AI[k]) { aiDo(k, p, greeted ? pick(["Hey! ", "Hi there! ", "Sure — "]) : ""); return; }
+
+        /* greeting on its own */
+        if (greeted || (n <= 3 && /\b(hi|hello|hey|hallo)\b/.test(l))) { say(greetReply(p)); return; }
+
+        /* last resort: still useful, never a dead end */
+        const c = ctx(), net = c.s.inc - c.s.exp;
+        const guess = Object.keys(LEXR).map((key) => [key, p.toks.reduce((a, w) => a + (LEXR[key].some(([kw]) => w.length >= 4 && lev(w, kw) <= 2) ? 1 : 0), 0)]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 2).map((x) => x[0]);
+        const lab = { forecast: "🔮 Forecast", compare: "⚖️ Compare", fees: "🧾 Fees", goals: "🎯 Goals", report: "📊 Report", where: "🔍 Where it went", save: "💡 Savings", people: "👥 People", balance: "💰 Balance", spend: "💸 Spending", income: "💰 Income", net: "⚖️ Net" };
+        const acts = guess.map((g) => [lab[g], "ask", g]).concat(GACTS).filter((a, i, arr) => arr.findIndex((b) => b[2] === a[2]) === i).slice(0, 4);
+        say({
+          html: `<h4>${pick(["🤔 I didn't quite catch that", "🧐 Not sure I got that one", "😅 That one's outside my money brain"])}</h4>I focus on <b>your money</b>, so try something like <i>"how much did I spend on food last week?"</i> or <i>"can I afford 3,000?"</i>.<br><br>Quick snapshot meanwhile — balance <b>${fmt(state.balance)}</b>; this month in <b class="tg">${fmt(c.s.inc)}</b>, out <b class="tr">${fmt(c.s.exp)}</b> (net <b class="${net >= 0 ? "tg" : "tr"}">${fmt(net)}</b>).`,
+          acts,
+        });
+      }
+
       let aiReady = false;
       function aiInit() {
         if (aiReady) return;

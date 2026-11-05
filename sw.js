@@ -6,7 +6,7 @@
  *   reader works offline after it has been loaded once while online
  * - Bumping the version purges every older cache (clears the broken v13/v14 pages)
  */
-const VERSION = "v15";
+const VERSION = "v16";
 const SHELL = "cashsplit-shell-" + VERSION;
 const RUNTIME = "cashsplit-runtime-" + VERSION;
 const SHELL_ASSETS = [
