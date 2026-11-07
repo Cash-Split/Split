@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>CashSplit Kadere — Trip</title>
+    <link rel="manifest" href="./manifest.json" />
+    <style>
+      :root {
+        --bg: #060a12; --bg2: #0d1424; --bg3: #111927; --card: rgba(13, 20, 36, 0.85);
+        --border: rgba(96, 165, 250, 0.14); --bb: rgba(96, 165, 250, 0.35);
+        --blue: #3b82f6; --bl: #60a5fa; --bd: rgba(59, 130, 246, 0.15);
+        --green: #22c55e; --red: #ef4444; --yellow: #fbbf24;
+        --text: #e2e8f0; --text2: #94a3b8; --text3: #64748b;
+        --fd: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --fm: "SF Mono", Consolas, Menlo, monospace;
+        --r: 14px; --rs: 10px;
+      }
+      body.light {
+        --bg: #f0f4ff; --bg2: #e8edf8; --bg3: #fff; --card: rgba(255, 255, 255, 0.92);
+        --border: rgba(59, 130, 246, 0.18); --bb: rgba(59, 130, 246, 0.4);
+        --blue: #2563eb; --bl: #2563eb; --bd: rgba(37, 99, 235, 0.1);
+        --text: #0f172a; --text2: #334155; --text3: #64748b;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html, body { height: 100%; }
+      body {
+        font-family: var(--fm); background: var(--bg); color: var(--text);
+        display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); overflow: hidden;
+      }
+      #top {
+        height: 54px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
+        gap: 8px; border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0;
+      }
+      .logo { font-family: var(--fd); font-weight: 800; font-size: 1.15rem; color: var(--bl); display: flex; align-items: center; gap: 8px; }
+      .logo i { width: 8px; height: 8px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 8px var(--blue); }
+      .row { display: flex; align-items: center; gap: 8px; }
+      main {
+        flex: 1; min-height: 0; overflow-y: auto; padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
+        max-width: 760px; width: 100%; margin: 0 auto;
+      }
+      .pg { display: none; flex-direction: column; gap: 16px; }
+      .pg.on { display: flex; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
+      body.compact .card { padding: 12px; }
+      .ct {
+        font-family: var(--fd); font-weight: 700; font-size: 0.92rem; color: var(--bl); margin-bottom: 14px;
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      }
+      input, select, textarea {
+        font-family: var(--fm); background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+        border-radius: var(--rs); padding: 11px 13px; font-size: 0.9rem; width: 100%; outline: none;
+      }
+      textarea { resize: vertical; min-height: 80px; }
+      input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+      .btn {
+        font-family: var(--fm); padding: 12px 16px; min-height: 44px; border-radius: var(--rs); border: none;
+        cursor: pointer; font-size: 0.86rem; font-weight: 500; display: inline-flex; align-items: center;
+        justify-content: center; gap: 6px; color: var(--text); text-decoration: none;
+      }
+      .btn:active { transform: scale(0.97); }
+      .btn:disabled { opacity: 0.5; }
+      .bp { background: linear-gradient(135deg, var(--blue), #60a5fa); color: #fff; }
+      .bg { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+      .bgr { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; }
+      .bd { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+      .sm { padding: 6px 11px; min-height: 36px; font-size: 0.78rem; }
+      .bk { width: 100%; }
+      .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .muted { color: var(--text3); }
+      .xs { font-size: 0.72rem; }
+      .tg { color: var(--green); } .tr { color: var(--red); } .ty { color: var(--yellow); } .tbl { color: var(--bl); }
+      .banner { padding: 10px 12px; font-size: 0.8rem; border-radius: var(--rs); background: rgba(251, 191, 36, 0.15); color: var(--yellow); }
+      .banner.ok { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+      .banner.bad { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+      .banner.info { background: var(--bd); color: var(--bl); }
+      .stat { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--rs); padding: 14px; text-align: center; }
+      .stat b { display: block; font-family: var(--fd); font-size: 1.35rem; }
+      .stat small { font-size: 0.72rem; color: var(--text3); }
+      #fare { font-size: clamp(2rem, 9vw, 2.8rem); }
+      .chip { font-size: 0.72rem; padding: 4px 10px; border-radius: 99px; font-weight: 700; background: var(--bd); color: var(--bl); white-space: nowrap; }
+      .chip.active { background: rgba(34, 197, 94, 0.16); color: var(--green); }
+      .chip.paused { background: rgba(251, 191, 36, 0.16); color: var(--yellow); }
+      .chip.cancelled { background: rgba(239, 68, 68, 0.16); color: var(--red); }
+      .chip.ended { background: var(--bd); color: var(--text2); }
+      .av {
+        width: 58px; height: 58px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--bb);
+        display: flex; align-items: center; justify-content: center; font-size: 1.8rem; overflow: hidden; flex-shrink: 0;
+      }
+      .av img { width: 100%; height: 100%; object-fit: cover; }
+      .dn { font-family: var(--fd); font-weight: 800; font-size: 1.05rem; }
+      .plate {
+        display: inline-block; font-family: var(--fd); font-weight: 800; letter-spacing: 0.08em;
+        border: 2px solid var(--bb); background: var(--bg3); border-radius: 8px; padding: 2px 10px; margin-top: 4px;
+      }
+      canvas { width: 100%; height: 240px; display: block; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--rs); }
+      table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+      td { padding: 8px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+      td:last-child { text-align: right; font-family: var(--fd); font-weight: 700; padding-left: 10px; }
+      .formula { font-size: 0.78rem; color: var(--text2); margin-top: 12px; line-height: 1.6; }
+      .big-total { font-family: var(--fd); font-weight: 800; font-size: clamp(2.2rem, 11vw, 3.2rem); color: var(--green); text-align: center; }
+      .toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--bg2);
+        border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-size: 0.84rem; z-index: 900; max-width: 92vw;
+      }
+      .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pl 1.4s infinite; }
+      @keyframes pl { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+      .center { text-align: center; }
+      .rcpt { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; align-items: center; }
+      /* QR scanner */
+      #scan-v { width: 100%; max-height: 50vh; border-radius: var(--rs); background: #000; object-fit: cover; display: block; }
+      #scan-frame { position: relative; }
+      #scan-frame:after {
+        content: ""; position: absolute; inset: 18% 18%; border: 3px solid var(--green);
+        border-radius: 14px; pointer-events: none; opacity: 0.8;
+      }
+      @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+      @media print {
+        html, body { height: auto; overflow: visible; display: block; background: #fff; color: #000; }
+        main { overflow: visible; max-width: none; }
+        #top, .noprint { display: none !important; }
+        .card { border: 1px solid #999; background: #fff; break-inside: avoid; }
+        .pg { display: flex !important; }
+        #p-load, #p-gone { display: none !important; }
+        * { color: #000 !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="top">
+      <div class="logo"><i></i>🚖 Kadere</div>
+      <div class="row">
+        <select id="lg" aria-label="Language" style="width: auto; padding: 6px 26px 6px 10px; font-size: 0.78rem">
+          <option value="en">🌐 EN</option>
+          <option value="sw">🌐 SW</option>
+        </select>
+      </div>
+    </header>
+    <main>
+      <!-- LOADING -->
+      <section id="p-load" class="pg on">
+        <div class="card center">
+          <div class="ct" style="justify-content: center" data-i="loading">Loading trip…</div>
+        </div>
+      </section>
+
+      <!-- NO LINK / INVALID / EXPIRED: scan the driver's QR here -->
+      <section id="p-gone" class="pg">
+        <div class="card center">
+          <div style="font-size: 2.2rem">🔗</div>
+          <div class="ct" style="justify-content: center; margin-top: 8px"><span id="gone-t"></span></div>
+          <div class="xs muted" id="gone-s"></div>
+        </div>
+
+        <div class="card" id="scan-card">
+          <div class="ct" data-i="scan_t">Scan the driver's QR code</div>
+          <div class="xs muted" style="margin-bottom: 12px" data-i="scan_s">
+            Point your camera at the QR code on the driver's phone.
+          </div>
+          <div id="scan-box" hidden style="margin-bottom: 12px">
+            <div id="scan-frame"><video id="scan-v" playsinline muted></video></div>
+            <button class="btn bg sm bk" style="margin-top: 10px" onclick="stopScan()" data-i="scan_stop">Stop camera</button>
+          </div>
+          <button class="btn bp bk" id="scan-btn" onclick="startScan()" data-i="scan_btn">Scan QR code</button>
+          <label class="btn bg bk" style="margin-top: 10px">
+            <span data-i="scan_photo">Use a photo of the QR code</span>
+            <input type="file" accept="image/*" capture="environment" hidden onchange="pickPhoto(event)" />
+          </label>
+          <div class="row" style="margin-top: 10px">
+            <input id="scan-paste" data-ip="scan_paste_ph" placeholder="Paste trip link" inputmode="url" autocomplete="off" />
+            <button class="btn bg" onclick="usePasted()" data-i="open">Open</button>
+          </div>
+          <div class="xs ty" id="scan-msg" style="margin-top: 10px" aria-live="polite"></div>
+        </div>
+
+        <div class="card" id="hist-card" hidden>
+          <div class="ct" data-i="hist">Receipts on this phone</div>
+          <div id="hist"></div>
+        </div>
+      </section>
+
+      <!-- TRIP -->
+      <section id="p-trip" class="pg">
+        <div class="card noprint" id="privacy" hidden>
+          <div class="xs" data-i="privacy">
+            You are seeing this driver's location only for this trip. The link expires after about 24 hours.
+          </div>
+          <button class="btn bg sm" style="margin-top: 10px" onclick="dismissPrivacy()" data-i="ok">OK</button>
+        </div>
+
+        <div id="notices" class="noprint" style="display: grid; gap: 8px"></div>
+
+        <!-- driver card -->
+        <div class="card" id="drv">
+          <div class="row" style="align-items: flex-start; gap: 14px">
+            <div class="av" id="d-av">🚖</div>
+            <div style="flex: 1; min-width: 0">
+              <div class="row" style="justify-content: space-between">
+                <div class="dn" id="d-name"></div>
+                <span class="chip" id="d-chip"></span>
+              </div>
+              <div class="xs muted" id="d-veh" style="margin-top: 4px"></div>
+              <div id="d-plate"></div>
+              <div class="xs muted" id="d-ph" style="margin-top: 6px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="banner info" id="st-quoted" data-i="wait_start" hidden>Waiting for the driver to start the trip.</div>
+        <div class="banner" id="st-paused" data-i="paused" hidden>Trip paused by driver.</div>
+
+        <!-- cancelled -->
+        <div class="card" id="cancelled" hidden>
+          <div class="ct" data-i="cancelled_t">Trip cancelled</div>
+          <div class="xs muted" id="cancel-body"></div>
+        </div>
+
+        <!-- arrival -->
+        <div class="card center" id="arrival" hidden>
+          <div class="xs muted" data-i="arrived">The trip has ended. Total:</div>
+          <div class="big-total" id="arr-total"></div>
+        </div>
+
+        <!-- rate card -->
+        <div class="card" id="ratecard">
+          <div class="ct" data-i="rate_card">Rate card</div>
+          <table id="rt"></table>
+          <div class="formula" id="formula"></div>
+        </div>
+
+        <!-- live meter -->
+        <div class="card center" id="meter">
+          <div class="ct" style="justify-content: center">
+            <span id="live-dot"><span class="pulse"></span></span><span data-i="live">Live meter</span>
+          </div>
+          <div class="stat" style="margin-bottom: 12px" aria-live="polite">
+            <b id="fare" class="tg">0</b><small data-i="fare_so_far">Fare so far</small>
+          </div>
+          <div class="g2">
+            <div class="stat"><b id="m-km">0.00</b><small data-i="km">Distance (km)</small></div>
+            <div class="stat"><b id="m-t">00:00</b><small data-i="elapsed">Elapsed time</small></div>
+            <div class="stat" style="grid-column: span 2"><b id="m-w">00:00</b><small data-i="waiting">Waiting time</small></div>
+          </div>
+          <div class="xs muted" id="lastupd" style="margin-top: 10px"></div>
+        </div>
+
+        <!-- route -->
+        <div class="card" id="routecard">
+          <div class="ct"><span data-i="route">Route</span><span class="xs muted" id="route-note"></span></div>
+          <canvas id="cv" role="img" aria-label="Route drawing"></canvas>
+        </div>
+
+        <!-- receipt -->
+        <div class="card" id="receipt" hidden>
+          <div class="ct" data-i="receipt">Receipt</div>
+          <div class="xs muted" id="rc-head" style="margin-bottom: 8px"></div>
+          <table id="rc"></table>
+          <div class="xs muted" id="rc-note" style="margin-top: 10px"></div>
+          <div class="xs muted" style="margin-top: 10px" data-i="paid_direct">Paid directly to the driver. No platform commission.</div>
+          <div class="xs muted" style="margin-top: 6px" data-i="disc">CashSplit is a pricing and receipt aid only.</div>
+          <div class="xs tbl" style="margin-top: 6px" data-i="locked">🔒 This receipt is locked and cannot be changed.</div>
+        </div>
+
+        <!-- actions -->
+        <div class="row noprint" id="acts" style="flex-wrap: wrap">
+          <button class="btn bg" onclick="shareWA()" data-i="wa">WhatsApp</button>
+          <button class="btn bg" onclick="copyLink()" data-i="copy">Copy link</button>
+          <button class="btn bg" id="pdfb" onclick="window.print()" hidden data-i="pdf">Save PDF</button>
+        </div>
+
+        <!-- safety -->
+        <div class="card noprint" id="safety">
+          <div class="ct" data-i="safety">Safety card</div>
+          <div class="xs muted" style="margin-bottom: 10px" data-i="safety_s">
+            Send the driver, plate and trip link to a family member or friend.
+          </div>
+          <button class="btn bg sm" onclick="shareSafety()" data-i="safety_b">Share safety details</button>
+        </div>
+
+        <!-- flag -->
+        <div class="card noprint" id="flagcard">
+          <div class="ct" data-i="flag">Flag this trip</div>
+          <div id="flag-btnrow">
+            <button class="btn bg sm" onclick="openFlag()" data-i="flag_b">Something is wrong</button>
+          </div>
+          <div id="flag-form" hidden>
+            <textarea id="flag-note" maxlength="300" data-ip="flag_ph" placeholder="e.g. fare seems wrong"></textarea>
+            <div class="row" style="margin-top: 8px">
+              <button class="btn bp sm" onclick="sendFlag()" data-i="send">Send</button>
+              <button class="btn bg sm" onclick="closeFlag()" data-i="cancel">Cancel</button>
+            </div>
+            <div class="xs muted" style="margin-top: 6px" data-i="flag_s">The route data stays untouched as evidence.</div>
+          </div>
+        </div>
+
+        <div class="xs muted center noprint" data-i="foot">Read-only page. Nothing here can change the trip.</div>
+      </section>
+    </main>
+
+    <script>
+      /* ---------- config & helpers ---------- */
+      const BACKEND_URL =
+        "https://script.google.com/macros/s/AKfycbykQkhVVL8DbY4zIx6qkkJ3opkHpFVLCa3XKRjv1fFdVMDBmFVVGrolY8kjFAGG6Ok/exec"; /* Same Apps Script web app as the driver page. */
+      const $ = (id) => document.getElementById(id),
+        ls = localStorage;
+      const J = (k, d) => {
+          try {
+            const v = JSON.parse(ls.getItem(k));
+            return v == null ? d : v;
+          } catch (e) {
+            return d;
+          }
+        },
+        S = (k, v) => {
+          try {
+            ls.setItem(k, JSON.stringify(v));
+          } catch (e) {}
+        };
+      const live = () => /^https:/.test(BACKEND_URL);
+      const esc = (s) =>
+        String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+        );
+      const cfg = () => J("cashsplit_settings_v1", {});
+      const mmss = (s) => {
+        s = Math.max(0, Math.round(s));
+        const h = Math.floor(s / 3600),
+          mm = Math.floor((s % 3600) / 60);
+        return (h ? h + ":" : "") + String(h ? mm : Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+      };
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function toast(t) {
+        const e = document.createElement("div");
+        e.className = "toast";
+        e.textContent = t;
+        document.body.appendChild(e);
+        setTimeout(() => e.remove(), 2600);
+      }
+      function show(id) {
+        document.querySelectorAll(".pg").forEach((p) => p.classList.toggle("on", p.id === "p-" + id));
+        $("p-" + id).parentNode.scrollTop = 0;
+      }
+
+      /* ---------- theme ---------- */
+      function applyTheme() {
+        const s = cfg();
+        let l = s.lightMode;
+        if (!s.manualTheme) l = !matchMedia("(prefers-color-scheme: dark)").matches;
+        document.body.classList.toggle("light", !!l);
+        document.body.classList.toggle("compact", !!s.compactView);
+        document.documentElement.style.fontSize = s.fontSize || "16px";
+      }
+      matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+
+      /* ---------- language ---------- */
+      const D = {
+        en: {
+          loading: "Loading trip…",
+          gone: "This trip link is no longer available.",
+          gone_sub: "Links stop working about 24 hours after the trip ends. Ask your driver for a new link or QR code.",
+          nolink: "No trip opened yet.",
+          nolink_sub: "Scan the QR code on your driver's phone, or paste the trip link below.",
+          scan_t: "Scan the driver's QR code",
+          scan_s: "Point your camera at the QR code on the driver's phone.",
+          scan_btn: "Scan QR code",
+          scan_stop: "Stop camera",
+          scan_photo: "Use a photo of the QR code",
+          scan_paste_ph: "Paste trip link",
+          scan_denied: "Camera is blocked. Allow camera access in your browser, or use a photo or paste the link.",
+          scan_nocam: "This browser cannot open the camera. Use a photo or paste the link.",
+          scan_nolib: "The QR reader could not load. Check your internet and try again.",
+          scan_bad: "That is not a Kadere trip QR code.",
+          scan_none: "No QR code found in that photo. Try again closer and in good light.",
+          hist: "Receipts on this phone",
+          privacy: "You are seeing this driver's location only for this trip. The link expires after about 24 hours.",
+          ok: "OK",
+          wait_start: "Waiting for the driver to start the trip.",
+          paused: "Trip paused by driver.",
+          cancelled_t: "Trip cancelled",
+          cancelled_b: "This trip was cancelled.",
+          fee: "Cancellation or no-show fee",
+          nofee: "No fee is shown for this trip.",
+          arrived: "The trip has ended. Total:",
+          rate_card: "Rate card",
+          live: "Live meter",
+          fare_so_far: "Fare so far",
+          km: "Distance (km)",
+          elapsed: "Elapsed time",
+          waiting: "Waiting time",
+          route: "Route",
+          receipt: "Receipt",
+          paid_direct: "Paid directly to the driver. No platform commission.",
+          disc: "CashSplit is a pricing and receipt aid only.",
+          locked: "🔒 This receipt is locked and cannot be changed.",
+          wa: "WhatsApp",
+          copy: "Copy link",
+          pdf: "Save PDF",
+          safety: "Safety card",
+          safety_s: "Send the driver, plate and trip link to a family member or friend.",
+          safety_b: "Share safety details",
+          flag: "Flag this trip",
+          flag_b: "Something is wrong",
+          flag_ph: "e.g. fare seems wrong",
+          flag_s: "The route data stays untouched as evidence.",
+          send: "Send",
+          cancel: "Cancel",
+          foot: "Read-only page. Nothing here can change the trip.",
+          model: "Pricing model",
+          m_hybrid: "Hybrid (base + distance + time)",
+          m_km: "Distance only (base + distance)",
+          m_min: "Time only (base + time)",
+          base: "Base fare",
+          perkm: "Per km",
+          permin: "Per minute",
+          waitrate: "Waiting rate",
+          waitrate_v: "{v} per min when slower than about 5 km/h",
+          minfare: "Minimum fare",
+          surch: "Surcharges",
+          surch_v: "{p}% applies to this trip",
+          surch_none: "None for this trip",
+          rounding: "Rounding",
+          rounding_v: "Up to the nearest {v}",
+          estrange: "Estimated range",
+          estrange_v: "About {lo} to {hi} depending on traffic. Final fare follows the live meter.",
+          estrange_none: "Final fare follows the live meter.",
+          f_hybrid: "Fare = Base + (km × rate per km) + (minutes × rate per minute) + waiting, never below the minimum fare.",
+          f_km: "Fare = Base + (km × rate per km) + waiting, never below the minimum fare.",
+          f_min: "Fare = Base + (minutes × rate per minute) + waiting, never below the minimum fare.",
+          f_tail: " Surcharges and extras are added, then the total is rounded up. These rates were saved with this trip and cannot change.",
+          s_quoted: "Quoted",
+          s_active: "Live",
+          s_paused: "Paused",
+          s_ended: "Ended",
+          s_cancelled: "Cancelled",
+          last_upd: "Last update {n} seconds ago",
+          last_upd_none: "Waiting for first update",
+          weak: "Driver's connection is weak. Last update {n} seconds ago.",
+          offline: "You are offline. Showing the last data received.",
+          back: "Reconnected",
+          est_note: "{n} km estimated (dashed)",
+          scale: "scale",
+          r_driver: "Driver and vehicle",
+          r_start: "Start",
+          r_end: "End",
+          r_dist: "Total distance",
+          r_est: "estimated",
+          r_dur: "Duration",
+          r_wait: "of which waiting",
+          r_dc: "Distance charge",
+          r_tc: "Time charge",
+          r_wc: "Waiting charge",
+          r_min: "Minimum fare applied",
+          r_ex: "Extras",
+          r_round: "Rounding",
+          r_total: "Total",
+          r_pay: "Payment",
+          cash: "Cash",
+          mpesa: "M-Pesa",
+          r_adj: "Adjustment",
+          adj_note: "The final fare is the server's recomputation from the stored route points. It differs from the live meter by {d} because the driver's phone may have missed points or been suspended.",
+          copied: "Link copied",
+          flagged: "Thank you. Your note was sent.",
+          flag_fail: "Could not send now. Try again when online.",
+          wa_trip: "Follow my trip live: {l}",
+          wa_rec: "Trip receipt: driver {d}, {km} km, {t}, total {f}. Paid directly to the driver. {l}",
+          safety_txt: "I am on a trip. Driver: {d}. Vehicle: {v}. Plate: {p}. Follow live: {l}",
+          open: "Open",
+          call: "Phone",
+          seats: "seats",
+        },
+        sw: {
+          loading: "Inapakia safari…",
+          gone: "Kiungo hiki cha safari hakipatikani tena.",
+          gone_sub: "Viungo huacha kufanya kazi takriban saa 24 baada ya safari kuisha. Mwombe dereva kiungo au msimbo mpya wa QR.",
+          nolink: "Bado hujafungua safari.",
+          nolink_sub: "Skani msimbo wa QR kwenye simu ya dereva, au bandika kiungo cha safari hapa chini.",
+          scan_t: "Skani msimbo wa QR wa dereva",
+          scan_s: "Elekeza kamera kwenye msimbo wa QR kwenye simu ya dereva.",
+          scan_btn: "Skani msimbo wa QR",
+          scan_stop: "Zima kamera",
+          scan_photo: "Tumia picha ya msimbo wa QR",
+          scan_paste_ph: "Bandika kiungo cha safari",
+          scan_denied: "Kamera imezuiwa. Ruhusu kamera kwenye kivinjari, au tumia picha au bandika kiungo.",
+          scan_nocam: "Kivinjari hiki hakiwezi kufungua kamera. Tumia picha au bandika kiungo.",
+          scan_nolib: "Kisomaji cha QR hakikupakia. Angalia intaneti na ujaribu tena.",
+          scan_bad: "Huo si msimbo wa QR wa safari ya Kadere.",
+          scan_none: "Hakuna msimbo wa QR kwenye picha hiyo. Jaribu tena karibu zaidi na mwanga mzuri.",
+          hist: "Risiti kwenye simu hii",
+          privacy: "Unaona eneo la dereva huyu kwa safari hii tu. Kiungo kitaisha baada ya takriban saa 24.",
+          ok: "Sawa",
+          wait_start: "Inasubiri dereva aanze safari.",
+          paused: "Dereva amesitisha safari.",
+          cancelled_t: "Safari imefutwa",
+          cancelled_b: "Safari hii imefutwa.",
+          fee: "Ada ya kufuta au kutokuja",
+          nofee: "Hakuna ada iliyoonyeshwa kwa safari hii.",
+          arrived: "Safari imeisha. Jumla:",
+          rate_card: "Kadi ya viwango",
+          live: "Mita ya moja kwa moja",
+          fare_so_far: "Nauli hadi sasa",
+          km: "Umbali (km)",
+          elapsed: "Muda uliopita",
+          waiting: "Muda wa kusubiri",
+          route: "Njia",
+          receipt: "Risiti",
+          paid_direct: "Imelipwa moja kwa moja kwa dereva. Hakuna kamisheni.",
+          disc: "CashSplit ni zana ya bei na risiti tu.",
+          locked: "🔒 Risiti hii imefungwa na haiwezi kubadilishwa.",
+          wa: "WhatsApp",
+          copy: "Nakili kiungo",
+          pdf: "Hifadhi PDF",
+          safety: "Kadi ya usalama",
+          safety_s: "Tuma dereva, namba ya gari na kiungo cha safari kwa ndugu au rafiki.",
+          safety_b: "Shiriki maelezo ya usalama",
+          flag: "Ripoti safari hii",
+          flag_b: "Kuna tatizo",
+          flag_ph: "mf. nauli inaonekana si sahihi",
+          flag_s: "Data ya njia inabaki kama ushahidi.",
+          send: "Tuma",
+          cancel: "Ghairi",
+          foot: "Ukurasa wa kusoma tu. Hakuna kinachoweza kubadilisha safari.",
+          model: "Aina ya bei",
+          m_hybrid: "Mchanganyiko (msingi + umbali + muda)",
+          m_km: "Umbali tu (msingi + umbali)",
+          m_min: "Muda tu (msingi + muda)",
+          base: "Nauli ya msingi",
+          perkm: "Kwa km",
+          permin: "Kwa dakika",
+          waitrate: "Kiwango cha kusubiri",
+          waitrate_v: "{v} kwa dakika kasi ikiwa chini ya km 5/saa",
+          minfare: "Nauli ya chini",
+          surch: "Nyongeza",
+          surch_v: "{p}% inatumika kwa safari hii",
+          surch_none: "Hakuna kwa safari hii",
+          rounding: "Kukadiria",
+          rounding_v: "Juu hadi {v} iliyo karibu",
+          estrange: "Makadirio",
+          estrange_v: "Takriban {lo} hadi {hi} kulingana na msongamano. Nauli ya mwisho hufuata mita.",
+          estrange_none: "Nauli ya mwisho hufuata mita ya moja kwa moja.",
+          f_hybrid: "Nauli = Msingi + (km × kiwango kwa km) + (dakika × kiwango kwa dakika) + kusubiri, kamwe chini ya nauli ya chini.",
+          f_km: "Nauli = Msingi + (km × kiwango kwa km) + kusubiri, kamwe chini ya nauli ya chini.",
+          f_min: "Nauli = Msingi + (dakika × kiwango kwa dakika) + kusubiri, kamwe chini ya nauli ya chini.",
+          f_tail: " Nyongeza na gharama za ziada huongezwa, kisha jumla hukadiriwa juu. Viwango hivi vilihifadhiwa na safari hii na haviwezi kubadilika.",
+          s_quoted: "Imenukuliwa",
+          s_active: "Moja kwa moja",
+          s_paused: "Imesitishwa",
+          s_ended: "Imeisha",
+          s_cancelled: "Imefutwa",
+          last_upd: "Sasisho la mwisho sekunde {n} zilizopita",
+          last_upd_none: "Inasubiri sasisho la kwanza",
+          weak: "Mtandao wa dereva ni dhaifu. Sasisho la mwisho sekunde {n} zilizopita.",
+          offline: "Huna intaneti. Inaonyesha data ya mwisho iliyopokelewa.",
+          back: "Umeunganishwa tena",
+          est_note: "km {n} zimekadiriwa (mstari uliokatika)",
+          scale: "kipimo",
+          r_driver: "Dereva na gari",
+          r_start: "Mwanzo",
+          r_end: "Mwisho",
+          r_dist: "Umbali wote",
+          r_est: "imekadiriwa",
+          r_dur: "Muda",
+          r_wait: "ambao ni kusubiri",
+          r_dc: "Malipo ya umbali",
+          r_tc: "Malipo ya muda",
+          r_wc: "Malipo ya kusubiri",
+          r_min: "Nauli ya chini imetumika",
+          r_ex: "Gharama za ziada",
+          r_round: "Kukadiria",
+          r_total: "Jumla",
+          r_pay: "Malipo",
+          cash: "Pesa taslimu",
+          mpesa: "M-Pesa",
+          r_adj: "Marekebisho",
+          adj_note: "Nauli ya mwisho ni hesabu ya seva kutoka kwa pointi za njia zilizohifadhiwa. Inatofautiana na mita ya moja kwa moja kwa {d} kwa sababu simu ya dereva huenda ilikosa pointi au ilisitishwa.",
+          copied: "Kiungo kimenakiliwa",
+          flagged: "Asante. Ujumbe wako umetumwa.",
+          flag_fail: "Haikuweza kutuma sasa. Jaribu ukiwa na intaneti.",
+          wa_trip: "Fuatilia safari yangu moja kwa moja: {l}",
+          wa_rec: "Risiti ya safari: dereva {d}, km {km}, {t}, jumla {f}. Imelipwa moja kwa moja kwa dereva. {l}",
+          safety_txt: "Niko safarini. Dereva: {d}. Gari: {v}. Namba: {p}. Fuatilia: {l}",
+          open: "Fungua",
+          call: "Simu",
+          seats: "viti",
+        },
+      };
+      let lang = J("kc_lang", null) || (/^sw/i.test(navigator.language) ? "sw" : "en");
+      const t = (k, v) => {
+        let s = (D[lang] && D[lang][k]) || D.en[k] || k;
+        if (v) for (const x in v) s = s.replace("{" + x + "}", v[x]);
+        return s;
+      };
+      let goneNoLink = true;
+      function paintGone() {
+        $("gone-t").textContent = t(goneNoLink ? "nolink" : "gone");
+        $("gone-s").textContent = t(goneNoLink ? "nolink_sub" : "gone_sub");
+      }
+      function applyLangStatic() {
+        document.querySelectorAll("[data-i]").forEach((e) => (e.textContent = t(e.dataset.i)));
+        document.querySelectorAll("[data-ip]").forEach((e) => (e.placeholder = t(e.dataset.ip)));
+        paintGone();
+      }
+      function applyLang() {
+        document.documentElement.lang = lang;
+        $("lg").value = lang;
+        applyLangStatic();
+        renderAll();
+      }
+      $("lg").addEventListener("change", (e) => {
+        lang = e.target.value;
+        S("kc_lang", lang);
+        applyLang();
+        renderHist();
+      });
+
+      /* ---------- pricing (identical to the driver page) ---------- */
+      const hav = (a, b, c, d) => {
+        const R = 6371000, r = Math.PI / 180, x = (c - a) * r, y = (d - b) * r,
+          q = Math.sin(x / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(y / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(q));
+      };
+      function calc(r, km, sec, wait, mu, ex) {
+        const d = r.model != "min" ? km * r.perKm : 0,
+          tt = r.model != "km" ? (sec / 60) * r.perMin : 0,
+          w = (wait / 60) * r.wait;
+        let sub = r.base + d + tt + w;
+        const mn = sub < r.min;
+        if (mn) sub = r.min;
+        const su = (sub * mu) / 100,
+          pre = sub + su + ex,
+          tot = r.round > 0 ? Math.ceil(pre / r.round - 1e-9) * r.round : Math.round(pre);
+        return { d, t: tt, w, mn, sub, su, ex, rd: tot - pre, tot };
+      }
+
+      /* ---------- state ---------- */
+      let ID = null, TOK = null, sum = null, pts = [], lastSeq = 0, fetchedAt = 0, ageAtFetch = 0,
+        failIdx = 0, failing = false, offlineNow = !navigator.onLine, showBack = 0, pollT = null,
+        finalDone = false, busy = false;
+      const BACKOFF = [5000, 10000, 20000, 30000];
+
+      function norm(d) {
+        const x = d.trip || d.summary || d, rr = x.rates || {}, dr = x.driver || {};
+        return {
+          status: x.status || "quoted",
+          rates: {
+            model: rr.model || x.pricingModel || "hybrid",
+            base: +rr.base || 0, perKm: +rr.perKm || 0, perMin: +rr.perMin || 0,
+            wait: +rr.wait || 0, min: +rr.min || 0, round: +rr.round || 0,
+          },
+          mult: +(x.multipliers != null ? x.multipliers : x.mult) || 0,
+          surcharges: Array.isArray(x.surcharges) ? x.surcharges : null,
+          cur: x.currency || "KSh",
+          driver: {
+            name: dr.name || x.driverName || "", photo: dr.photo || "", vehicleType: dr.vehicleType || "",
+            make: dr.make || "", plate: dr.plate || "", seats: dr.seats || "", phone: dr.phone || "",
+          },
+          km: +x.km || +x.distanceKm || 0,
+          sec: +x.sec || +x.durationSec || 0,
+          wait: +x.waitSec || +x.waitingSec || 0,
+          fare: +x.fare || 0,
+          gapKm: +x.gapKm || 0,
+          updatedAt: +x.updatedAt || 0,
+          serverNow: +d.serverNow || +x.serverNow || 0,
+          startedAt: +x.startedAt || 0,
+          endedAt: +x.endedAt || 0,
+          extras: Array.isArray(x.extras) ? x.extras : [],
+          pay: x.pay || x.payment || "cash",
+          estKm: +x.estimatedKm || 0,
+          fee: +x.cancelFee || +x.noShowFee || +x.fee || 0,
+          hideAddr: !!x.hideAddress,
+          startLabel: x.startLabel || "",
+          endLabel: x.endLabel || "",
+          serverFare: x.serverFare != null ? +x.serverFare : null,
+        };
+      }
+      const m = (n) =>
+        (sum ? sum.cur : "KSh") + " " +
+        (Math.round((+n || 0) * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+      /* ---------- trip link parsing (used by the link, the scanner and the paste box) ---------- */
+      const TRIP_RE = /^[A-Za-z0-9_\-]{4,64}\.[A-Za-z0-9]{16,64}$/;
+      function parseTrip(txt) {
+        txt = String(txt || "").trim();
+        let tp = txt;
+        try {
+          tp = new URL(txt).searchParams.get("t") || "";
+        } catch (e) {}
+        return TRIP_RE.test(tp) ? tp : null;
+      }
+
+      /* ---------- start ---------- */
+      (function init() {
+        applyTheme();
+        const tp = new URLSearchParams(location.search).get("t") || "";
+        const i = tp.indexOf(".");
+        if (i < 1 || i == tp.length - 1) return gone(!tp);
+        ID = tp.slice(0, i);
+        TOK = tp.slice(i + 1);
+        const st = J("kc_trip_" + ID, null);
+        if (!live()) {
+          if (st) return loadStored(st, true);
+          return gone(false);
+        }
+        if (st) loadStored(st, false);
+        poll();
+      })();
+
+      function loadStored(st, stop) {
+        sum = st.sum;
+        pts = st.pts || [];
+        lastSeq = st.seq || 0;
+        fetchedAt = st.at || Date.now();
+        ageAtFetch = 0;
+        enter();
+        if (stop || sum.status == "ended" || sum.status == "cancelled") finalDone = true;
+      }
+      function gone(noLink) {
+        stopPoll();
+        goneNoLink = !!noLink;
+        show("gone");
+        paintGone();
+        renderHist();
+      }
+      function renderHist() {
+        const l = J("kc_receipts", []);
+        $("hist-card").hidden = !l.length;
+        $("hist").innerHTML = l
+          .map(
+            (r) =>
+              `<div class="rcpt"><span>${esc(r.driver || "")}<br><span class="xs muted">${new Date(r.endedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span><span><b>${esc(r.cur)} ${esc(r.fare)}</b> <a class="btn bg sm" href="${esc(r.link)}">${t("open")}</a></span></div>`,
+          )
+          .join("");
+      }
+
+      /* ---------- QR scanner: camera, photo, or pasted link ---------- */
+      const scanCv = document.createElement("canvas");
+      let scanStream = null, scanning = false, detector = null;
+      const scanMsg = (k) => ($("scan-msg").textContent = k ? t(k) : "");
+      function loadJsQR() {
+        return new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
+          s.onload = res;
+          s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      }
+      async function ensureReader() {
+        if (detector || window.jsQR) return true;
+        if ("BarcodeDetector" in window) {
+          try {
+            detector = new BarcodeDetector({ formats: ["qr_code"] });
+            return true;
+          } catch (e) {}
+        }
+        try {
+          await loadJsQR();
+        } catch (e) {}
+        return !!window.jsQR;
+      }
+      async function decodeFrom(src, sw, sh) {
+        if (detector) {
+          try {
+            const r = await detector.detect(src);
+            if (r.length) return r[0].rawValue;
+          } catch (e) {}
+        }
+        if (window.jsQR) {
+          const w = Math.min(800, sw), h = Math.max(1, Math.round((w * sh) / sw));
+          scanCv.width = w;
+          scanCv.height = h;
+          const x = scanCv.getContext("2d", { willReadFrequently: true });
+          x.drawImage(src, 0, 0, w, h);
+          const r = jsQR(x.getImageData(0, 0, w, h).data, w, h);
+          return r ? r.data : "";
+        }
+        return "";
+      }
+      function openTrip(txt) {
+        const tp = parseTrip(txt);
+        if (!tp) return false;
+        stopScan();
+        /* rebuild the address ourselves, so a QR can never send people to another site */
+        location.href = location.pathname + "?t=" + encodeURIComponent(tp);
+        return true;
+      }
+      async function startScan() {
+        if (scanning) return;
+        scanMsg("");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return scanMsg("scan_nocam");
+        if (!(await ensureReader())) return scanMsg("scan_nolib");
+        try {
+          scanStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+          });
+        } catch (e) {
+          return scanMsg("scan_denied");
+        }
+        const v = $("scan-v");
+        v.srcObject = scanStream;
+        try {
+          await v.play();
+        } catch (e) {}
+        $("scan-box").hidden = false;
+        $("scan-btn").hidden = true;
+        scanning = true;
+        scanLoop();
+      }
+      async function scanLoop() {
+        if (!scanning) return;
+        const v = $("scan-v");
+        if (v.readyState >= 2 && v.videoWidth) {
+          const txt = await decodeFrom(v, v.videoWidth, v.videoHeight);
+          if (!scanning) return;
+          if (txt) {
+            if (openTrip(txt)) return;
+            scanMsg("scan_bad");
+          }
+        }
+        setTimeout(() => scanning && requestAnimationFrame(scanLoop), 150);
+      }
+      function stopScan() {
+        scanning = false;
+        if (scanStream) scanStream.getTracks().forEach((k) => k.stop());
+        scanStream = null;
+        const v = $("scan-v");
+        v.srcObject = null;
+        $("scan-box").hidden = true;
+        $("scan-btn").hidden = false;
+      }
+      async function pickPhoto(ev) {
+        const f = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!f) return;
+        scanMsg("");
+        if (!(await ensureReader())) return scanMsg("scan_nolib");
+        try {
+          const bmp = await createImageBitmap(f);
+          const txt = await decodeFrom(bmp, bmp.width, bmp.height);
+          if (!txt) return scanMsg("scan_none");
+          if (!openTrip(txt)) scanMsg("scan_bad");
+        } catch (e) {
+          scanMsg("scan_none");
+        }
+      }
+      function usePasted() {
+        scanMsg("");
+        if (!openTrip($("scan-paste").value)) scanMsg("scan_bad");
+      }
+      $("scan-paste").addEventListener("keydown", (e) => e.key === "Enter" && usePasted());
+
+      /* ---------- fetching ---------- */
+      function interval() {
+        return (sum ? sum.status : "quoted") == "active" ? 4500 : 15000;
+      }
+      function stopPoll() {
+        clearTimeout(pollT);
+        pollT = null;
+      }
+      function schedule(ms) {
+        stopPoll();
+        if (document.hidden || finalDone) return;
+        pollT = setTimeout(poll, ms);
+      }
+      async function getTrip() {
+        const u = BACKEND_URL + "?action=getTrip&id=" + encodeURIComponent(ID) + "&token=" + encodeURIComponent(TOK) + "&since=" + lastSeq;
+        const r = await fetch(u);
+        return r.json();
+      }
+      async function poll() {
+        if (busy) return;
+        busy = true;
+        try {
+          if (!navigator.onLine) throw new Error("offline");
+          const d = await getTrip();
+          if (!d || d.ok === false || d.success === false || d.error || d.expired) {
+            /* keep a finished receipt that we already have */
+            if (!(sum && (sum.status == "ended" || sum.status == "cancelled"))) gone(false);
+            busy = false;
+            return stopPoll();
+          }
+          if (failing) {
+            failing = false;
+            showBack = Date.now();
+          }
+          failIdx = 0;
+          const n = norm(d);
+          const np = (d.points || []).filter((p) => +p.seq > lastSeq);
+          np.sort((a, b) => a.seq - b.seq);
+          np.forEach((p) => {
+            pts.push([+p.lat, +p.lng, +p.ts, p.est ? 1 : 0]);
+            lastSeq = Math.max(lastSeq, +p.seq);
+          });
+          fetchedAt = Date.now();
+          ageAtFetch = n.updatedAt ? Math.max(0, ((n.serverNow || fetchedAt) - n.updatedAt) / 1000) : 0;
+          if (!n.gapKm) n.gapKm = estGap();
+          const first = !sum;
+          sum = n;
+          save();
+          if (first) enter();
+          renderAll();
+          if (n.status == "ended" || n.status == "cancelled") {
+            finalDone = true;
+            stopPoll();
+            if (n.status == "ended") saveReceipt();
+          } else schedule(interval());
+        } catch (e) {
+          failing = true;
+          if (!sum) {
+            const st = ID && J("kc_trip_" + ID, null);
+            if (!st && !navigator.onLine) {
+              show("load");
+              $("p-load").querySelector(".ct").textContent = t("offline");
+            }
+          }
+          renderNotices();
+          schedule(BACKOFF[Math.min(failIdx++, BACKOFF.length - 1)]);
+        }
+        busy = false;
+      }
+      function estGap() {
+        let g = 0;
+        for (let i = 1; i < pts.length; i++)
+          if (pts[i][3]) g += hav(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]) / 1000;
+        return g;
+      }
+      function save() {
+        S("kc_trip_" + ID, { sum, pts, seq: lastSeq, at: fetchedAt });
+      }
+      function saveReceipt() {
+        const l = J("kc_receipts", []).filter((r) => r.id != ID);
+        l.unshift({
+          id: ID,
+          endedAt: sum.endedAt || Date.now(),
+          fare: Math.round(sum.fare * 10) / 10,
+          cur: sum.cur,
+          driver: sum.driver.name,
+          link: location.href,
+        });
+        S("kc_receipts", l.slice(0, 20));
+      }
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopScan();
+          return stopPoll();
+        }
+        if (!finalDone && ID !== null) poll();
+      });
+      addEventListener("offline", () => {
+        offlineNow = true;
+        renderNotices();
+      });
+      addEventListener("online", () => {
+        offlineNow = false;
+        showBack = Date.now();
+        renderNotices();
+        if (!finalDone && ID !== null) poll();
+      });
+
+      /* ---------- rendering ---------- */
+      function enter() {
+        show("trip");
+        $("privacy").hidden = !!J("kc_seen_privacy", false);
+        renderAll();
+        resize();
+        startLoop();
+      }
+      function dismissPrivacy() {
+        S("kc_seen_privacy", true);
+        $("privacy").hidden = true;
+      }
+      const vIcon = (v) => ({ boda: "🏍️", "tuk-tuk": "🛺", car: "🚗", van: "🚐" })[v] || "🚖";
+      function renderAll() {
+        if (!sum) return;
+        const s = sum.status, d = sum.driver;
+        show("trip");
+        $("d-name").textContent = d.name || "—";
+        const av = $("d-av");
+        if (d.photo && /^(https:|data:image)/.test(d.photo)) {
+          av.innerHTML = `<img alt="" src="${esc(d.photo)}">`;
+          av.firstChild.onerror = () => (av.textContent = vIcon(d.vehicleType));
+        } else av.textContent = vIcon(d.vehicleType);
+        $("d-veh").textContent = [d.vehicleType, d.make, d.seats ? d.seats + " " + t("seats") : ""].filter(Boolean).join(" · ");
+        $("d-plate").innerHTML = d.plate ? `<span class="plate">${esc(d.plate)}</span>` : "";
+        $("d-ph").innerHTML = d.phone ? `${t("call")}: <a class="tbl" href="tel:${esc(d.phone)}">${esc(d.phone)}</a>` : "";
+        const ch = $("d-chip");
+        ch.className = "chip " + s;
+        ch.textContent = t("s_" + s);
+        $("st-quoted").hidden = s != "quoted";
+        $("st-paused").hidden = s != "paused";
+        $("cancelled").hidden = s != "cancelled";
+        $("meter").hidden = s == "quoted" || s == "ended" || s == "cancelled";
+        $("routecard").hidden = s == "quoted" || s == "cancelled";
+        $("arrival").hidden = s != "ended";
+        $("receipt").hidden = s != "ended";
+        $("pdfb").hidden = s != "ended";
+        $("flagcard").hidden = s == "quoted";
+        $("safety").hidden = s == "ended" || s == "cancelled";
+        $("live-dot").style.visibility = s == "active" ? "visible" : "hidden";
+        $("ratecard").hidden = s == "ended" || s == "cancelled";
+        if (s == "cancelled")
+          $("cancel-body").textContent = t("cancelled_b") + " " + (sum.fee ? t("fee") + ": " + m(sum.fee) : t("nofee"));
+        renderRate();
+        if (s == "ended") {
+          $("arr-total").textContent = m(sum.fare);
+          renderReceipt();
+        }
+        $("route-note").textContent = sum.gapKm ? t("est_note", { n: sum.gapKm.toFixed(2) }) : "";
+        renderNotices();
+        meterTargets(true);
+      }
+      function estRange() {
+        const r = sum.rates;
+        if (!sum.estKm) return t("estrange_none");
+        const km = sum.estKm,
+          lo = calc(r, km * 0.9, km * 3 * 54, 0, sum.mult, 0).tot,
+          hi = calc(r, km * 1.15, km * 3 * 78, 0, sum.mult, 0).tot;
+        return t("estrange_v", { lo: m(lo), hi: m(hi) });
+      }
+      function renderRate() {
+        const r = sum.rates, row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+        let h = row(t("model"), t("m_" + r.model));
+        h += row(t("base"), m(r.base));
+        if (r.model != "min") h += row(t("perkm"), m(r.perKm));
+        if (r.model != "km") h += row(t("permin"), m(r.perMin));
+        h += row(t("waitrate"), t("waitrate_v", { v: m(r.wait) }));
+        h += row(t("minfare"), m(r.min));
+        h += row(
+          t("surch"),
+          sum.surcharges && sum.surcharges.length
+            ? sum.surcharges.map((x) => esc(x.label) + " " + esc(x.pct) + "%").join(", ")
+            : sum.mult ? t("surch_v", { p: sum.mult }) : t("surch_none"),
+        );
+        h += row(t("rounding"), r.round ? t("rounding_v", { v: m(r.round) }) : "—");
+        h += row(t("estrange"), estRange());
+        $("rt").innerHTML = h;
+        $("formula").textContent = t("f_" + r.model) + t("f_tail");
+      }
+      function renderReceipt() {
+        const r = sum.rates,
+          exT = sum.extras.reduce((a, x) => a + (+x.amt || 0), 0),
+          c = calc(r, sum.km, sum.sec, sum.wait, sum.mult, exT),
+          row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`,
+          f = (ts) => (ts ? new Date(ts).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"),
+          d = sum.driver;
+        $("rc-head").innerHTML =
+          esc(d.name) + " · " + esc([d.vehicleType, d.make, d.plate].filter(Boolean).join(" ")) +
+          "<br>" + f(sum.startedAt) + " → " + f(sum.endedAt) +
+          (!sum.hideAddr && (sum.startLabel || sum.endLabel) ? "<br>" + esc(sum.startLabel) + " → " + esc(sum.endLabel) : "");
+        let h =
+          row(
+            t("r_dist") + (sum.gapKm ? ` <span class="xs ty">(${sum.gapKm.toFixed(2)} km ${t("r_est")})</span>` : ""),
+            sum.km.toFixed(2) + " km",
+          ) +
+          row(t("r_dur"), mmss(sum.sec) + ` <span class="xs muted">${t("r_wait")} ${mmss(sum.wait)}</span>`) +
+          row(t("base"), m(r.base));
+        if (r.model != "min")
+          h += row(`${t("r_dc")} <span class="xs muted">${sum.km.toFixed(2)} km × ${m(r.perKm)}</span>`, m(c.d));
+        if (r.model != "km")
+          h += row(`${t("r_tc")} <span class="xs muted">${mmss(sum.sec)} × ${m(r.perMin)}/min</span>`, m(c.t));
+        if (c.w) h += row(t("r_wc"), m(c.w));
+        if (c.mn) h += row(t("r_min"), m(r.min));
+        if (c.su) {
+          if (sum.surcharges && sum.surcharges.length)
+            sum.surcharges.forEach((x) => (h += row(esc(x.label) + " " + esc(x.pct) + "%", m((c.sub * (+x.pct || 0)) / 100))));
+          else h += row(t("surch") + " " + sum.mult + "%", m(c.su));
+        }
+        sum.extras.forEach((x) => (h += row(t("r_ex") + ": " + esc(x.label), m(x.amt))));
+        if (Math.abs(c.rd) > 0.01) h += row(t("r_round"), m(c.rd));
+        const diff = sum.fare - c.tot;
+        if (Math.abs(diff) > 0.5) h += row(t("r_adj"), m(diff));
+        h += row("<b>" + t("r_total") + "</b>", `<b class="tg">${m(sum.fare)}</b>`);
+        h += row(t("r_pay"), t(sum.pay == "mpesa" ? "mpesa" : "cash"));
+        $("rc").innerHTML = h;
+        $("rc-note").textContent = Math.abs(diff) > 0.5 ? t("adj_note", { d: m(Math.abs(diff)) }) : "";
+      }
+      function ageNow() {
+        return ageAtFetch + (Date.now() - fetchedAt) / 1000;
+      }
+      function renderNotices() {
+        const box = $("notices");
+        let h = "";
+        if (offlineNow) h += `<div class="banner bad">${t("offline")}</div>`;
+        else if (sum && sum.status == "active" && (ageNow() > 30 || failing))
+          h += `<div class="banner">${t("weak", { n: Math.round(ageNow()) })}</div>`;
+        else if (showBack && Date.now() - showBack < 6000) h += `<div class="banner ok">${t("back")}</div>`;
+        box.innerHTML = h;
+        const lu = $("lastupd");
+        if (sum && fetchedAt) lu.textContent = t("last_upd", { n: Math.round(ageNow()) });
+        else lu.textContent = t("last_upd_none");
+      }
+
+      /* ---------- smooth meter ---------- */
+      const disp = { fare: 0, km: 0, sec: 0, wait: 0 }, tgt = { fare: 0, km: 0, sec: 0, wait: 0 };
+      function meterTargets(snap) {
+        if (!sum) return;
+        tgt.fare = sum.fare;
+        tgt.km = sum.km;
+        tgt.wait = sum.wait;
+        tgt.sec = sum.sec;
+        if (snap && (reduce || disp.fare == 0)) Object.assign(disp, tgt);
+      }
+      let lastFrame = 0, loopOn = false;
+      function startLoop() {
+        if (loopOn) return;
+        loopOn = true;
+        requestAnimationFrame(frame);
+      }
+      function frame(ts) {
+        const dt = Math.min(0.1, (ts - lastFrame) / 1000 || 0.016);
+        lastFrame = ts;
+        if (sum) {
+          let es = sum.sec;
+          if (sum.status == "active") es += Math.min(15, (Date.now() - fetchedAt) / 1000);
+          tgt.sec = es;
+          const k = reduce ? 1 : 1 - Math.pow(0.001, dt);
+          for (const key in tgt) disp[key] += (tgt[key] - disp[key]) * k;
+          $("fare").textContent = m(Math.round(disp.fare));
+          $("m-km").textContent = disp.km.toFixed(2);
+          $("m-t").textContent = mmss(disp.sec);
+          $("m-w").textContent = mmss(disp.wait);
+          draw(ts);
+        }
+        requestAnimationFrame(frame);
+      }
+      setInterval(() => {
+        if (sum && !document.hidden) renderNotices();
+      }, 1000);
+
+      /* ---------- route canvas (no map tiles, no external service) ---------- */
+      const cv = $("cv");
+      let W = 0, H = 240, dpr = 1;
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        W = cv.clientWidth || 300;
+        cv.width = W * dpr;
+        cv.height = H * dpr;
+      }
+      addEventListener("resize", resize);
+      const NICE = [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
+      function draw(ts) {
+        if (!sum || $("routecard").hidden || !cv.clientWidth) return;
+        if (cv.width !== Math.round(cv.clientWidth * dpr)) resize();
+        const x = cv.getContext("2d"), css = getComputedStyle(document.body);
+        x.setTransform(dpr, 0, 0, dpr, 0, 0);
+        x.clearRect(0, 0, W, H);
+        if (pts.length < 2) {
+          x.fillStyle = css.getPropertyValue("--text3");
+          x.font = "14px sans-serif";
+          x.textAlign = "center";
+          x.fillText("…", W / 2, H / 2);
+          return;
+        }
+        let a = 1e9, b = -1e9, c = 1e9, d = -1e9;
+        for (const q of pts) {
+          a = Math.min(a, q[0]); b = Math.max(b, q[0]);
+          c = Math.min(c, q[1]); d = Math.max(d, q[1]);
+        }
+        const k = Math.cos((((a + b) / 2) * Math.PI) / 180),
+          sw = Math.max((d - c) * k, 1e-5),
+          sh = Math.max(b - a, 1e-5),
+          pad = 28,
+          s = Math.min((W - 2 * pad) / sw, (H - 2 * pad) / sh),
+          ox = (W - sw * s) / 2,
+          oy = (H - sh * s) / 2;
+        const X = (q) => ox + (q[1] - c) * k * s, Y = (q) => H - oy - (q[0] - a) * s;
+        x.lineWidth = 4;
+        x.lineCap = x.lineJoin = "round";
+        x.strokeStyle = css.getPropertyValue("--blue");
+        for (let i = 1; i < pts.length; i++) {
+          x.beginPath();
+          x.setLineDash(pts[i][3] ? [10, 8] : []);
+          x.moveTo(X(pts[i - 1]), Y(pts[i - 1]));
+          x.lineTo(X(pts[i]), Y(pts[i]));
+          x.stroke();
+        }
+        x.setLineDash([]);
+        const e = pts[pts.length - 1],
+          dot = (q, col, r) => {
+            x.beginPath();
+            x.fillStyle = col;
+            x.arc(X(q), Y(q), r, 0, 7);
+            x.fill();
+          };
+        dot(pts[0], "#22c55e", 8);
+        const ended = sum.status == "ended";
+        if (!ended) {
+          const pr = reduce ? 9 : 7 + 3 * Math.sin(Date.now() / 250);
+          x.globalAlpha = 0.3;
+          dot(e, "#60a5fa", pr + 6);
+          x.globalAlpha = 1;
+        }
+        dot(e, ended ? "#ef4444" : "#60a5fa", 7);
+        const mpp = 111320 / s, target = mpp * 90;
+        let nm = NICE[0];
+        for (const n of NICE) if (n <= target) nm = n;
+        const px = nm / mpp, y = H - 12;
+        x.strokeStyle = x.fillStyle = css.getPropertyValue("--text2");
+        x.lineWidth = 2;
+        x.beginPath();
+        x.moveTo(12, y - 4); x.lineTo(12, y); x.lineTo(12 + px, y); x.lineTo(12 + px, y - 4);
+        x.stroke();
+        x.font = "11px sans-serif";
+        x.textAlign = "left";
+        x.fillText(nm >= 1000 ? nm / 1000 + " km" : nm + " m", 16, y - 6);
+      }
+
+      /* ---------- share, flag ---------- */
+      const lnk = () => location.href;
+      function shareWA() {
+        const txt =
+          sum && sum.status == "ended"
+            ? t("wa_rec", { d: sum.driver.name, km: sum.km.toFixed(2), t: mmss(sum.sec), f: m(sum.fare), l: lnk() })
+            : t("wa_trip", { l: lnk() });
+        window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+      }
+      function copyLink() {
+        const done = () => toast(t("copied"));
+        if (navigator.clipboard) navigator.clipboard.writeText(lnk()).then(done, () => {});
+        else done();
+      }
+      function shareSafety() {
+        if (!sum) return;
+        const d = sum.driver,
+          txt = t("safety_txt", { d: d.name, v: [d.vehicleType, d.make].filter(Boolean).join(" "), p: d.plate, l: lnk() });
+        if (navigator.share) navigator.share({ text: txt }).catch(() => {});
+        else window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+      }
+      function openFlag() {
+        $("flag-btnrow").hidden = true;
+        $("flag-form").hidden = false;
+        $("flag-note").focus();
+      }
+      function closeFlag() {
+        $("flag-btnrow").hidden = false;
+        $("flag-form").hidden = true;
+      }
+      async function sendFlag() {
+        const note = $("flag-note").value.trim();
+        if (!note) return;
+        try {
+          if (!live() || !navigator.onLine) throw 0;
+          const r = await fetch(BACKEND_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "flagTrip", tripId: ID, token: TOK, note: note.slice(0, 300) }),
+          }).then((r) => r.json());
+          if (r.ok === false || r.success === false) throw 0;
+          $("flag-note").value = "";
+          closeFlag();
+          toast(t("flagged"));
+        } catch (e) {
+          toast(t("flag_fail"));
+        }
+      }
+
+      /* ---------- boot ---------- */
+      addEventListener("load", () => {
+        applyTheme();
+        $("lg").value = lang;
+        if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+      applyLang();
+    </script>
+  </body>
+</html>

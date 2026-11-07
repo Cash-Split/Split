@@ -1,0 +1,1834 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>CashSplit Kadere — Driver</title>
+    <link rel="manifest" href="./manifest.json" />
+    <style>
+      :root {
+        --bg: #060a12;
+        --bg2: #0d1424;
+        --bg3: #111927;
+        --card: rgba(13, 20, 36, 0.85);
+        --border: rgba(96, 165, 250, 0.14);
+        --bb: rgba(96, 165, 250, 0.35);
+        --blue: #3b82f6;
+        --bl: #60a5fa;
+        --bd: rgba(59, 130, 246, 0.15);
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #fbbf24;
+        --text: #e2e8f0;
+        --text2: #94a3b8;
+        --text3: #64748b;
+        --fd:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --fm: "SF Mono", Consolas, Menlo, monospace;
+        --r: 14px;
+        --rs: 10px;
+      }
+      body.light {
+        --bg: #f0f4ff;
+        --bg2: #e8edf8;
+        --bg3: #fff;
+        --card: rgba(255, 255, 255, 0.92);
+        --border: rgba(59, 130, 246, 0.18);
+        --bb: rgba(59, 130, 246, 0.4);
+        --blue: #2563eb;
+        --bl: #2563eb;
+        --bd: rgba(37, 99, 235, 0.1);
+        --text: #0f172a;
+        --text2: #334155;
+        --text3: #64748b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: var(--fm);
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        padding-top: env(safe-area-inset-top);
+        overflow: hidden;
+      }
+      #top {
+        height: 54px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      .logo {
+        font-family: var(--fd);
+        font-weight: 800;
+        font-size: 1.15rem;
+        color: var(--bl);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .logo i {
+        width: 8px;
+        height: 8px;
+        background: var(--blue);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--blue);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sp {
+        justify-content: space-between;
+      }
+      main {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
+        max-width: 760px;
+        width: 100%;
+        margin: 0 auto;
+      }
+      .pg {
+        display: none;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .pg.on {
+        display: flex;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 18px;
+      }
+      body.compact .card {
+        padding: 12px;
+      }
+      .ct {
+        font-family: var(--fd);
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: var(--bl);
+        margin-bottom: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      input,
+      select {
+        font-family: var(--fm);
+        background: var(--bg3);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+        padding: 11px 13px;
+        font-size: 0.9rem;
+        width: 100%;
+        outline: none;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--blue);
+      }
+      input[readonly] {
+        opacity: 0.6;
+      }
+      .btn {
+        font-family: var(--fm);
+        padding: 10px 16px;
+        border-radius: var(--rs);
+        border: none;
+        cursor: pointer;
+        font-size: 0.86rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--text);
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+      }
+      .bp {
+        background: linear-gradient(135deg, var(--blue), #60a5fa);
+        color: #fff;
+      }
+      .bg {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        color: var(--text2);
+      }
+      .bgr {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        color: #fff;
+      }
+      .bd {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: #fff;
+      }
+      .sm {
+        padding: 6px 11px;
+        font-size: 0.78rem;
+      }
+      .bk {
+        width: 100%;
+      }
+      .big {
+        height: 56px;
+        font-size: 1rem;
+        font-family: var(--fd);
+        font-weight: 800;
+        border-radius: 18px;
+      }
+      .fg {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .fl {
+        font-size: 0.74rem;
+        color: var(--text2);
+      }
+      .g2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .muted {
+        color: var(--text3);
+      }
+      .xs {
+        font-size: 0.72rem;
+      }
+      .tg {
+        color: var(--green);
+      }
+      .tr {
+        color: var(--red);
+      }
+      .ty {
+        color: var(--yellow);
+      }
+      .tbl {
+        color: var(--bl);
+      }
+      .banner {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        border-radius: var(--rs);
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--yellow);
+      }
+      .stat {
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+        padding: 14px;
+        text-align: center;
+      }
+      .stat b {
+        display: block;
+        font-family: var(--fd);
+        font-size: 1.2rem;
+      }
+      .stat small {
+        font-size: 0.7rem;
+        color: var(--text3);
+      }
+      #fare {
+        font-size: clamp(2rem, 9vw, 2.8rem);
+      }
+      .srow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        gap: 10px;
+        font-size: 0.88rem;
+      }
+      .tog {
+        width: 42px;
+        height: 24px;
+        border-radius: 99px;
+        background: var(--border);
+        position: relative;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .tog.on {
+        background: var(--blue);
+      }
+      .tog:after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        transition: left 0.2s;
+      }
+      .tog.on:after {
+        left: 21px;
+      }
+      #log {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 46vh;
+        overflow-y: auto;
+        padding: 4px 2px;
+      }
+      .msg {
+        max-width: 94%;
+        padding: 12px 15px;
+        border-radius: 18px;
+        font-size: 0.84rem;
+        line-height: 1.6;
+        animation: pop 0.3s ease both;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 5px;
+        align-self: flex-start;
+      }
+      .msg h4 {
+        font-family: var(--fd);
+        color: var(--bl);
+        margin-bottom: 6px;
+      }
+      .typing {
+        display: flex;
+        gap: 5px;
+        padding: 15px 17px;
+        width: fit-content;
+      }
+      .typing i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--text3);
+        animation: bounce 1s infinite ease-in-out;
+      }
+      .typing i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: none;
+          opacity: 0.5;
+        }
+        30% {
+          transform: translateY(-5px);
+          opacity: 1;
+        }
+      }
+      .acts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      canvas {
+        width: 100%;
+        height: 220px;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+      }
+      #qr {
+        background: #fff;
+        padding: 10px;
+        border-radius: 12px;
+        width: fit-content;
+        margin: 0 auto;
+      }
+      #qr svg {
+        display: block;
+        width: 200px;
+        height: 200px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+      td {
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      td:last-child {
+        text-align: right;
+        font-family: var(--fd);
+        font-weight: 700;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        z-index: 900;
+        max-width: 92vw;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .msg,
+        .typing i {
+          animation: none;
+        }
+      }
+      @media print {
+        body {
+          overflow: visible;
+          display: block;
+        }
+        #top,
+        .noprint {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="top">
+      <div class="logo"><i></i>🚖 Kadere</div>
+      <div class="row">
+        <select
+          id="lg"
+          style="width: auto; padding: 6px 26px 6px 10px; font-size: 0.78rem"
+          onchange="window.I18N && I18N.set(this.value)"
+        >
+          <option value="en">🌐 EN</option>
+          <option value="sw">🌐 SW</option>
+        </select>
+        <a class="btn bg sm" href="index.html">‹ CashSplit</a>
+      </div>
+    </header>
+    <main>
+      <!-- REGISTER / EDIT -->
+      <section id="p-reg" class="pg">
+        <div class="card">
+          <div class="ct">
+            <span id="reg-t">Register</span
+            ><span class="xs muted" id="reg-s"></span>
+          </div>
+          <div id="form"></div>
+          <div class="row">
+            <button class="btn bg" id="r-back" onclick="regStep(-1)">
+              ‹ Back</button
+            ><button
+              class="btn bp"
+              id="r-next"
+              style="flex: 1"
+              onclick="regStep(1)"
+            >
+              Next
+            </button>
+          </div>
+          <div class="xs muted" style="margin-top: 10px">
+            No commission is taken. You keep every fare.
+          </div>
+        </div>
+        <div class="card" id="login-card">
+          <div class="ct">Already registered? Sign in on this phone</div>
+          <div class="g2">
+            <input id="l-ph" placeholder="Phone" type="tel" /><input
+              id="l-pin"
+              placeholder="PIN"
+              type="password"
+              maxlength="4"
+              inputmode="numeric"
+            />
+          </div>
+          <button class="btn bg bk" style="margin-top: 10px" onclick="login()">
+            Sign in
+          </button>
+        </div>
+      </section>
+      <!-- HOME -->
+      <section id="p-home" class="pg">
+        <div class="card">
+          <div class="ct">
+            <span id="h-name"></span
+            ><button class="btn bg sm" onclick="editProf()">✎ Profile</button>
+          </div>
+          <div class="xs muted" id="h-veh"></div>
+          <div class="xs" id="h-cloud" style="margin-top: 6px"></div>
+        </div>
+        <div class="g2">
+          <div class="stat"><b id="h-n">0</b><small>Trips today</small></div>
+          <div class="stat">
+            <b id="h-e" class="tg">0</b><small>Earned today</small>
+          </div>
+        </div>
+        <button class="btn bgr bk big" onclick="newQuote()">＋ New trip</button>
+        <div class="card">
+          <div class="ct">Settings</div>
+          <div class="srow">
+            Light mode
+            <div class="tog" id="tg-l" onclick="setOpt('lightMode')"></div>
+          </div>
+          <div class="srow">
+            Compact view
+            <div class="tog" id="tg-c" onclick="setOpt('compactView')"></div>
+          </div>
+          <div class="srow">
+            Text size<select
+              id="fs"
+              style="width: auto"
+              onchange="setOpt('fontSize', this.value)"
+            >
+              <option value="14px">Small</option>
+              <option value="16px">Default</option>
+              <option value="18px">Large</option>
+              <option value="20px">X-Large</option>
+            </select>
+          </div>
+          <div class="srow">
+            Test mode (simulated route)
+            <div class="tog" id="tg-t" onclick="toggleSim()"></div>
+          </div>
+          <div class="srow">
+            <span
+              >Sign out<br /><small class="muted xs"
+                >Trips stay on this phone</small
+              ></span
+            ><button class="btn bg sm" onclick="logout()">Sign out</button>
+          </div>
+        </div>
+        <div class="xs muted">
+          Pricing and receipt aid only. Drivers are responsible for any required
+          licences and insurance.
+        </div>
+      </section>
+      <!-- QUOTE -->
+      <section id="p-quote" class="pg">
+        <div class="card">
+          <div class="ct">
+            <span>Today's context</span
+            ><button class="btn bg sm" onclick="show('home')">✕</button>
+          </div>
+          <div class="g2">
+            <div class="fg">
+              <label class="fl">Traffic</label
+              ><select id="q_tr">
+                <option>light</option>
+                <option selected>normal</option>
+                <option>heavy</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Weather</label
+              ><select id="q_wx">
+                <option>dry</option>
+                <option>rain</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Time of day</label
+              ><select id="q_time">
+                <option value="day">Day</option>
+                <option value="peak">Peak hour</option>
+                <option value="night">Night</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Distance km (optional)</label
+              ><input id="q_km" type="number" step="0.1" placeholder="e.g. 7" />
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Time in minutes (optional)</label
+            ><input id="q_min" type="number" placeholder="e.g. 20" />
+          </div>
+          <button class="btn bp bk" onclick="analyse()">Suggest a rate</button>
+        </div>
+        <div class="card">
+          <div class="ct">Rate analyser</div>
+          <div id="log"></div>
+        </div>
+        <button class="btn bgr bk big" id="lock" onclick="lockTrip()" hidden>
+          Lock rate &amp; get QR
+        </button>
+      </section>
+      <!-- TRIP -->
+      <section id="p-trip" class="pg">
+        <div class="banner noprint" id="warn">
+          Keep CashSplit visible or in split screen for accurate tracking.
+        </div>
+        <div class="card" id="t-share" style="text-align: center">
+          <div class="ct">Client scans to follow the trip</div>
+          <div id="qr"></div>
+          <div
+            class="xs muted"
+            id="qr-link"
+            style="margin: 10px 0; word-break: break-all"
+          ></div>
+          <div class="row" style="justify-content: center">
+            <button class="btn bg sm" onclick="shareWA()">WhatsApp link</button
+            ><button class="btn bg sm" onclick="copyLink()">Copy link</button>
+          </div>
+        </div>
+        <div class="card" style="text-align: center">
+          <div class="xs muted" id="t-st"></div>
+          <div class="stat" style="margin: 10px 0">
+            <b id="fare" class="tg">0</b><small id="t-f">Fare</small>
+          </div>
+          <div class="g2">
+            <div class="stat"><b id="m-km">0.00</b><small>km</small></div>
+            <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
+            <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
+            <div class="stat">
+              <b id="m-s" class="xs">—</b><small>sync</small>
+            </div>
+          </div>
+        </div>
+        <canvas id="cv" width="700" height="440"></canvas>
+        <div class="card noprint" id="t-ex">
+          <div class="ct">Extras</div>
+          <div class="g2">
+            <input id="x-lab" placeholder="Toll, parking, luggage" /><input
+              id="x-amt"
+              type="number"
+              placeholder="Amount"
+            />
+          </div>
+          <button
+            class="btn bg sm bk"
+            style="margin-top: 8px"
+            onclick="addExtra()"
+          >
+            Add extra
+          </button>
+          <div class="xs muted" id="x-list" style="margin-top: 6px"></div>
+        </div>
+        <div class="row noprint" id="t-ctl" style="flex-wrap: wrap"></div>
+      </section>
+      <!-- RECEIPT -->
+      <section id="p-rec" class="pg">
+        <div class="card">
+          <div class="ct">Receipt</div>
+          <div id="rec"></div>
+          <div class="fg noprint" style="margin-top: 12px">
+            <label class="fl">Paid by</label
+            ><select id="pay" onchange="setPay()">
+              <option value="cash">Cash</option>
+              <option value="mpesa">M-Pesa</option>
+            </select>
+          </div>
+          <div class="xs muted" style="margin-top: 8px">
+            Paid directly to the driver. No platform commission. Pricing and
+            receipt aid only.
+          </div>
+        </div>
+        <div class="row noprint" style="flex-wrap: wrap">
+          <button class="btn bgr" id="logb" onclick="logIncome()">
+            Log as income</button
+          ><button class="btn bg" onclick="shareRec()">WhatsApp</button
+          ><button class="btn bg" onclick="print()">Save PDF</button
+          ><button class="btn bp" onclick="done()">Done</button>
+        </div>
+      </section>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="./kiswahili.js"></script>
+    <script>
+      /* ---------- helpers & storage ---------- */
+      const BACKEND_URL =
+        "https://script.google.com/macros/s/AKfycbx2bGLL3u2-iM6fjyB2L8FCjKatyPa72c2x_-ZDlikbYUsBikyhsd-3-zOp428raQhg/exec"; /* Apps Script web app. Leave as is to run fully offline. */
+      const $ = (id) => document.getElementById(id),
+        ls = localStorage;
+      const J = (k, d) => {
+          try {
+            const v = JSON.parse(ls.getItem(k));
+            return v == null ? d : v;
+          } catch (e) {
+            return d;
+          }
+        },
+        S = (k, v) => {
+          try {
+            ls.setItem(k, JSON.stringify(v));
+          } catch (e) {}
+        };
+      const live = () => /^https:/.test(BACKEND_URL),
+        post = (b) =>
+          live()
+            ? fetch(BACKEND_URL, {
+                method: "POST",
+                body: JSON.stringify(b),
+              }).then((r) => r.json())
+            : Promise.reject();
+      const sha = async (s) =>
+        [
+          ...new Uint8Array(
+            await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)),
+          ),
+        ]
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      const rid = (n) =>
+        [...crypto.getRandomValues(new Uint8Array(n))]
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      const esc = (s) =>
+        String(s == null ? "" : s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const cfg = () => J("cashsplit_settings_v1", {}),
+        sym = () => {
+          const s = cfg(),
+            c = (s.currencies || []).find((x) => x.code === s.activeCurrency);
+          return c ? c.symbol : "KSh";
+        };
+      const m = (n) =>
+        sym() +
+        " " +
+        (Math.round((+n || 0) * 10) / 10).toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
+      const mmss = (s) => {
+        s = Math.max(0, Math.round(s));
+        return (
+          String(Math.floor(s / 60)).padStart(2, "0") +
+          ":" +
+          String(s % 60).padStart(2, "0")
+        );
+      };
+      function toast(t) {
+        const e = document.createElement("div");
+        e.className = "toast";
+        e.textContent = t;
+        document.body.appendChild(e);
+        setTimeout(() => e.remove(), 2600);
+      }
+      function show(id) {
+        document
+          .querySelectorAll(".pg")
+          .forEach((p) => p.classList.toggle("on", p.id === "p-" + id));
+        $("p-" + id).parentNode.scrollTop = 0;
+        if (id === "home") renderHome();
+      }
+      /* ---------- theme & settings shared with index.html ---------- */
+      function applyTheme() {
+        const s = cfg();
+        let l = s.lightMode;
+        if (!s.manualTheme)
+          l = !matchMedia("(prefers-color-scheme: dark)").matches;
+        document.body.classList.toggle("light", !!l);
+        document.body.classList.toggle("compact", !!s.compactView);
+        document.documentElement.style.fontSize = s.fontSize || "16px";
+        $("tg-l").classList.toggle("on", !!l);
+        $("tg-c").classList.toggle("on", !!s.compactView);
+        $("fs").value = s.fontSize || "16px";
+      }
+      function setOpt(k, v) {
+        const s = cfg();
+        if (k === "fontSize") s.fontSize = v;
+        else {
+          s[k] = !s[k];
+          if (k === "lightMode") s.manualTheme = true;
+        }
+        S("cashsplit_settings_v1", s);
+        applyTheme();
+      }
+      let sim = J("kd_sim", false);
+      function toggleSim() {
+        sim = !sim;
+        S("kd_sim", sim);
+        $("tg-t").classList.toggle("on", sim);
+      }
+      /* ---------- pricing engine ---------- */
+      const hav = (a, b, c, d) => {
+        const R = 6371000,
+          r = Math.PI / 180,
+          x = (c - a) * r,
+          y = (d - b) * r,
+          q =
+            Math.sin(x / 2) ** 2 +
+            Math.cos(a * r) * Math.cos(c * r) * Math.sin(y / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(q));
+      };
+      function calc(r, km, sec, wait, mu, ex) {
+        const d = r.model != "min" ? km * r.perKm : 0,
+          t = r.model != "km" ? (sec / 60) * r.perMin : 0,
+          w = (wait / 60) * r.wait;
+        let sub = r.base + d + t + w;
+        const mn = sub < r.min;
+        if (mn) sub = r.min;
+        const su = (sub * mu) / 100,
+          pre = sub + su + ex,
+          tot =
+            r.round > 0
+              ? Math.ceil(pre / r.round - 1e-9) * r.round
+              : Math.round(pre);
+        return { d, t, w, mn, su, ex, rd: tot - pre, tot };
+      }
+      const costKm = (p) =>
+        p.fuelPrice / p.kmPerLitre + p.maintPerKm + p.dailyFixed / p.kmPerDay;
+      /* ---------- registration & profile ---------- */
+      const FD = [
+        [
+          "Account",
+          [
+            ["name", "Name or nickname"],
+            ["phone", "Phone", "tel"],
+            ["pin", "4-digit PIN", "password"],
+          ],
+        ],
+        [
+          "Vehicle and costs",
+          [
+            ["vehicleType", "Vehicle", ["boda", "tuk-tuk", "car", "van"]],
+            ["plate", "Plate"],
+            ["make", "Make and model"],
+            ["seats", "Seats", "number"],
+            ["kmPerLitre", "Km per litre", "number"],
+            ["fuelPrice", "Fuel price per litre", "number"],
+            ["maintPerKm", "Maintenance per km", "number"],
+            ["dailyFixed", "Daily fixed costs", "number"],
+            ["kmPerDay", "Typical km per day", "number"],
+            ["targetIncome", "Daily target income", "number"],
+            ["margin", "Profit margin %", "number"],
+          ],
+        ],
+        [
+          "Default rates",
+          [
+            ["pricingModel", "Pricing model", ["hybrid", "km", "min"]],
+            ["baseFare", "Base fare", "number"],
+            ["ratePerKm", "Rate per km", "number"],
+            ["ratePerMin", "Rate per minute", "number"],
+            ["waitRate", "Waiting rate per min", "number"],
+            ["minFare", "Minimum fare", "number"],
+            ["rounding", "Round up to nearest", "number"],
+            ["nightPct", "Night %", "number"],
+            ["rainPct", "Rain %", "number"],
+            ["peakPct", "Peak %", "number"],
+            ["area", "Town or area"],
+            ["localRate", "Typical local rate per km", "number"],
+          ],
+        ],
+      ];
+      const DF = {
+        vehicleType: "tuk-tuk",
+        seats: 3,
+        kmPerLitre: 20,
+        fuelPrice: 200,
+        maintPerKm: 3,
+        dailyFixed: 800,
+        kmPerDay: 120,
+        targetIncome: 2500,
+        margin: 25,
+        pricingModel: "hybrid",
+        baseFare: 50,
+        ratePerKm: 35,
+        ratePerMin: 2,
+        waitRate: 3,
+        minFare: 100,
+        rounding: 10,
+        nightPct: 20,
+        rainPct: 10,
+        peakPct: 10,
+        localRate: 35,
+      };
+      let P = J("kd_driver", null),
+        step = 0,
+        editing = false;
+      function buildForm() {
+        const v = P || DF;
+        $("form").innerHTML = FD.map(
+          (g, i) =>
+            `<div data-s="${i}" ${i ? "hidden" : ""}><div class="xs muted" style="margin-bottom:10px">${g[0]}</div>${g[1].map((f) => `<div class="fg"><label class="fl">${f[1]}</label>${Array.isArray(f[2]) ? `<select id="f_${f[0]}">${f[2].map((o) => `<option ${v[f[0]] == o ? "selected" : ""}>${o}</option>`).join("")}</select>` : `<input id="f_${f[0]}" type="${f[2] || "text"}" ${f[2] == "number" ? 'step="any"' : ""} ${f[0] == "pin" ? 'maxlength="4" inputmode="numeric" placeholder="' + (P ? "leave blank to keep" : "") + '"' : ""} value="${f[0] == "pin" ? "" : esc(v[f[0]] ?? "")}">`}</div>`).join("")}</div>`,
+        ).join("");
+        step = 0;
+        paintStep();
+      }
+      function paintStep() {
+        document
+          .querySelectorAll("#form>div")
+          .forEach((d) => (d.hidden = +d.dataset.s !== step));
+        $("reg-s").textContent = `Step ${step + 1} of 3`;
+        $("r-back").hidden = !step;
+        $("r-next").textContent = step == 2 ? "Save profile" : "Next";
+      }
+      function regStep(d) {
+        if (d > 0 && step == 2) return saveProf();
+        step = Math.max(0, step + d);
+        paintStep();
+      }
+      async function saveProf() {
+        const o = {};
+        FD.forEach((g) =>
+          g[1].forEach((f) => {
+            const x = $("f_" + f[0]).value;
+            o[f[0]] = f[2] == "number" ? parseFloat(x) || 0 : x.trim();
+          }),
+        );
+        if (P) o.phone = P.phone; /* phone is the login key, never changed */
+        const ph = o.phone.replace(/\D/g, "");
+        if (!o.name || ph.length < 9) {
+          step = 0;
+          paintStep();
+          return toast("Enter your name and phone");
+        }
+        if (!P && !/^\d{4}$/.test(o.pin)) {
+          step = 0;
+          paintStep();
+          return toast("PIN must be 4 digits");
+        }
+        const pin = o.pin;
+        delete o.pin;
+        o.phone = ph;
+        const isNew = !P,
+          oldHash = P && P.pinHash;
+        let hash = oldHash,
+          remote = P ? !!P.remote : false,
+          id = (P && P.driverId) || "d_" + rid(6),
+          pushed = false;
+        if (pin) hash = await sha(ph + pin);
+        if (isNew && live()) {
+          try {
+            const d = await post({
+              action: "registerDriver",
+              profile: o,
+              driverId: id,
+              pinHash: hash,
+            });
+            if (d.ok) {
+              remote = pushed = true;
+              id = d.driverId || id;
+            } else if (d.error === "exists")
+              return toast("Phone already registered. Sign in instead.");
+          } catch (e) {} /* offline: registers later via sync */
+        } else if (!isNew && pin && remote) {
+          try {
+            const d = await post({
+              action: "updateDriver",
+              driverId: id,
+              profile: o,
+              oldPinHash: oldHash,
+              pin,
+            });
+            if (!d.ok) return toast("PIN change failed");
+            pushed = true;
+          } catch (e) {
+            return toast("PIN change needs internet");
+          }
+        }
+        P = Object.assign({}, P || {}, o, {
+          driverId: id,
+          pinHash: hash,
+          remote,
+          dirty: !pushed,
+          updatedAt: Date.now(),
+        });
+        S("kd_driver", P);
+        toast("Profile saved");
+        editing = false;
+        show("home");
+        sync();
+      }
+      function editProf() {
+        editing = true;
+        $("reg-t").textContent = "Edit profile";
+        $("login-card").hidden = true;
+        buildForm();
+        $("f_phone").readOnly = true;
+        show("reg");
+      }
+      async function login() {
+        const ph = $("l-ph").value.replace(/\D/g, ""),
+          pin = $("l-pin").value;
+        if (!live()) return toast("Backend URL not set");
+        try {
+          const d = await post({ action: "loginDriver", phone: ph, pin });
+          if (!d.ok && !d.success) throw 0;
+          P = Object.assign({}, d.profile, {
+            pinHash: await sha(ph + pin),
+            remote: 1,
+          });
+          S("kd_driver", P);
+          show("home");
+          sync();
+        } catch (e) {
+          toast("Sign in failed");
+        }
+      }
+      function logout() {
+        if (trip && ["active", "paused"].includes(trip.status))
+          return toast("End the trip first");
+        P = null;
+        S("kd_driver", null);
+        $("reg-t").textContent = "Register";
+        $("login-card").hidden = false;
+        buildForm();
+        show("reg");
+      }
+      /* ---------- home ---------- */
+      const trips = () => J("kd_trips_local", []);
+      function renderHome() {
+        if (!P) return;
+        $("h-name").textContent = "Hi, " + P.name;
+        $("h-veh").textContent = [P.vehicleType, P.make, P.plate, P.area]
+          .filter(Boolean)
+          .join(" · ");
+        const t0 = new Date().toDateString(),
+          l = trips().filter(
+            (x) =>
+              x.status == "ended" && new Date(x.endedAt).toDateString() == t0,
+          );
+        $("h-n").textContent = l.length;
+        $("h-e").textContent = m(l.reduce((a, x) => a + x.fare, 0));
+        $("tg-t").classList.toggle("on", sim);
+        cloud();
+      }
+      /* ---------- quote and analyser ---------- */
+      let Q = { rate: 0, adj: 0 },
+        bq = Promise.resolve();
+      const bot = (h) => {
+        bq = bq.then(
+          () =>
+            new Promise((r) => {
+              const l = $("log"),
+                t = document.createElement("div");
+              t.className = "msg typing";
+              t.innerHTML = "<i></i><i></i><i></i>";
+              l.appendChild(t);
+              l.scrollTop = 1e9;
+              setTimeout(() => {
+                t.remove();
+                const d = document.createElement("div");
+                d.className = "msg";
+                d.innerHTML = typeof h == "function" ? h() : h;
+                l.appendChild(d);
+                l.scrollTop = 1e9;
+                r();
+              }, 450);
+            }),
+        );
+      };
+      const acts = (a) =>
+        `<div class="acts">${a.map((x) => `<button class="btn bg sm" data-a="${x[1]}">${x[0]}</button>`).join("")}</div>`;
+      function newQuote() {
+        const h = new Date().getHours();
+        $("q_time").value =
+          h >= 22 || h < 5
+            ? "night"
+            : (h >= 6 && h < 9) || (h >= 16 && h < 19)
+              ? "peak"
+              : "day";
+        $("log").innerHTML = "";
+        $("lock").hidden = true;
+        show("quote");
+      }
+      function rates() {
+        return {
+          model: P.pricingModel,
+          base: P.baseFare,
+          perKm: Q.rate,
+          perMin: P.ratePerMin,
+          wait: P.waitRate,
+          min: P.minFare,
+          round: P.rounding,
+        };
+      }
+      function analyse() {
+        const p = P,
+          c = costKm(p),
+          tg = c * (1 + p.margin / 100),
+          tm = $("q_time").value,
+          rain = $("q_wx").value == "rain",
+          heavy = $("q_tr").value == "heavy";
+        const adj =
+          (tm == "night" ? p.nightPct : 0) +
+          (tm == "peak" ? p.peakPct : 0) +
+          (rain ? p.rainPct : 0) +
+          (heavy ? 10 : 0);
+        Q.adj = adj;
+        Q.rate = Math.round(tg);
+        $("log").innerHTML = "";
+        bot(
+          `<h4>Your costs</h4>Fuel ${m(p.fuelPrice / p.kmPerLitre)}/km + maintenance ${m(p.maintPerKm)}/km + fixed ${m(p.dailyFixed / p.kmPerDay)}/km. Break-even rate is <b>${m(c)}/km</b>.`,
+        );
+        bot(
+          `With your ${p.margin}% margin the target is <b>${m(tg)}/km</b>. To earn ${m(p.targetIncome)} in an 8-hour day you need about <b>${m(p.targetIncome / 480)}/min</b> on average.`,
+        );
+        if (adj)
+          bot(
+            `${[tm == "night" ? "night" : "", tm == "peak" ? "peak hour" : "", rain ? "rain" : "", heavy ? "heavy traffic" : ""].filter(Boolean).join(", ")}: I added <b>${adj}%</b> on top of the fare.`,
+          );
+        bot(verdict);
+      }
+      function verdict() {
+        const eff = Q.rate * (1 + Q.adj / 100),
+          c = costKm(P),
+          lr = P.localRate,
+          df = lr ? ((eff - lr) / lr) * 100 : 0;
+        let v = "Fair",
+          w = "Close to the market and above your break-even.";
+        if (eff < c || df < -20) {
+          v = "Underpriced";
+          w =
+            eff < c
+              ? "This is below your break-even, so you lose money on every km."
+              : "More than 20% under the local rate, you may be leaving money behind.";
+        } else if (df > 20) {
+          v = "Overpriced";
+          w = "More than 20% above the local rate, you may lose clients.";
+        } else if (df < -5) {
+          v = "Competitive";
+          w = "A little under the market and still above break-even.";
+        }
+        const km = parseFloat($("q_km").value) || 0,
+          mn = parseFloat($("q_min").value) || 0,
+          r = rates();
+        let rg = "Final fare follows the live meter.";
+        if (km) {
+          const lo = calc(r, km * 0.9, (mn || km * 3) * 54, 0, Q.adj, 0).tot,
+            hi = calc(r, km * 1.15, (mn || km * 3) * 78, 0, Q.adj, 0).tot;
+          rg = `About <b>${m(lo)} to ${m(hi)}</b> depending on traffic. Final fare follows the live meter.`;
+        }
+        return `<h4>Suggested ${m(Q.rate)}/km${Q.adj ? " (+" + Q.adj + "%)" : ""}</h4>Verdict: <b>${v}</b>. ${w}${lr ? ` Local rate: ${m(lr)}/km.` : ""}<br>${rg}${acts(
+          [
+            ["Use this rate", "use"],
+            ["Raise 5%", "up"],
+            ["Lower 5%", "dn"],
+            ["Explain", "ex"],
+          ],
+        )}`;
+      }
+      $("log").addEventListener("click", (e) => {
+        const a = e.target.dataset.a;
+        if (!a) return;
+        if (a == "up" || a == "dn") {
+          Q.rate = Math.round(Q.rate * (a == "up" ? 1.05 : 0.95) * 10) / 10;
+          bot(verdict());
+        }
+        if (a == "use") {
+          $("lock").hidden = false;
+          toast("Rate chosen: " + m(Q.rate) + "/km");
+          $("lock").scrollIntoView({ behavior: "smooth" });
+        }
+        if (a == "ex")
+          bot(
+            `Fare = base ${m(P.baseFare)} + (km × ${m(Q.rate)}) + (minutes × ${m(P.ratePerMin)}) + waiting, never below ${m(P.minFare)}, plus ${Q.adj}% surcharges, rounded up to ${P.rounding}. The client sees this formula.`,
+          );
+      });
+      /* ---------- trip ---------- */
+      let trip = J("kd_trip", null),
+        wid = null,
+        simT = null,
+        wake = null,
+        tick = null,
+        hid = 0;
+      const link = () =>
+        new URL("client.html?t=" + trip.id + "." + trip.token, location.href)
+          .href;
+      function lockTrip() {
+        const T = {
+          id: "t_" + rid(5),
+          token: rid(14),
+          driverId: P.driverId,
+          cur: sym(),
+          created: 0 /* 1 once the server has the trip */,
+          started: 0,
+          rs: "quoted",
+          endSent: 0,
+          status: "quoted",
+          rates: rates(),
+          mult: Q.adj,
+          extras: [],
+          startedAt: 0,
+          paused: 0,
+          pauseAt: 0,
+          km: 0,
+          gapKm: 0,
+          sec: 0,
+          wait: 0,
+          pts: [],
+          sent: 0,
+          last: null,
+          fare: 0,
+          pay: "cash",
+          est: {
+            km: parseFloat($("q_km").value) || 0,
+            min: parseFloat($("q_min").value) || 0,
+          },
+          sim: sim,
+        };
+        trip = T;
+        S("kd_trip", T);
+        openTrip();
+        sync();
+      }
+      function openTrip() {
+        show("trip");
+        $("t-share").hidden = trip.status == "ended";
+        renderQR();
+        renderTrip();
+        ctl();
+        draw();
+        if (trip.status == "active" || trip.status == "paused") {
+          startGeo();
+          wl();
+        }
+        tick =
+          tick ||
+          setInterval(() => {
+            if (trip && trip.status == "active") {
+              trip.sec = (Date.now() - trip.startedAt - trip.paused) / 1000;
+              renderTrip();
+            }
+            draw();
+          }, 1000);
+      }
+      function renderQR() {
+        $("qr-link").textContent = link();
+        $("qr").hidden = false;
+        try {
+          const q = qrcode(0, "M");
+          q.addData(link());
+          q.make();
+          $("qr").innerHTML = q.createSvgTag({
+            cellSize: 4,
+            margin: 0,
+            scalable: true,
+          });
+        } catch (e) {
+          $("qr").hidden = true;
+        }
+      }
+      const exT = () => trip.extras.reduce((a, x) => a + x.amt, 0),
+        cur = () =>
+          calc(trip.rates, trip.km, trip.sec, trip.wait, trip.mult, exT());
+      function renderTrip() {
+        const c = cur();
+        trip.fare = c.tot;
+        $("fare").textContent = m(c.tot);
+        $("m-km").textContent = trip.km.toFixed(2);
+        $("m-t").textContent = mmss(trip.sec);
+        $("m-w").textContent = mmss(trip.wait);
+        $("t-st").textContent =
+          trip.status +
+          (trip.gapKm ? " · " + trip.gapKm.toFixed(2) + " km estimated" : "");
+        $("x-list").textContent = trip.extras
+          .map((x) => x.label + " " + m(x.amt))
+          .join(", ");
+        S("kd_trip", trip);
+      }
+      function ctl() {
+        const s = trip.status,
+          b = (t, c, f) =>
+            `<button class="btn ${c}" onclick="${f}">${t}</button>`;
+        $("t-ctl").innerHTML =
+          s == "quoted"
+            ? b("▶ Start trip", "bgr big bk", "startTrip()") +
+              b("Cancel", "bg", "cancelTrip()")
+            : s == "active"
+              ? b("⏸ Pause", "bg", "pauseTrip()") +
+                b("■ End trip", "bd", "endTrip()")
+              : s == "paused"
+                ? b("▶ Resume", "bgr", "resumeTrip()") +
+                  b("■ End trip", "bd", "endTrip()")
+                : "";
+        $("warn").hidden = s == "quoted" || s == "ended";
+      }
+      function startTrip() {
+        trip.status = "active";
+        trip.startedAt = Date.now();
+        trip.sim = sim;
+        S("kd_trip", trip);
+        sync();
+        startGeo();
+        wl();
+        ctl();
+        $("t-share").hidden = false;
+      }
+      function pauseTrip() {
+        trip.status = "paused";
+        trip.pauseAt = Date.now();
+        ctl();
+        renderTrip();
+        sync();
+      }
+      function resumeTrip() {
+        trip.paused += Date.now() - trip.pauseAt;
+        trip.status = "active";
+        if (trip.last) trip.last.ts = Date.now();
+        ctl();
+        renderTrip();
+        sync();
+      }
+      function cancelTrip() {
+        trip.status = "cancelled";
+        if (trip.created) queueTrip(trip);
+        S("kd_trip", null);
+        trip = null;
+        show("home");
+        sync();
+      }
+      function addExtra() {
+        const l = $("x-lab").value.trim(),
+          a = parseFloat($("x-amt").value);
+        if (!l || !a) return;
+        trip.extras.push({ label: l, amt: a });
+        $("x-lab").value = $("x-amt").value = "";
+        renderTrip();
+      }
+      /* GPS */
+      function startGeo() {
+        if (trip.sim) {
+          if (!simT) {
+            let la = trip.last ? trip.last.lat : -1.2921,
+              ln = trip.last ? trip.last.lng : 36.8219,
+              hd = 1,
+              n = 0;
+            simT = setInterval(() => {
+              n++;
+              const stop = n % 25 > 19;
+              if (!stop) {
+                la += Math.cos(hd) * 1.1e-4;
+                ln += Math.sin(hd) * 1.1e-4;
+                if (n % 9 == 0) hd += 0.35;
+              }
+              onPos({
+                coords: {
+                  latitude: la,
+                  longitude: ln,
+                  accuracy: 6,
+                  speed: stop ? 0 : 12,
+                },
+                timestamp: Date.now(),
+              });
+            }, 1000);
+          }
+          return;
+        }
+        if (!navigator.geolocation) return toast("Location is not available");
+        if (wid == null)
+          wid = navigator.geolocation.watchPosition(
+            onPos,
+            (e) =>
+              toast(
+                e.code == 1
+                  ? "Allow location in browser settings"
+                  : "GPS signal lost",
+              ),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+          );
+      }
+      function stopGeo() {
+        if (wid != null) navigator.geolocation.clearWatch(wid);
+        wid = null;
+        clearInterval(simT);
+        simT = null;
+        if (wake) {
+          wake.release().catch(() => {});
+          wake = null;
+        }
+      }
+      function onPos(p) {
+        const T = trip;
+        if (!T || T.status != "active") return;
+        const c = p.coords,
+          ts = p.timestamp || Date.now();
+        if (c.accuracy > 30) return;
+        const L = T.last;
+        if (!L) {
+          T.last = { lat: c.latitude, lng: c.longitude, ts };
+          T.pts.push([c.latitude, c.longitude, ts, 0]);
+          return renderTrip();
+        }
+        const dt = (ts - L.ts) / 1000;
+        if (dt <= 0) return;
+        const d = hav(L.lat, L.lng, c.latitude, c.longitude),
+          v = (d / dt) * 3.6;
+        if (v > 150) return;
+        const sp = c.speed != null && c.speed >= 0 ? c.speed * 3.6 : v;
+        if (sp < 5 && dt < 60) T.wait += dt;
+        if (d < 9) {
+          L.ts = ts;
+          return renderTrip();
+        }
+        const est = dt > 45 || hid > 20000 ? 1 : 0;
+        hid = 0;
+        T.km += d / 1000;
+        if (est) T.gapKm += d / 1000;
+        T.last = { lat: c.latitude, lng: c.longitude, ts };
+        T.pts.push([c.latitude, c.longitude, ts, est]);
+        renderTrip();
+        draw();
+      }
+      async function wl() {
+        try {
+          if ("wakeLock" in navigator && !wake) {
+            wake = await navigator.wakeLock.request("screen");
+            wake.addEventListener("release", () => (wake = null));
+          }
+        } catch (e) {}
+      }
+      let hs = 0;
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) hs = Date.now();
+        else {
+          if (hs && trip && trip.status == "active") {
+            hid = Date.now() - hs;
+            if (hid > 20000)
+              toast(
+                "Welcome back. Tracking resumed, the gap is marked as estimated.",
+              );
+          }
+          hs = 0;
+          wl();
+          sync();
+        }
+      });
+      /* ---------- cloud sync (state based, retried, queued) ---------- */
+      const soft = (e) => e === "busy" || e === "server_error";
+      const Qs = () => J("kd_syncq", []);
+      function queueTrip(T) {
+        const q = Qs().filter((x) => x.id !== T.id);
+        q.push(T);
+        S("kd_syncq", q);
+      }
+      function done() {
+        if (trip && trip.created && !trip.endSent) queueTrip(trip);
+        trip = null;
+        S("kd_trip", null);
+        show("home");
+        sync();
+      }
+      function cloud() {
+        const e = $("h-cloud");
+        if (!e) return;
+        if (!live()) {
+          e.className = "xs muted";
+          e.textContent = "Offline mode";
+          return;
+        }
+        const n = Qs().length;
+        if (P && P.syncErr) {
+          e.className = "xs tr";
+          e.textContent = "☁ Account sync error: " + P.syncErr;
+        } else if (P && !P.remote) {
+          e.className = "xs ty";
+          e.textContent = "☁ Waiting to sync your account";
+        } else if (n) {
+          e.className = "xs ty";
+          e.textContent = "☁ " + n + " trip(s) waiting to upload";
+        } else {
+          e.className = "xs tg";
+          e.textContent = "☁ Cloud connected";
+        }
+      }
+      async function syncProfile() {
+        if (!P || (P.remote && !P.dirty)) return;
+        try {
+          const prof = Object.assign({}, P);
+          [
+            "pinHash",
+            "driverId",
+            "remote",
+            "dirty",
+            "updatedAt",
+            "syncErr",
+          ].forEach((k) => delete prof[k]);
+          const d = await post({
+            action: "updateDriver",
+            driverId: P.driverId,
+            profile: prof,
+            pinHash: P.pinHash,
+          });
+          if (d.ok) {
+            P.remote = 1;
+            P.dirty = 0;
+            delete P.syncErr;
+            if (d.driverId) P.driverId = d.driverId;
+          } else if (!soft(d.error)) P.syncErr = d.error;
+          S("kd_driver", P);
+        } catch (e) {}
+      }
+      async function tcall(T, b) {
+        try {
+          const d = await post(
+            Object.assign({ tripId: T.id, token: T.token }, b),
+          );
+          if (d.ok) return d;
+          if (!soft(d.error)) T.dead = d.error;
+        } catch (e) {}
+        return null;
+      }
+      const tots = (T) => ({
+        km: T.km,
+        sec: T.sec,
+        waitSec: T.wait,
+        fare: T.fare,
+      });
+      /* returns true when nothing more can/needs to be done for this trip */
+      async function syncTrip(T) {
+        if (T.dead) return true;
+        if (T.status === "cancelled" && !T.created) return true;
+        if (!T.created) {
+          if (
+            !(await tcall(T, {
+              action: "createTrip",
+              driverId: T.driverId,
+              rates: T.rates,
+              multipliers: T.mult,
+              estimatedKm: T.est.km,
+              estimateSource: T.est.km ? "typed" : "live",
+              currency: T.cur,
+            }))
+          )
+            return !!T.dead;
+          T.created = 1;
+        }
+        if (T.status === "cancelled") {
+          return (
+            !!(await tcall(T, {
+              action: "setTripStatus",
+              status: "cancelled",
+            })) || !!T.dead
+          );
+        }
+        if (T.status !== "quoted" && !T.started) {
+          if (!(await tcall(T, { action: "startTrip" }))) return !!T.dead;
+          T.started = 1;
+          T.rs = "active";
+        }
+        while (T.sent < T.pts.length) {
+          const b = T.pts.slice(T.sent, T.sent + 200);
+          if (
+            !(await tcall(T, {
+              action: "appendPoints",
+              totals: tots(T),
+              points: b.map((q, i) => ({
+                seq: T.sent + i + 1,
+                lat: q[0],
+                lng: q[1],
+                ts: q[2],
+                est: q[3],
+              })),
+            }))
+          )
+            return !!T.dead;
+          T.sent += b.length;
+        }
+        if (T.status === "paused" && T.rs !== "paused") {
+          if (!(await tcall(T, { action: "setTripStatus", status: "paused" })))
+            return !!T.dead;
+          T.rs = "paused";
+        }
+        if (T.status === "active" && T.rs === "paused") {
+          if (!(await tcall(T, { action: "setTripStatus", status: "active" })))
+            return !!T.dead;
+          T.rs = "active";
+        }
+        if (T.status === "ended" && !T.endSent) {
+          const d = await tcall(T, {
+            action: "endTrip",
+            pay: T.pay,
+            totals: tots(T),
+            extras: T.extras,
+          });
+          if (!d) return !!T.dead;
+          T.endSent = 1;
+          T.srvFare = d.fare;
+          if (trip && trip.id === T.id && $("p-rec").classList.contains("on"))
+            renderRec();
+        }
+        return T.status === "ended" ? !!T.endSent : false;
+      }
+      let syncing = false,
+        again = false;
+      async function sync() {
+        if (syncing) {
+          again = true;
+          return;
+        }
+        syncing = true;
+        const st = (t) => {
+          if ($("m-s")) $("m-s").textContent = t;
+        };
+        try {
+          if (!live()) return st(trip ? "local only" : "—");
+          if (!navigator.onLine) return st("waiting for internet");
+          await syncProfile();
+          if (P && !P.remote) return st("account not synced");
+          if (trip) {
+            const ok = await syncTrip(trip);
+            S("kd_trip", trip);
+            st(
+              trip.dead
+                ? "error: " + trip.dead
+                : trip.sent >= trip.pts.length && trip.created
+                  ? "synced"
+                  : "retrying",
+            );
+            if (ok && trip.status === "cancelled") trip = null;
+          }
+          const keep = [];
+          for (const T of Qs()) if (!(await syncTrip(T))) keep.push(T);
+          S("kd_syncq", keep);
+        } finally {
+          syncing = false;
+          cloud();
+          if (again) {
+            again = false;
+            setTimeout(sync, 300);
+          }
+        }
+      }
+      /* route canvas */
+      function draw() {
+        if (!trip || !$("p-trip").classList.contains("on")) return;
+        const cv = $("cv"),
+          x = cv.getContext("2d"),
+          W = cv.width,
+          H = cv.height,
+          css = getComputedStyle(document.body);
+        x.clearRect(0, 0, W, H);
+        const pts = trip.pts;
+        if (pts.length < 2) {
+          x.fillStyle = css.getPropertyValue("--text3");
+          x.font = "22px sans-serif";
+          x.textAlign = "center";
+          x.fillText("Route appears once the trip moves", W / 2, H / 2);
+          return;
+        }
+        let a = 1e9,
+          b = -1e9,
+          c = 1e9,
+          d = -1e9;
+        pts.forEach((q) => {
+          a = Math.min(a, q[0]);
+          b = Math.max(b, q[0]);
+          c = Math.min(c, q[1]);
+          d = Math.max(d, q[1]);
+        });
+        const k = Math.cos((((a + b) / 2) * Math.PI) / 180),
+          sw = Math.max((d - c) * k, 1e-5),
+          sh = Math.max(b - a, 1e-5),
+          pad = 30,
+          s = Math.min((W - 2 * pad) / sw, (H - 2 * pad) / sh),
+          ox = (W - sw * s) / 2,
+          oy = (H - sh * s) / 2;
+        const X = (q) => ox + (q[1] - c) * k * s,
+          Y = (q) => H - oy - (q[0] - a) * s;
+        x.lineWidth = 4;
+        x.lineCap = x.lineJoin = "round";
+        for (let i = 1; i < pts.length; i++) {
+          x.beginPath();
+          x.setLineDash(pts[i][3] ? [10, 8] : []);
+          x.strokeStyle = css.getPropertyValue("--blue");
+          x.moveTo(X(pts[i - 1]), Y(pts[i - 1]));
+          x.lineTo(X(pts[i]), Y(pts[i]));
+          x.stroke();
+        }
+        x.setLineDash([]);
+        const e = pts[pts.length - 1],
+          dot = (q, col, r) => {
+            x.beginPath();
+            x.fillStyle = col;
+            x.arc(X(q), Y(q), r, 0, 7);
+            x.fill();
+          };
+        dot(pts[0], "#22c55e", 8);
+        const pr = 7 + 3 * Math.sin(Date.now() / 250);
+        x.globalAlpha = 0.3;
+        dot(e, "#60a5fa", pr + 6);
+        x.globalAlpha = 1;
+        dot(e, trip.status == "ended" ? "#ef4444" : "#60a5fa", 7);
+      }
+      /* ---------- end and receipt ---------- */
+      async function endTrip() {
+        stopGeo();
+        trip.endedAt = Date.now();
+        if (trip.status == "active")
+          trip.sec = (trip.endedAt - trip.startedAt - trip.paused) / 1000;
+        trip.status = "ended";
+        const c = cur();
+        trip.fare = c.tot;
+        trip.bd = c;
+        const l = trips();
+        l.unshift({
+          id: trip.id,
+          status: "ended",
+          endedAt: trip.endedAt,
+          fare: c.tot,
+        });
+        S("kd_trips_local", l.slice(0, 50));
+        S("kd_trip", trip);
+        sync();
+        renderRec();
+        show("rec");
+      }
+      function renderRec() {
+        const T = trip,
+          c = T.bd || cur(),
+          r = T.rates,
+          row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`,
+          f = (t) =>
+            new Date(t).toLocaleString([], {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+        $("pay").value = T.pay;
+        $("logb").disabled = !!T.logged;
+        $("rec").innerHTML =
+          `<div class="xs muted" style="margin-bottom:8px">${esc(P.name)} · ${esc([P.vehicleType, P.plate].filter(Boolean).join(" "))}<br>${f(T.startedAt)} to ${f(T.endedAt)}</div><table>` +
+          row(
+            "Distance" +
+              (T.gapKm ? " (" + T.gapKm.toFixed(2) + " km estimated)" : ""),
+            T.km.toFixed(2) + " km",
+          ) +
+          row("Duration / waiting", mmss(T.sec) + " / " + mmss(T.wait)) +
+          row("Base fare", m(r.base)) +
+          (r.model != "min"
+            ? row(`Distance ${T.km.toFixed(2)} km × ${m(r.perKm)}`, m(c.d))
+            : "") +
+          (r.model != "km"
+            ? row(`Time ${mmss(T.sec)} × ${m(r.perMin)}/min`, m(c.t))
+            : "") +
+          (c.w ? row("Waiting", m(c.w)) : "") +
+          (c.mn ? row("Minimum fare applied", m(r.min)) : "") +
+          (c.su ? row(`Surcharges ${T.mult}%`, m(c.su)) : "") +
+          T.extras.map((x) => row(esc(x.label), m(x.amt))).join("") +
+          (Math.abs(c.rd) > 0.01 ? row("Rounding", m(c.rd)) : "") +
+          row("<b>Total</b>", `<b class="tg">${m(c.tot)}</b>`) +
+          (T.srvFare != null && Math.abs(T.srvFare - c.tot) > 0.01
+            ? row("Cloud total (rider link)", m(T.srvFare))
+            : "") +
+          "</table>";
+      }
+      function setPay() {
+        trip.pay = $("pay").value;
+        S("kd_trip", trip);
+      }
+      function logIncome() {
+        if (trip.logged) return;
+        const k = "cashsplit_data_v12",
+          s = J(k, { balance: 0, history: [], dailyBalanceHistory: {} });
+        s.balance = (s.balance || 0) + trip.fare;
+        (s.history = s.history || []).unshift({
+          id: Date.now() + Math.random(),
+          type: "income",
+          name: "Kadere trip",
+          amount: trip.fare,
+          timestamp: new Date().toISOString(),
+          note: "Kadere · " + trip.pay,
+        });
+        S(k, s);
+        trip.logged = 1;
+        S("kd_trip", trip);
+        $("logb").disabled = true;
+        toast("Logged in CashSplit");
+      }
+      const wa = (t) =>
+        window.open(
+          "https://wa.me/?text=" + encodeURIComponent(t),
+          "_blank",
+          "noopener",
+        );
+      function shareWA() {
+        wa("Follow my trip live: " + link());
+      }
+      function copyLink() {
+        navigator.clipboard &&
+          navigator.clipboard
+            .writeText(link())
+            .then(() => toast("Link copied"));
+      }
+      function shareRec() {
+        wa(
+          `Trip receipt: ${trip.km.toFixed(2)} km, ${mmss(trip.sec)}, total ${m(trip.fare)}. Paid directly to the driver. ${link()}`,
+        );
+      }
+      /* ---------- init ---------- */
+      addEventListener("load", () => {
+        applyTheme();
+        buildForm();
+        $("tg-t").classList.toggle("on", sim);
+        if (trip && (trip.status == "ended" || trip.status == "cancelled")) {
+          if (trip.created && !trip.endSent) queueTrip(trip);
+          trip = null;
+          S("kd_trip", null);
+        }
+        setInterval(sync, 8000);
+        addEventListener("online", sync);
+        sync();
+        if (!P) {
+          show("reg");
+        } else if (
+          trip &&
+          trip.status != "ended" &&
+          trip.status != "cancelled"
+        ) {
+          if (trip.status == "active" && trip.last) trip.last.ts = Date.now();
+          openTrip();
+        } else show("home");
+        if ("serviceWorker" in navigator)
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    </script>
+  </body>
+</html>
