@@ -373,10 +373,12 @@
         gap: 6px;
         margin-top: 10px;
       }
+      /* live route canvas: white, black route, blue markers (same look as the rider page) */
       canvas {
         width: 100%;
-        height: 220px;
-        background: var(--bg3);
+        height: 300px;
+        display: block;
+        background: #fff;
         border: 1px solid var(--border);
         border-radius: var(--rs);
       }
@@ -510,6 +512,10 @@
           </div>
         </div>
         <button class="btn bgr bk big" onclick="newQuote()">＋ New trip</button>
+        <div class="card" id="h-hist-card" hidden>
+          <div class="ct">Recent trips</div>
+          <div id="h-hist"></div>
+        </div>
         <div class="card">
           <div class="ct">Settings</div>
           <div class="srow">
@@ -626,12 +632,12 @@
             <div class="stat"><b id="m-km">0.00</b><small>km</small></div>
             <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
             <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
-            <div class="stat">
-              <b id="m-s" class="xs">—</b><small>sync</small>
+            <div class="stat" onclick="retrySync()" style="cursor: pointer">
+              <b id="m-s" class="xs">—</b><small>sync (tap to retry)</small>
             </div>
           </div>
         </div>
-        <canvas id="cv" width="700" height="440"></canvas>
+        <canvas id="cv"></canvas>
         <div class="card noprint" id="t-ex">
           <div class="ct">Extras</div>
           <div class="g2">
@@ -656,6 +662,7 @@
       <section id="p-rec" class="pg">
         <div class="card">
           <div class="ct">Receipt</div>
+          <canvas id="cv2" style="margin-bottom: 12px"></canvas>
           <div id="rec"></div>
           <div class="fg noprint" style="margin-top: 12px">
             <label class="fl">Paid by</label
@@ -683,7 +690,7 @@
     <script>
       /* ---------- helpers & storage ---------- */
       const BACKEND_URL =
-        "https://script.google.com/macros/s/AKfycbzlmttIOP-8eVemk1I1V7ugRnMR3EbzQtJIsPPkVOr8fLfvitGbkARma3GGHevpqeKD/exec"; /* Apps Script web app. Leave as is to run fully offline. */
+        "https://script.google.com/macros/s/AKfycbwLXoexeOt8Ed0raUwoyvDZSgiMfKkCGUhq8SJzYaVHgQ9SJ-ZA8-RBwFDHnU8Eqo4P/exec"; /* Apps Script web app. Leave as is to run fully offline. */
       const $ = (id) => document.getElementById(id),
         ls = localStorage;
       const J = (k, d) => {
@@ -1037,6 +1044,15 @@
         $("h-n").textContent = l.length;
         $("h-e").textContent = m(l.reduce((a, x) => a + x.fare, 0));
         $("tg-t").classList.toggle("on", sim);
+        const hl = J("kd_hist", []);
+        $("h-hist-card").hidden = !hl.length;
+        $("h-hist").innerHTML = hl
+          .slice(0, 8)
+          .map(
+            (r) =>
+              `<div class="srow"><span>${new Date(r.endedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}<br><small class="muted xs">${(+r.km || 0).toFixed(2)} km · ${mmss(r.sec)}</small></span><span><b>${m(r.fare)}</b> <button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">View</button></span></div>`,
+          )
+          .join("");
         cloud();
       }
       /* ---------- quote and analyser ---------- */
@@ -1178,9 +1194,18 @@
         wake = null,
         tick = null,
         hid = 0;
-      const link = () =>
-        new URL("client.html?t=" + trip.id + "." + trip.token, location.href)
+      /* live GPS state (not saved): latest raw fix, used for the moving dot and the GPS status line */
+      let gps = null,
+        lastGpsErr = 0;
+      const ACC_MAX = 40; /* ignore fixes worse than this many metres */
+      let RV =
+        null; /* a finished trip opened from "Recent trips" (null = the current trip) */
+      const RT = () => RV || trip;
+      const link = (T) => {
+        T = T || RT();
+        return new URL("client.html?t=" + T.id + "." + T.token, location.href)
           .href;
+      };
       function lockTrip() {
         const T = {
           id: "t_" + rid(5),
@@ -1204,6 +1229,8 @@
           wait: 0,
           pts: [],
           sent: 0,
+          hb: 0 /* last time totals were sent to the server */,
+          err: "",
           last: null,
           fare: 0,
           pay: "cash",
@@ -1214,6 +1241,7 @@
           sim: sim,
         };
         trip = T;
+        gps = null;
         S("kd_trip", T);
         openTrip();
         sync();
@@ -1258,6 +1286,17 @@
       const exT = () => trip.extras.reduce((a, x) => a + x.amt, 0),
         cur = () =>
           calc(trip.rates, trip.km, trip.sec, trip.wait, trip.mult, exT());
+      function gpsLine() {
+        if (trip.status != "active") return "";
+        if (!gps) return " · waiting for GPS…";
+        const bad = gps.acc > ACC_MAX;
+        return (
+          " · GPS ±" +
+          Math.round(gps.acc) +
+          " m" +
+          (bad ? " (weak signal)" : "")
+        );
+      }
       function renderTrip() {
         const c = cur();
         trip.fare = c.tot;
@@ -1267,6 +1306,7 @@
         $("m-w").textContent = mmss(trip.wait);
         $("t-st").textContent =
           trip.status +
+          gpsLine() +
           (trip.gapKm ? " · " + trip.gapKm.toFixed(2) + " km estimated" : "");
         $("x-list").textContent = trip.extras
           .map((x) => x.label + " " + m(x.amt))
@@ -1299,11 +1339,13 @@
         startGeo();
         wl();
         ctl();
+        renderTrip();
         $("t-share").hidden = false;
       }
       function pauseTrip() {
         trip.status = "paused";
         trip.pauseAt = Date.now();
+        trip.sec = (trip.pauseAt - trip.startedAt - trip.paused) / 1000;
         ctl();
         renderTrip();
         sync();
@@ -1321,6 +1363,7 @@
         if (trip.created) queueTrip(trip);
         S("kd_trip", null);
         trip = null;
+        stopGeo();
         show("home");
         sync();
       }
@@ -1365,12 +1408,15 @@
         if (wid == null)
           wid = navigator.geolocation.watchPosition(
             onPos,
-            (e) =>
+            (e) => {
+              if (Date.now() - lastGpsErr < 8000) return;
+              lastGpsErr = Date.now();
               toast(
                 e.code == 1
                   ? "Allow location in browser settings"
                   : "GPS signal lost",
-              ),
+              );
+            },
             { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
           );
       }
@@ -1384,17 +1430,40 @@
           wake = null;
         }
       }
+      /* Called on every GPS fix. Distance is committed in small steps (4 to 15 m depending on
+         accuracy) so the km counter and the line move almost live. Every committed point also
+         schedules an upload to the Points sheet. */
+      const brg = (la1, ln1, la2, ln2) => {
+        const r = Math.PI / 180,
+          y = Math.sin((ln2 - ln1) * r) * Math.cos(la2 * r),
+          x =
+            Math.cos(la1 * r) * Math.sin(la2 * r) -
+            Math.sin(la1 * r) * Math.cos(la2 * r) * Math.cos((ln2 - ln1) * r);
+        return (Math.atan2(y, x) / r + 360) % 360;
+      };
       function onPos(p) {
-        const T = trip;
-        if (!T || T.status != "active") return;
         const c = p.coords,
           ts = p.timestamp || Date.now();
-        if (c.accuracy > 30) return;
+        gps = {
+          lat: c.latitude,
+          lng: c.longitude,
+          acc: c.accuracy,
+          ts,
+        };
+        const T = trip;
+        if (!T || T.status != "active") return;
+        if (c.accuracy > ACC_MAX) {
+          renderTrip();
+          return;
+        }
         const L = T.last;
         if (!L) {
           T.last = { lat: c.latitude, lng: c.longitude, ts };
           T.pts.push([c.latitude, c.longitude, ts, 0]);
-          return renderTrip();
+          renderTrip();
+          draw();
+          kick();
+          return;
         }
         const dt = (ts - L.ts) / 1000;
         if (dt <= 0) return;
@@ -1403,9 +1472,30 @@
         if (v > 150) return;
         const sp = c.speed != null && c.speed >= 0 ? c.speed * 3.6 : v;
         if (sp < 5 && dt < 60) T.wait += dt;
-        if (d < 9) {
+        const minMove = Math.max(4, Math.min(c.accuracy * 0.5, 15));
+        /* a real turn: record a point sooner so the curve keeps its shape */
+        let corner = false;
+        if (
+          d >= Math.max(3, c.accuracy * 0.7) &&
+          c.accuracy <= 12 &&
+          T.pts.length >= 2
+        ) {
+          const a = T.pts[T.pts.length - 2],
+            b = T.pts[T.pts.length - 1];
+          if (hav(a[0], a[1], b[0], b[1]) >= 3) {
+            let df = Math.abs(
+              brg(b[0], b[1], c.latitude, c.longitude) -
+                brg(a[0], a[1], b[0], b[1]),
+            );
+            if (df > 180) df = 360 - df;
+            corner = df > 22;
+          }
+        }
+        if (d < minMove && !corner) {
           L.ts = ts;
-          return renderTrip();
+          renderTrip();
+          draw();
+          return;
         }
         const est = dt > 45 || hid > 20000 ? 1 : 0;
         hid = 0;
@@ -1415,6 +1505,7 @@
         T.pts.push([c.latitude, c.longitude, ts, est]);
         renderTrip();
         draw();
+        kick();
       }
       async function wl() {
         try {
@@ -1442,6 +1533,8 @@
       });
       /* ---------- cloud sync (state based, retried, queued) ---------- */
       const soft = (e) => e === "busy" || e === "server_error";
+      /* only these errors end syncing for a trip; everything else keeps retrying and shows its error */
+      const FATAL = ["trip_locked", "auth_failed"];
       const Qs = () => J("kd_syncq", []);
       function queueTrip(T) {
         const q = Qs().filter((x) => x.id !== T.id);
@@ -1449,8 +1542,13 @@
         S("kd_syncq", q);
       }
       function done() {
+        if (RV) {
+          RV = null;
+          return show("home");
+        }
         if (trip && trip.created && !trip.endSent) queueTrip(trip);
         trip = null;
+        gps = null;
         S("kd_trip", null);
         show("home");
         sync();
@@ -1505,14 +1603,29 @@
           S("kd_driver", P);
         } catch (e) {}
       }
+      /* the server does not know this driver (sheet wiped or account never reached it): push the profile again */
+      async function repairDriver() {
+        if (!P) return;
+        P.remote = 0;
+        P.dirty = 1;
+        S("kd_driver", P);
+        await syncProfile();
+        if (P.driverId && trip) trip.driverId = P.driverId;
+      }
       async function tcall(T, b) {
         try {
           const d = await post(
             Object.assign({ tripId: T.id, token: T.token }, b),
           );
-          if (d.ok) return d;
-          if (!soft(d.error)) T.dead = d.error;
-        } catch (e) {}
+          if (d && d.ok) {
+            T.err = "";
+            return d;
+          }
+          T.err = (d && d.error) || "bad_response";
+          if (FATAL.indexOf(T.err) >= 0) T.dead = T.err;
+        } catch (e) {
+          T.err = "network";
+        }
         return null;
       }
       const tots = (T) => ({
@@ -1521,23 +1634,34 @@
         waitSec: T.wait,
         fare: T.fare,
       });
+      /* a call failed after the trip existed: if the server lost the trip, start over so every point is re-sent */
+      function lost(T) {
+        if (T.err === "not_found") {
+          T.created = 0;
+          T.started = 0;
+          T.sent = 0;
+          T.rs = "quoted";
+        }
+        return !!T.dead;
+      }
       /* returns true when nothing more can/needs to be done for this trip */
       async function syncTrip(T) {
         if (T.dead) return true;
         if (T.status === "cancelled" && !T.created) return true;
         if (!T.created) {
-          if (
-            !(await tcall(T, {
-              action: "createTrip",
-              driverId: T.driverId,
-              rates: T.rates,
-              multipliers: T.mult,
-              estimatedKm: T.est.km,
-              estimateSource: T.est.km ? "typed" : "live",
-              currency: T.cur,
-            }))
-          )
+          const d = await tcall(T, {
+            action: "createTrip",
+            driverId: T.driverId,
+            rates: T.rates,
+            multipliers: T.mult,
+            estimatedKm: T.est.km,
+            estimateSource: T.est.km ? "typed" : "live",
+            currency: T.cur,
+          });
+          if (!d) {
+            if (T.err === "not_found") await repairDriver();
             return !!T.dead;
+          }
           T.created = 1;
         }
         if (T.status === "cancelled") {
@@ -1549,10 +1673,11 @@
           );
         }
         if (T.status !== "quoted" && !T.started) {
-          if (!(await tcall(T, { action: "startTrip" }))) return !!T.dead;
+          if (!(await tcall(T, { action: "startTrip" }))) return lost(T);
           T.started = 1;
           T.rs = "active";
         }
+        /* upload new route points (200 per call), with the running totals */
         while (T.sent < T.pts.length) {
           const b = T.pts.slice(T.sent, T.sent + 200);
           if (
@@ -1568,17 +1693,30 @@
               })),
             }))
           )
-            return !!T.dead;
+            return lost(T);
           T.sent += b.length;
+          T.hb = Date.now();
+        }
+        /* heartbeat: while stopped (waiting in traffic) no new points arrive, but time, waiting and fare still change */
+        if (T.status === "active" && Date.now() - (T.hb || 0) > 10000) {
+          if (
+            !(await tcall(T, {
+              action: "appendPoints",
+              totals: tots(T),
+              points: [],
+            }))
+          )
+            return lost(T);
+          T.hb = Date.now();
         }
         if (T.status === "paused" && T.rs !== "paused") {
           if (!(await tcall(T, { action: "setTripStatus", status: "paused" })))
-            return !!T.dead;
+            return lost(T);
           T.rs = "paused";
         }
         if (T.status === "active" && T.rs === "paused") {
           if (!(await tcall(T, { action: "setTripStatus", status: "active" })))
-            return !!T.dead;
+            return lost(T);
           T.rs = "active";
         }
         if (T.status === "ended" && !T.endSent) {
@@ -1588,16 +1726,39 @@
             totals: tots(T),
             extras: T.extras,
           });
-          if (!d) return !!T.dead;
+          if (!d) return lost(T);
           T.endSent = 1;
           T.srvFare = d.fare;
-          if (trip && trip.id === T.id && $("p-rec").classList.contains("on"))
-            renderRec();
+          if (T.pts && T.bd) saveFull(T);
+          if (
+            trip &&
+            trip.id === T.id &&
+            !RV &&
+            $("p-rec").classList.contains("on")
+          )
+            renderRec(trip);
         }
         return T.status === "ended" ? !!T.endSent : false;
       }
       let syncing = false,
-        again = false;
+        again = false,
+        kt = 0;
+      /* schedule an upload shortly after a new point (batches several points into one call) */
+      function kick() {
+        if (kt) return;
+        kt = setTimeout(() => {
+          kt = 0;
+          sync();
+        }, 2000);
+      }
+      function retrySync() {
+        if (trip) {
+          trip.dead = 0;
+          trip.err = "";
+        }
+        toast("Retrying sync…");
+        sync();
+      }
       async function sync() {
         if (syncing) {
           again = true;
@@ -1611,16 +1772,21 @@
           if (!live()) return st(trip ? "local only" : "—");
           if (!navigator.onLine) return st("waiting for internet");
           await syncProfile();
-          if (P && !P.remote) return st("account not synced");
+          if (P && !P.remote)
+            return st(
+              "account not synced" + (P.syncErr ? ": " + P.syncErr : ""),
+            );
           if (trip) {
             const ok = await syncTrip(trip);
             S("kd_trip", trip);
             st(
               trip.dead
                 ? "error: " + trip.dead
-                : trip.sent >= trip.pts.length && trip.created
-                  ? "synced"
-                  : "retrying",
+                : trip.err
+                  ? "retrying: " + trip.err
+                  : trip.created && trip.sent >= trip.pts.length
+                    ? "synced · " + trip.sent + " pts"
+                    : "sending " + trip.sent + "/" + trip.pts.length,
             );
             if (ok && trip.status === "cancelled") trip = null;
           }
@@ -1636,69 +1802,271 @@
           }
         }
       }
-      /* route canvas */
-      function draw() {
-        if (!trip || !$("p-trip").classList.contains("on")) return;
-        const cv = $("cv"),
-          x = cv.getContext("2d"),
-          W = cv.width,
-          H = cv.height,
-          css = getComputedStyle(document.body);
-        x.clearRect(0, 0, W, H);
-        const pts = trip.pts;
-        if (pts.length < 2) {
-          x.fillStyle = css.getPropertyValue("--text3");
-          x.font = "22px sans-serif";
+      /* ---------- route drawing ----------
+         One continuous line through every recorded point. The points are lightly smoothed and then
+         joined with curves (each point is a curve control, the line passes through the midpoints),
+         so turns are round and there is no dashing or dots. Used for the live trip and the receipt. */
+      const NICE = [
+        5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
+      ];
+      function trace(x, p) {
+        x.beginPath();
+        x.moveTo(p[0][0], p[0][1]);
+        if (p.length === 2) return x.lineTo(p[1][0], p[1][1]);
+        for (let i = 1; i < p.length - 1; i++)
+          x.quadraticCurveTo(
+            p[i][0],
+            p[i][1],
+            (p[i][0] + p[i + 1][0]) / 2,
+            (p[i][1] + p[i + 1][1]) / 2,
+          );
+        x.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
+      }
+      function paint(cv, pts, o) {
+        if (!cv || !cv.clientWidth) return;
+        const dpr = window.devicePixelRatio || 1,
+          W = cv.clientWidth,
+          H = cv.clientHeight;
+        if (
+          cv.width !== Math.round(W * dpr) ||
+          cv.height !== Math.round(H * dpr)
+        ) {
+          cv.width = Math.round(W * dpr);
+          cv.height = Math.round(H * dpr);
+        }
+        const x = cv.getContext("2d"),
+          fg = "#000",
+          bg = "#fff",
+          BL = "#2563eb";
+        x.setTransform(dpr, 0, 0, dpr, 0, 0);
+        x.fillStyle = bg;
+        x.fillRect(0, 0, W, H);
+        const all = o.live ? pts.concat([o.live]) : pts.slice();
+        if (!all.length) {
+          x.fillStyle = "#666";
+          x.font = "14px sans-serif";
           x.textAlign = "center";
-          x.fillText("Route appears once the trip moves", W / 2, H / 2);
+          x.textBaseline = "middle";
+          x.fillText(o.msg || "…", W / 2, H / 2);
           return;
         }
-        let a = 1e9,
-          b = -1e9,
-          c = 1e9,
-          d = -1e9;
-        pts.forEach((q) => {
-          a = Math.min(a, q[0]);
-          b = Math.max(b, q[0]);
-          c = Math.min(c, q[1]);
-          d = Math.max(d, q[1]);
-        });
-        const k = Math.cos((((a + b) / 2) * Math.PI) / 180),
-          sw = Math.max((d - c) * k, 1e-5),
-          sh = Math.max(b - a, 1e-5),
-          pad = 30,
-          s = Math.min((W - 2 * pad) / sw, (H - 2 * pad) / sh),
-          ox = (W - sw * s) / 2,
-          oy = (H - sh * s) / 2;
-        const X = (q) => ox + (q[1] - c) * k * s,
-          Y = (q) => H - oy - (q[0] - a) * s;
-        x.lineWidth = 4;
+        /* metres from the first point, then a light 3-point smoothing to take GPS jitter out */
+        const k = Math.cos((all[0][0] * Math.PI) / 180),
+          M = 111320,
+          raw = all.map((q) => [q[1] * k * M, q[0] * M]),
+          D = raw.map((q, i) =>
+            i === 0 || i === raw.length - 1
+              ? q
+              : [
+                  0.2 * raw[i - 1][0] + 0.6 * q[0] + 0.2 * raw[i + 1][0],
+                  0.2 * raw[i - 1][1] + 0.6 * q[1] + 0.2 * raw[i + 1][1],
+                ],
+          );
+        let x0 = 1e18,
+          x1 = -1e18,
+          y0 = 1e18,
+          y1 = -1e18;
+        for (const q of D) {
+          x0 = Math.min(x0, q[0]);
+          x1 = Math.max(x1, q[0]);
+          y0 = Math.min(y0, q[1]);
+          y1 = Math.max(y1, q[1]);
+        }
+        const pad = 40,
+          w = Math.max(x1 - x0, 150),
+          h = Math.max(y1 - y0, 150),
+          s = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h),
+          cx = (x0 + x1) / 2,
+          cy = (y0 + y1) / 2,
+          sc = D.map((q) => [W / 2 + (q[0] - cx) * s, H / 2 - (q[1] - cy) * s]);
+        /* grid */
+        let g = NICE[NICE.length - 1];
+        for (const n of NICE)
+          if (n * s >= 44) {
+            g = n;
+            break;
+          }
+        x.strokeStyle = "rgba(0,0,0,.08)";
+        x.lineWidth = 1;
+        x.beginPath();
+        for (
+          let v = Math.floor((cx - W / 2 / s) / g) * g;
+          v <= cx + W / 2 / s;
+          v += g
+        ) {
+          const px = Math.round(W / 2 + (v - cx) * s) + 0.5;
+          x.moveTo(px, 0);
+          x.lineTo(px, H);
+        }
+        for (
+          let v = Math.floor((cy - H / 2 / s) / g) * g;
+          v <= cy + H / 2 / s;
+          v += g
+        ) {
+          const py = Math.round(H / 2 - (v - cy) * s) + 0.5;
+          x.moveTo(0, py);
+          x.lineTo(W, py);
+        }
+        x.stroke();
+        /* the route: one continuous curved line, white casing under a black line */
         x.lineCap = x.lineJoin = "round";
-        for (let i = 1; i < pts.length; i++) {
-          x.beginPath();
-          x.setLineDash(pts[i][3] ? [10, 8] : []);
-          x.strokeStyle = css.getPropertyValue("--blue");
-          x.moveTo(X(pts[i - 1]), Y(pts[i - 1]));
-          x.lineTo(X(pts[i]), Y(pts[i]));
+        if (sc.length > 1) {
+          trace(x, sc);
+          x.strokeStyle = bg;
+          x.lineWidth = 9;
+          x.stroke();
+          x.strokeStyle = fg;
+          x.lineWidth = 4;
           x.stroke();
         }
-        x.setLineDash([]);
-        const e = pts[pts.length - 1],
-          dot = (q, col, r) => {
-            x.beginPath();
-            x.fillStyle = col;
-            x.arc(X(q), Y(q), r, 0, 7);
-            x.fill();
-          };
-        dot(pts[0], "#22c55e", 8);
-        const pr = 7 + 3 * Math.sin(Date.now() / 250);
-        x.globalAlpha = 0.3;
-        dot(e, "#60a5fa", pr + 6);
-        x.globalAlpha = 1;
-        dot(e, trip.status == "ended" ? "#ef4444" : "#60a5fa", 7);
+        /* A at the start, B at the end (letters only), an arrow at the live end */
+        const tag = (t, p) => {
+          x.font = "700 14px sans-serif";
+          x.textAlign = "center";
+          x.textBaseline = "middle";
+          x.lineWidth = 4;
+          x.strokeStyle = bg;
+          x.strokeText(t, p[0], p[1] - 15);
+          x.fillStyle = BL;
+          x.fillText(t, p[0], p[1] - 15);
+        };
+        const e = sc[sc.length - 1];
+        tag("A", sc[0]);
+        if (o.ended && sc.length > 1) tag("B", e);
+        else if (!o.ended && sc.length > 1) {
+          let q = sc[sc.length - 2];
+          for (let i = sc.length - 2; i >= 0; i--) {
+            q = sc[i];
+            if (Math.hypot(e[0] - q[0], e[1] - q[1]) > 6) break;
+          }
+          x.save();
+          x.translate(e[0], e[1]);
+          x.rotate(Math.atan2(e[1] - q[1], e[0] - q[0]));
+          x.beginPath();
+          x.moveTo(13, 0);
+          x.lineTo(-9, -9);
+          x.lineTo(-4, 0);
+          x.lineTo(-9, 9);
+          x.closePath();
+          x.fillStyle = BL;
+          x.fill();
+          x.lineWidth = 2.5;
+          x.strokeStyle = bg;
+          x.stroke();
+          x.restore();
+        }
+        /* scale bar + north */
+        let nm = NICE[0];
+        for (const q of NICE) if (q <= (1 / s) * 90) nm = q;
+        const px = nm * s,
+          y = H - 14;
+        x.strokeStyle = x.fillStyle = fg;
+        x.lineWidth = 2;
+        x.beginPath();
+        x.moveTo(14, y - 5);
+        x.lineTo(14, y);
+        x.lineTo(14 + px, y);
+        x.lineTo(14 + px, y - 5);
+        x.stroke();
+        x.font = "600 11px sans-serif";
+        x.textAlign = "left";
+        x.textBaseline = "alphabetic";
+        x.fillText(nm >= 1000 ? nm / 1000 + " km" : nm + " m", 18, y - 8);
+        x.textAlign = "center";
+        x.fillText("N", W - 18, 20);
+        x.beginPath();
+        x.moveTo(W - 18, 26);
+        x.lineTo(W - 23, 38);
+        x.lineTo(W - 13, 38);
+        x.closePath();
+        x.fill();
       }
+      function draw() {
+        if (!trip || !$("p-trip").classList.contains("on")) return;
+        const on =
+          trip.status == "active" &&
+          gps &&
+          gps.acc <= ACC_MAX &&
+          trip.pts.length;
+        paint($("cv"), trip.pts, {
+          live: on ? [gps.lat, gps.lng] : null,
+          ended: trip.status == "ended",
+          msg:
+            trip.status == "quoted"
+              ? "Route appears once the trip starts"
+              : "Waiting for GPS…",
+        });
+      }
+      function drawRec(T) {
+        paint($("cv2"), T.pts || [], { ended: true, msg: "No route recorded" });
+      }
+      addEventListener("resize", () => {
+        draw();
+        if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
+      });
       /* ---------- end and receipt ---------- */
+      /* keep the finished trip (with its route) on this phone so the driver can reopen it later */
+      function saveFull(T) {
+        const r5 = (v) => Math.round(v * 1e6) / 1e6,
+          rec = {
+            id: T.id,
+            token: T.token,
+            cur: T.cur,
+            startedAt: T.startedAt,
+            endedAt: T.endedAt,
+            km: T.km,
+            gapKm: T.gapKm,
+            sec: T.sec,
+            wait: T.wait,
+            fare: T.fare,
+            pay: T.pay,
+            rates: T.rates,
+            mult: T.mult,
+            extras: T.extras,
+            bd: T.bd,
+            logged: T.logged,
+            srvFare: T.srvFare,
+            status: "ended",
+            pts: T.pts.map((q) => [
+              r5(q[0]),
+              r5(q[1]),
+              q.length > 3 ? q[3] : q[2],
+            ]),
+          },
+          l = J("kd_hist", []),
+          i = l.findIndex((x) => x.id === T.id);
+        if (i >= 0) l[i] = rec;
+        else l.unshift(rec);
+        for (const n of [15, 8, 3, 1]) {
+          try {
+            ls.setItem("kd_hist", JSON.stringify(l.slice(0, n)));
+            break;
+          } catch (e) {}
+        }
+      }
+      function viewTrip(id) {
+        const r = J("kd_hist", []).find((x) => x.id === id);
+        if (!r) return;
+        RV = r;
+        renderRec(r);
+        show("rec");
+        drawRec(r);
+      }
       async function endTrip() {
+        /* add the last stretch up to where the phone is now, so the line and the km reach the end */
+        if (
+          trip.status == "active" &&
+          trip.last &&
+          gps &&
+          gps.acc <= ACC_MAX &&
+          Date.now() - gps.ts < 15000
+        ) {
+          const d = hav(trip.last.lat, trip.last.lng, gps.lat, gps.lng);
+          if (d >= 3 && d < 500) {
+            trip.km += d / 1000;
+            trip.pts.push([gps.lat, gps.lng, gps.ts, 0]);
+          }
+        }
         stopGeo();
         trip.endedAt = Date.now();
         if (trip.status == "active")
@@ -1716,13 +2084,16 @@
         });
         S("kd_trips_local", l.slice(0, 50));
         S("kd_trip", trip);
+        saveFull(trip);
+        RV = null;
         sync();
-        renderRec();
+        renderRec(trip);
         show("rec");
+        drawRec(trip);
       }
-      function renderRec() {
-        const T = trip,
-          c = T.bd || cur(),
+      function renderRec(T) {
+        T = T || RT();
+        const c = T.bd || cur(),
           r = T.rates,
           row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`,
           f = (t) =>
@@ -1761,25 +2132,29 @@
           "</table>";
       }
       function setPay() {
-        trip.pay = $("pay").value;
-        S("kd_trip", trip);
+        const T = RT();
+        T.pay = $("pay").value;
+        if (T === trip) S("kd_trip", trip);
+        saveFull(T);
       }
       function logIncome() {
-        if (trip.logged) return;
+        const T = RT();
+        if (T.logged) return;
         const k = "cashsplit_data_v12",
           s = J(k, { balance: 0, history: [], dailyBalanceHistory: {} });
-        s.balance = (s.balance || 0) + trip.fare;
+        s.balance = (s.balance || 0) + T.fare;
         (s.history = s.history || []).unshift({
           id: Date.now() + Math.random(),
           type: "income",
           name: "Kadere trip",
-          amount: trip.fare,
+          amount: T.fare,
           timestamp: new Date().toISOString(),
-          note: "Kadere · " + trip.pay,
+          note: "Kadere · " + T.pay,
         });
         S(k, s);
-        trip.logged = 1;
-        S("kd_trip", trip);
+        T.logged = 1;
+        if (T === trip) S("kd_trip", trip);
+        saveFull(T);
         $("logb").disabled = true;
         toast("Logged in CashSplit");
       }
@@ -1799,8 +2174,9 @@
             .then(() => toast("Link copied"));
       }
       function shareRec() {
+        const T = RT();
         wa(
-          `Trip receipt: ${trip.km.toFixed(2)} km, ${mmss(trip.sec)}, total ${m(trip.fare)}. Paid directly to the driver. ${link()}`,
+          `Trip receipt: ${T.km.toFixed(2)} km, ${mmss(T.sec)}, total ${m(T.fare)}. Paid directly to the driver. ${link(T)}`,
         );
       }
       /* ---------- init ---------- */
@@ -1813,7 +2189,11 @@
           trip = null;
           S("kd_trip", null);
         }
-        setInterval(sync, 8000);
+        if (trip) {
+          trip.dead = 0; /* give a saved trip a fresh chance to sync */
+          trip.err = "";
+        }
+        setInterval(sync, 5000);
         addEventListener("online", sync);
         sync();
         if (!P) {
