@@ -1091,7 +1091,7 @@
     <script>
       /* ---------- config & helpers ---------- */
       const BACKEND_URL =
-        "https://script.google.com/macros/s/AKfycbwLXoexeOt8Ed0raUwoyvDZSgiMfKkCGUhq8SJzYaVHgQ9SJ-ZA8-RBwFDHnU8Eqo4P/exec";
+        "https://script.google.com/macros/s/AKfycbyayi95cytmP0EJuY0XbLFzaSmODWApA8WEGWb0_jeBoQmriRCWM8X10Yio1xzOPk_5/exec";
       const $ = (id) => document.getElementById(id),
         ls = localStorage;
       const J = (k, d) => {
@@ -1272,7 +1272,7 @@
           weak: "Driver's connection is weak. Last update {n} seconds ago.",
           offline: "You are offline. Showing the last data received.",
           back: "Reconnected",
-          est_note: "{n} km estimated (dashed)",
+          est_note: "{n} km estimated",
           r_start: "Start",
           r_end: "End",
           r_dist: "Total distance",
@@ -1511,6 +1511,7 @@
         offlineNow = !navigator.onLine,
         showBack = 0,
         pollT = null,
+        routeN = -1 /* route version already held; -1 = none yet */,
         finalDone = false,
         busy = false,
         receiptOpened = false,
@@ -1520,6 +1521,36 @@
         ) /* rider profile: {clientId,name,phone,hash} */,
         aMode = "in",
         linking = false;
+      /* decode the driver's encoded route string into [lat, lng, ts, est] points */
+      function decRoute(s) {
+        const out = [];
+        let i = 0,
+          la = 0,
+          ln = 0;
+        while (i < s.length) {
+          let r = 0,
+            sh = 0,
+            c;
+          do {
+            if (i >= s.length) return out;
+            c = s.charCodeAt(i++) - 63;
+            r |= (c & 31) << sh;
+            sh += 5;
+          } while (c >= 32);
+          la += r & 1 ? ~(r >> 1) : r >> 1;
+          r = 0;
+          sh = 0;
+          do {
+            if (i >= s.length) return out;
+            c = s.charCodeAt(i++) - 63;
+            r |= (c & 31) << sh;
+            sh += 5;
+          } while (c >= 32);
+          ln += r & 1 ? ~(r >> 1) : r >> 1;
+          out.push([la / 1e5, ln / 1e5, 0, 0]);
+        }
+        return out;
+      }
       const BACKOFF = [5000, 10000, 20000, 30000];
       function norm(d) {
         const x = d.trip || d.summary || d,
@@ -1604,6 +1635,7 @@
         sum = st.sum;
         pts = st.pts || [];
         lastSeq = st.seq || 0;
+        routeN = st.rn != null ? st.rn : -1;
         fetchedAt = st.at || Date.now();
         ageAtFetch = 0;
         enter();
@@ -1784,6 +1816,8 @@
               encodeURIComponent(ID) +
               "&token=" +
               encodeURIComponent(TOK) +
+              "&rn=" +
+              routeN +
               "&since=" +
               lastSeq,
           )
@@ -1814,6 +1848,12 @@
           failIdx = 0;
           const n = norm(d),
             np = (d.points || []).filter((p) => +p.seq > lastSeq);
+          /* new protocol: the whole encoded line arrives only when its version changed */
+          if (typeof d.route === "string") {
+            pts = decRoute(d.route);
+            lastSeq = pts.length;
+          }
+          if (d.routeN !== undefined) routeN = +d.routeN || 0;
           np.sort((a, b) => a.seq - b.seq);
           np.forEach((p) => {
             pts.push([+p.lat, +p.lng, +p.ts, p.est ? 1 : 0]);
@@ -1857,7 +1897,13 @@
         return g;
       }
       const save = () =>
-        S("kc_trip_" + ID, { sum, pts, seq: lastSeq, at: fetchedAt });
+        S("kc_trip_" + ID, {
+          sum,
+          pts,
+          seq: lastSeq,
+          rn: routeN,
+          at: fetchedAt,
+        });
       function saveReceipt() {
         const l = J("kc_receipts", []).filter((r) => r.id != ID);
         l.unshift({

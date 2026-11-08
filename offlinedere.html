@@ -690,7 +690,7 @@
     <script>
       /* ---------- helpers & storage ---------- */
       const BACKEND_URL =
-        "https://script.google.com/macros/s/AKfycbwLXoexeOt8Ed0raUwoyvDZSgiMfKkCGUhq8SJzYaVHgQ9SJ-ZA8-RBwFDHnU8Eqo4P/exec"; /* Apps Script web app. Leave as is to run fully offline. */
+        "https://script.google.com/macros/s/AKfycbyayi95cytmP0EJuY0XbLFzaSmODWApA8WEGWb0_jeBoQmriRCWM8X10Yio1xzOPk_5/exec"; /* Apps Script web app. Leave as is to run fully offline. */
       const $ = (id) => document.getElementById(id),
         ls = localStorage;
       const J = (k, d) => {
@@ -826,6 +826,123 @@
               ? Math.ceil(pre / r.round - 1e-9) * r.round
               : Math.round(pre);
         return { d, t, w, mn, su, ex, rd: tot - pre, tot };
+      }
+      /* ---------- route <-> one compact string (same format the sheet stores: 1 row per trip) ---------- */
+      const eV = (v) => {
+        v = v < 0 ? ~(v << 1) : v << 1;
+        let s = "";
+        while (v >= 32) {
+          s += String.fromCharCode((32 | (v & 31)) + 63);
+          v >>= 5;
+        }
+        return s + String.fromCharCode(v + 63);
+      };
+      function encRoute(pts) {
+        let o = "",
+          pa = 0,
+          pn = 0;
+        for (const p of pts) {
+          const a = Math.round(p[0] * 1e5),
+            n = Math.round(p[1] * 1e5);
+          o += eV(a - pa) + eV(n - pn);
+          pa = a;
+          pn = n;
+        }
+        return o;
+      }
+      function decRoute(s) {
+        const out = [];
+        let i = 0,
+          la = 0,
+          ln = 0;
+        while (i < s.length) {
+          let r = 0,
+            sh = 0,
+            c;
+          do {
+            if (i >= s.length) return out;
+            c = s.charCodeAt(i++) - 63;
+            r |= (c & 31) << sh;
+            sh += 5;
+          } while (c >= 32);
+          la += r & 1 ? ~(r >> 1) : r >> 1;
+          r = 0;
+          sh = 0;
+          do {
+            if (i >= s.length) return out;
+            c = s.charCodeAt(i++) - 63;
+            r |= (c & 31) << sh;
+            sh += 5;
+          } while (c >= 32);
+          ln += r & 1 ? ~(r >> 1) : r >> 1;
+          out.push([la / 1e5, ln / 1e5, 0, 0]);
+        }
+        return out;
+      }
+      /* only for very long trips (sheet cell limit): drops points on straight stretches, keeps every real turn */
+      function simp(pts, tol) {
+        if (pts.length < 3) return pts;
+        const k = Math.cos((pts[0][0] * Math.PI) / 180),
+          X = (p) => p[1] * k * 111320,
+          Y = (p) => p[0] * 111320,
+          keep = new Uint8Array(pts.length),
+          st = [[0, pts.length - 1]];
+        keep[0] = keep[pts.length - 1] = 1;
+        while (st.length) {
+          const [a, b] = st.pop();
+          let md = 0,
+            mi = -1;
+          const ax = X(pts[a]),
+            ay = Y(pts[a]),
+            dx = X(pts[b]) - ax,
+            dy = Y(pts[b]) - ay,
+            l2 = dx * dx + dy * dy;
+          for (let i = a + 1; i < b; i++) {
+            const px = X(pts[i]),
+              py = Y(pts[i]);
+            let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+            t = Math.max(0, Math.min(1, t));
+            const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+            if (d > md) {
+              md = d;
+              mi = i;
+            }
+          }
+          if (md > tol && mi > 0) {
+            keep[mi] = 1;
+            st.push([a, mi], [mi, b]);
+          }
+        }
+        return pts.filter((_, i) => keep[i]);
+      }
+      function routeStr(pts) {
+        let t = 0,
+          p = pts,
+          e = encRoute(p);
+        while (e.length > 44000 && t < 60) {
+          t = t ? t * 1.6 : 1;
+          p = simp(pts, t);
+          e = encRoute(p);
+        }
+        return e;
+      }
+      /* rebuild a route from the sheet (cache cleared, or opening an old receipt) */
+      async function fetchRoute(T) {
+        if (!live() || !T || !T.token) return [];
+        try {
+          const d = await (
+            await fetch(
+              BACKEND_URL +
+                "?action=getRoute&id=" +
+                encodeURIComponent(T.id) +
+                "&token=" +
+                encodeURIComponent(T.token),
+            )
+          ).json();
+          return d && d.ok && d.route ? decRoute(d.route) : [];
+        } catch (e) {
+          return [];
+        }
       }
       const costKm = (p) =>
         p.fuelPrice / p.kmPerLitre + p.maintPerKm + p.dailyFixed / p.kmPerDay;
@@ -1247,6 +1364,8 @@
         sync();
       }
       function openTrip() {
+        CAM.i = 0;
+        HD = null;
         show("trip");
         $("t-share").hidden = trip.status == "ended";
         renderQR();
@@ -1432,7 +1551,7 @@
       }
       /* Called on every GPS fix. Distance is committed in small steps (4 to 15 m depending on
          accuracy) so the km counter and the line move almost live. Every committed point also
-         schedules an upload to the Points sheet. */
+         schedules an upload of the whole route (one row per trip in the sheet). */
       const brg = (la1, ln1, la2, ln2) => {
         const r = Math.PI / 180,
           y = Math.sin((ln2 - ln1) * r) * Math.cos(la2 * r),
@@ -1633,8 +1752,9 @@
         sec: T.sec,
         waitSec: T.wait,
         fare: T.fare,
+        gapKm: T.gapKm,
       });
-      /* a call failed after the trip existed: if the server lost the trip, start over so every point is re-sent */
+      /* a call failed after the trip existed: if the server lost the trip, start over so the whole route is re-sent */
       function lost(T) {
         if (T.err === "not_found") {
           T.created = 0;
@@ -1677,33 +1797,32 @@
           T.started = 1;
           T.rs = "active";
         }
-        /* upload new route points (200 per call), with the running totals */
-        while (T.sent < T.pts.length) {
-          const b = T.pts.slice(T.sent, T.sent + 200);
+        /* ONE row per trip on the server: the whole line (encoded) + totals. Throttled to every 6 s while
+           driving; pause / end send at once. The points on this phone stay as the cache. */
+        if (
+          T.status !== "ended" &&
+          T.sent < T.pts.length &&
+          (T.status !== "active" || Date.now() - (T.rt || 0) >= 6000)
+        ) {
+          const n = T.pts.length;
           if (
             !(await tcall(T, {
-              action: "appendPoints",
+              action: "updateTrip",
+              route: routeStr(T.pts),
+              rv: n,
               totals: tots(T),
-              points: b.map((q, i) => ({
-                seq: T.sent + i + 1,
-                lat: q[0],
-                lng: q[1],
-                ts: q[2],
-                est: q[3],
-              })),
             }))
           )
             return lost(T);
-          T.sent += b.length;
-          T.hb = Date.now();
+          T.sent = n;
+          T.rt = T.hb = Date.now();
         }
         /* heartbeat: while stopped (waiting in traffic) no new points arrive, but time, waiting and fare still change */
         if (T.status === "active" && Date.now() - (T.hb || 0) > 10000) {
           if (
             !(await tcall(T, {
-              action: "appendPoints",
+              action: "updateTrip",
               totals: tots(T),
-              points: [],
             }))
           )
             return lost(T);
@@ -1725,9 +1844,12 @@
             pay: T.pay,
             totals: tots(T),
             extras: T.extras,
+            route: routeStr(T.pts),
+            rv: T.pts.length + 1,
           });
           if (!d) return lost(T);
           T.endSent = 1;
+          T.sent = T.pts.length;
           T.srvFare = d.fare;
           if (T.pts && T.bd) saveFull(T);
           if (
@@ -1805,7 +1927,9 @@
       /* ---------- route drawing ----------
          One continuous line through every recorded point. The points are lightly smoothed and then
          joined with curves (each point is a curve control, the line passes through the midpoints),
-         so turns are round and there is no dashing or dots. Used for the live trip and the receipt. */
+         so turns are round and there is no dashing or dots. The head of the line glides to the live
+         GPS position and the camera glides to its new framing, so the route is drawn as you drive.
+         Used for the live trip and the receipt. */
       const NICE = [
         5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
       ];
@@ -1875,10 +1999,39 @@
         const pad = 40,
           w = Math.max(x1 - x0, 150),
           h = Math.max(y1 - y0, 150),
-          s = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h),
-          cx = (x0 + x1) / 2,
-          cy = (y0 + y1) / 2,
-          sc = D.map((q) => [W / 2 + (q[0] - cx) * s, H / 2 - (q[1] - cy) * s]);
+          ts = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h),
+          tx = (x0 + x1) / 2,
+          ty = (y0 + y1) / 2,
+          C = o.cam;
+        let cx = tx,
+          cy = ty,
+          s = ts;
+        if (C) {
+          /* the camera glides to the new framing instead of jumping */
+          if (!C.i) {
+            C.x = tx;
+            C.y = ty;
+            C.s = ts;
+            C.i = 1;
+          } else {
+            C.x += (tx - C.x) * 0.2;
+            C.y += (ty - C.y) * 0.2;
+            C.s += (ts - C.s) * 0.2;
+            if (
+              Math.abs(tx - C.x) > 0.3 ||
+              Math.abs(ty - C.y) > 0.3 ||
+              Math.abs(ts - C.s) / ts > 0.004
+            )
+              o.moving = true;
+          }
+          cx = C.x;
+          cy = C.y;
+          s = C.s;
+        }
+        const sc = D.map((q) => [
+          W / 2 + (q[0] - cx) * s,
+          H / 2 - (q[1] - cy) * s,
+        ]);
         /* grid */
         let g = NICE[NICE.length - 1];
         for (const n of NICE)
@@ -1981,6 +2134,9 @@
         x.closePath();
         x.fill();
       }
+      let HD = null,
+        RAF = 0;
+      const CAM = { i: 0 };
       function draw() {
         if (!trip || !$("p-trip").classList.contains("on")) return;
         const on =
@@ -1988,19 +2144,37 @@
           gps &&
           gps.acc <= ACC_MAX &&
           trip.pts.length;
-        paint($("cv"), trip.pts, {
-          live: on ? [gps.lat, gps.lng] : null,
+        let moving = false;
+        if (on) {
+          /* the line's head glides toward the phone's live position: the route is drawn as you drive */
+          if (!HD) HD = [gps.lat, gps.lng];
+          else {
+            HD[0] += (gps.lat - HD[0]) * 0.25;
+            HD[1] += (gps.lng - HD[1]) * 0.25;
+            if (hav(HD[0], HD[1], gps.lat, gps.lng) > 0.15) moving = true;
+          }
+        } else HD = null;
+        const o = {
+          live: HD,
+          cam: CAM,
           ended: trip.status == "ended",
           msg:
             trip.status == "quoted"
               ? "Route appears once the trip starts"
               : "Waiting for GPS…",
-        });
+        };
+        paint($("cv"), trip.pts, o);
+        if ((moving || o.moving) && !RAF)
+          RAF = requestAnimationFrame(() => {
+            RAF = 0;
+            draw();
+          });
       }
       function drawRec(T) {
         paint($("cv2"), T.pts || [], { ended: true, msg: "No route recorded" });
       }
       addEventListener("resize", () => {
+        CAM.i = 0;
         draw();
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
       });
@@ -2048,6 +2222,19 @@
         const r = J("kd_hist", []).find((x) => x.id === id);
         if (!r) return;
         RV = r;
+        /* route no longer on this phone? fetch it from the sheet */
+        if (!r.pts || r.pts.length < 2)
+          fetchRoute(r).then((p) => {
+            if (p.length < 2) return;
+            r.pts = p.map((q) => [q[0], q[1], 0]);
+            const l = J("kd_hist", []),
+              i = l.findIndex((x) => x.id === r.id);
+            if (i >= 0) {
+              l[i].pts = r.pts;
+              S("kd_hist", l);
+            }
+            if (RV === r) drawRec(r);
+          });
         renderRec(r);
         show("rec");
         drawRec(r);
