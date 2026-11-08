@@ -443,6 +443,7 @@
     <header id="top">
       <div class="logo"><i></i>🚖 Kadere</div>
       <div class="row">
+        <button id="locpill" class="btn bg sm" onclick="fixLoc()">📍 …</button>
         <select
           id="lg"
           style="width: auto; padding: 6px 26px 6px 10px; font-size: 0.78rem"
@@ -455,6 +456,18 @@
       </div>
     </header>
     <main>
+      <!-- LOCATION WARNING (shown on every page when location is off) -->
+      <div
+        class="banner noprint"
+        id="loc-banner"
+        hidden
+        style="background: rgba(239, 68, 68, 0.15); color: var(--red)"
+      >
+        <span id="loc-msg"></span>
+        <button class="btn bd sm" style="margin-top: 8px" onclick="fixLoc()">
+          Turn on location
+        </button>
+      </div>
       <!-- REGISTER / EDIT -->
       <section id="p-reg" class="pg">
         <div class="card">
@@ -629,7 +642,7 @@
             <b id="fare" class="tg">0</b><small id="t-f">Fare</small>
           </div>
           <div class="g2">
-            <div class="stat"><b id="m-km">0.00</b><small>km</small></div>
+            <div class="stat"><b id="m-km">0 m</b><small>distance</small></div>
             <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
             <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
             <div class="stat" onclick="retrySync()" style="cursor: pointer">
@@ -800,6 +813,7 @@
         sim = !sim;
         S("kd_sim", sim);
         $("tg-t").classList.toggle("on", sim);
+        locUI();
       }
       /* ---------- pricing engine ---------- */
       const hav = (a, b, c, d) => {
@@ -1167,7 +1181,7 @@
           .slice(0, 8)
           .map(
             (r) =>
-              `<div class="srow"><span>${new Date(r.endedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}<br><small class="muted xs">${(+r.km || 0).toFixed(2)} km · ${mmss(r.sec)}</small></span><span><b>${m(r.fare)}</b> <button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">View</button></span></div>`,
+              `<div class="srow"><span>${new Date(r.endedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}<br><small class="muted xs">${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span><b>${m(r.fare)}</b> <button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">View</button></span></div>`,
           )
           .join("");
         cloud();
@@ -1314,7 +1328,7 @@
       /* live GPS state (not saved): latest raw fix, used for the moving dot and the GPS status line */
       let gps = null,
         lastGpsErr = 0;
-      const ACC_MAX = 40; /* ignore fixes worse than this many metres */
+      const ACC_MAX = 50; /* ignore fixes worse than this many metres */
       let RV =
         null; /* a finished trip opened from "Recent trips" (null = the current trip) */
       const RT = () => RV || trip;
@@ -1384,6 +1398,8 @@
               renderTrip();
             }
             draw();
+            locUI();
+            geoWatchdog();
           }, 1000);
       }
       function renderQR() {
@@ -1405,22 +1421,42 @@
       const exT = () => trip.extras.reduce((a, x) => a + x.amt, 0),
         cur = () =>
           calc(trip.rates, trip.km, trip.sec, trip.wait, trip.mult, exT());
+      /* distance shown in metres under 1 km, then in km */
+      function fmtDist(km) {
+        km = Math.max(0, +km || 0);
+        return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(2) + " km";
+      }
+      /* committed distance + the stretch from the last committed point to the live GPS position,
+         so the counter moves with every fix instead of in 4-15 m jumps (display only; the fare uses committed km) */
+      function liveKm() {
+        let k = trip.km;
+        if (
+          trip.status == "active" &&
+          trip.last &&
+          gps &&
+          gps.acc <= ACC_MAX &&
+          Date.now() - gps.ts < 10000
+        ) {
+          const d = hav(trip.last.lat, trip.last.lng, gps.lat, gps.lng);
+          if (d >= Math.max(3, gps.acc * 0.4) && d < 500) k += d / 1000;
+        }
+        return k;
+      }
       function gpsLine() {
         if (trip.status != "active") return "";
-        if (!gps) return " · waiting for GPS…";
-        const bad = gps.acc > ACC_MAX;
+        if (!gps) return " · no GPS fix yet…";
         return (
           " · GPS ±" +
           Math.round(gps.acc) +
           " m" +
-          (bad ? " (weak signal)" : "")
+          (gps.acc > ACC_MAX ? " (too weak, move outside)" : "")
         );
       }
       function renderTrip() {
         const c = cur();
         trip.fare = c.tot;
         $("fare").textContent = m(c.tot);
-        $("m-km").textContent = trip.km.toFixed(2);
+        $("m-km").textContent = fmtDist(liveKm());
         $("m-t").textContent = mmss(trip.sec);
         $("m-w").textContent = mmss(trip.wait);
         $("t-st").textContent =
@@ -1449,10 +1485,17 @@
                 : "";
         $("warn").hidden = s == "quoted" || s == "ended";
       }
-      function startTrip() {
+      async function startTrip() {
+        /* a trip cannot start unless location is shared (test mode is exempt) */
+        if (!sim && !(await fixLoc()))
+          return toast("Turn on location to start the trip");
         trip.status = "active";
         trip.startedAt = Date.now();
         trip.sim = sim;
+        if (!sim && gps && gps.acc <= ACC_MAX && Date.now() - gps.ts < 15000) {
+          trip.last = { lat: gps.lat, lng: gps.lng, ts: Date.now() };
+          trip.pts.push([gps.lat, gps.lng, Date.now(), 0]);
+        }
         S("kd_trip", trip);
         sync();
         startGeo();
@@ -1470,6 +1513,7 @@
         sync();
       }
       function resumeTrip() {
+        if (!sim) fixLoc();
         trip.paused += Date.now() - trip.pauseAt;
         trip.status = "active";
         if (trip.last) trip.last.ts = Date.now();
@@ -1493,6 +1537,108 @@
         trip.extras.push({ label: l, amt: a });
         $("x-lab").value = $("x-amt").value = "";
         renderTrip();
+      }
+      /* ---------- location status ---------- */
+      let locPerm =
+        "unknown"; /* granted | prompt | denied | unsupported | unknown */
+      async function initLoc() {
+        if (!navigator.geolocation) {
+          locPerm = "unsupported";
+          return locUI();
+        }
+        try {
+          const r = await navigator.permissions.query({ name: "geolocation" });
+          locPerm = r.state;
+          r.onchange = () => {
+            locPerm = r.state;
+            locUI();
+            if (
+              r.state === "granted" &&
+              trip &&
+              ["active", "paused"].includes(trip.status)
+            )
+              startGeo();
+          };
+        } catch (e) {
+          locPerm = "unknown";
+        }
+        locUI();
+        if (locPerm !== "granted" && locPerm !== "denied")
+          fixLoc(); /* ask early */
+      }
+      function fixLoc() {
+        return new Promise((res) => {
+          if (!navigator.geolocation) {
+            locPerm = "unsupported";
+            locUI();
+            return res(false);
+          }
+          navigator.geolocation.getCurrentPosition(
+            (p) => {
+              locPerm = "granted";
+              gps = {
+                lat: p.coords.latitude,
+                lng: p.coords.longitude,
+                acc: p.coords.accuracy,
+                ts: p.timestamp || Date.now(),
+              };
+              if (trip && ["active", "paused"].includes(trip.status))
+                startGeo();
+              locUI();
+              res(true);
+            },
+            (e) => {
+              if (e.code === 1) {
+                locPerm = "denied";
+                toast(
+                  "Location is blocked. Allow it in your browser/site settings, then tap again.",
+                );
+              }
+              locUI();
+              res(false);
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+          );
+        });
+      }
+      function locUI() {
+        const p = $("locpill"),
+          b = $("loc-banner");
+        if (!p) return;
+        const act = trip && trip.status === "active";
+        const fresh = gps && Date.now() - gps.ts < 20000;
+        let txt,
+          cls,
+          msg = "";
+        if (sim) {
+          txt = "📍 Test mode";
+          cls = "ty";
+        } else if (locPerm === "unsupported") {
+          txt = "📍 Not supported";
+          cls = "tr";
+          msg = "This device or browser cannot share location.";
+        } else if (locPerm === "denied") {
+          txt = "📍 Location OFF";
+          cls = "tr";
+          msg =
+            "Location is blocked. Open your browser/site settings, allow Location, then tap the button.";
+        } else if (act && !fresh) {
+          txt = "📍 Searching…";
+          cls = "ty";
+          msg =
+            "GPS signal lost. Move to open sky and make sure Location is switched on in your phone.";
+        } else if (locPerm === "granted" || fresh) {
+          txt = "📍 Location ON";
+          cls = "tg";
+        } else {
+          txt = "📍 Tap to enable";
+          cls = "ty";
+          msg = "Location is not shared yet. Tap the button to allow it.";
+        }
+        p.textContent = txt;
+        p.className = "btn bg sm " + cls;
+        b.hidden = !msg;
+        $("loc-msg").textContent = msg;
       }
       /* GPS */
       function startGeo() {
@@ -1528,6 +1674,10 @@
           wid = navigator.geolocation.watchPosition(
             onPos,
             (e) => {
+              if (e.code === 1) {
+                locPerm = "denied";
+                locUI();
+              }
               if (Date.now() - lastGpsErr < 8000) return;
               lastGpsErr = Date.now();
               toast(
@@ -1548,6 +1698,29 @@
           wake.release().catch(() => {});
           wake = null;
         }
+      }
+      /* some phones stop sending watchPosition updates: if no fix for 6 s, restart the watch and ask once directly */
+      function geoWatchdog() {
+        if (
+          !trip ||
+          trip.sim ||
+          trip.status !== "active" ||
+          !navigator.geolocation
+        )
+          return;
+        if (gps && Date.now() - gps.ts < 6000) return;
+        if (Date.now() - (geoWatchdog.t || 0) < 6000) return;
+        geoWatchdog.t = Date.now();
+        if (wid != null) {
+          navigator.geolocation.clearWatch(wid);
+          wid = null;
+        }
+        startGeo();
+        navigator.geolocation.getCurrentPosition(onPos, () => {}, {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0,
+        });
       }
       /* Called on every GPS fix. Distance is committed in small steps (4 to 15 m depending on
          accuracy) so the km counter and the line move almost live. Every committed point also
@@ -1647,6 +1820,8 @@
           }
           hs = 0;
           wl();
+          locUI();
+          if (!sim) initLoc();
           sync();
         }
       });
@@ -2161,7 +2336,13 @@
           msg:
             trip.status == "quoted"
               ? "Route appears once the trip starts"
-              : "Waiting for GPS…",
+              : !gps
+                ? "Waiting for GPS signal…"
+                : gps.acc > ACC_MAX
+                  ? "GPS too weak (±" +
+                    Math.round(gps.acc) +
+                    " m). Move outside."
+                  : "Waiting for first GPS point…",
         };
         paint($("cv"), trip.pts, o);
         if ((moving || o.moving) && !RAF)
@@ -2297,7 +2478,7 @@
           row(
             "Distance" +
               (T.gapKm ? " (" + T.gapKm.toFixed(2) + " km estimated)" : ""),
-            T.km.toFixed(2) + " km",
+            fmtDist(T.km),
           ) +
           row("Duration / waiting", mmss(T.sec) + " / " + mmss(T.wait)) +
           row("Base fare", m(r.base)) +
@@ -2363,12 +2544,14 @@
       function shareRec() {
         const T = RT();
         wa(
-          `Trip receipt: ${T.km.toFixed(2)} km, ${mmss(T.sec)}, total ${m(T.fare)}. Paid directly to the driver. ${link(T)}`,
+          `Trip receipt: ${fmtDist(T.km)}, ${mmss(T.sec)}, total ${m(T.fare)}. Paid directly to the driver. ${link(T)}`,
         );
       }
       /* ---------- init ---------- */
       addEventListener("load", () => {
         applyTheme();
+        initLoc();
+        setInterval(locUI, 3000);
         buildForm();
         $("tg-t").classList.toggle("on", sim);
         if (trip && (trip.status == "ended" || trip.status == "cancelled")) {
