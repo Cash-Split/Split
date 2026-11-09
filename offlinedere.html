@@ -67,8 +67,8 @@
         overflow: hidden;
       }
       #top {
-        height: 54px;
-        padding: 0 16px;
+        min-height: 54px;
+        padding: 6px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -80,11 +80,12 @@
       .logo {
         font-family: var(--fd);
         font-weight: 800;
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         color: var(--bl);
         display: flex;
         align-items: center;
         gap: 8px;
+        white-space: nowrap;
       }
       .logo i {
         width: 8px;
@@ -98,22 +99,23 @@
         align-items: center;
         gap: 8px;
       }
-      .sp {
-        justify-content: space-between;
+      .wrap {
+        flex-wrap: wrap;
       }
       main {
         flex: 1;
         min-height: 0;
         overflow-y: auto;
-        padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
+        padding: 16px 14px calc(40px + env(safe-area-inset-bottom));
         max-width: 760px;
         width: 100%;
         margin: 0 auto;
+        -webkit-overflow-scrolling: touch;
       }
       .pg {
         display: none;
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
       }
       .pg.on {
         display: flex;
@@ -122,21 +124,60 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: var(--r);
-        padding: 18px;
+        padding: 16px;
       }
       body.compact .card {
-        padding: 12px;
+        padding: 11px;
       }
       .ct {
         font-family: var(--fd);
         font-weight: 700;
         font-size: 0.92rem;
         color: var(--bl);
-        margin-bottom: 14px;
+        margin-bottom: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 8px;
+      }
+      /* collapsible cards */
+      details.card {
+        padding: 0;
+      }
+      details.card > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        font-family: var(--fd);
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: var(--bl);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        min-height: 48px;
+      }
+      details.card > summary::-webkit-details-marker {
+        display: none;
+      }
+      details > summary::after {
+        content: "▾";
+        color: var(--text3);
+        transition: transform 0.2s;
+        flex-shrink: 0;
+      }
+      details[open] > summary::after {
+        transform: rotate(180deg);
+      }
+      details.card > .in {
+        padding: 0 16px 16px;
+      }
+      body.compact details.card > summary {
+        padding: 10px 12px;
+      }
+      body.compact details.card > .in {
+        padding: 0 12px 12px;
       }
       input,
       select {
@@ -148,6 +189,7 @@
         padding: 11px 13px;
         font-size: 0.9rem;
         width: 100%;
+        min-height: 44px;
         outline: none;
       }
       input:focus,
@@ -170,6 +212,8 @@
         justify-content: center;
         gap: 6px;
         color: var(--text);
+        min-height: 42px;
+        text-decoration: none;
       }
       .btn:active {
         transform: scale(0.97);
@@ -197,6 +241,7 @@
       .sm {
         padding: 6px 11px;
         font-size: 0.78rem;
+        min-height: 34px;
       }
       .bk {
         width: 100%;
@@ -221,7 +266,25 @@
       .g2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        gap: 10px;
+      }
+      .g4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (min-width: 640px) {
+        .g4 {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+      @media (max-width: 380px) {
+        .g2.fx {
+          grid-template-columns: 1fr;
+        }
+        .logo span {
+          display: none;
+        }
       }
       .muted {
         color: var(--text3);
@@ -252,13 +315,15 @@
         background: var(--bg3);
         border: 1px solid var(--border);
         border-radius: var(--rs);
-        padding: 14px;
+        padding: 12px 8px;
         text-align: center;
+        min-width: 0;
       }
       .stat b {
         display: block;
         font-family: var(--fd);
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        overflow-wrap: anywhere;
       }
       .stat small {
         font-size: 0.7rem;
@@ -274,6 +339,10 @@
         padding: 10px 0;
         gap: 10px;
         font-size: 0.88rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .srow:last-child {
+        border-bottom: 0;
       }
       .tog {
         width: 42px;
@@ -373,10 +442,9 @@
         gap: 6px;
         margin-top: 10px;
       }
-      /* live route canvas: white, black route, blue markers (same look as the rider page) */
       canvas {
         width: 100%;
-        height: 300px;
+        height: clamp(260px, 42vh, 420px);
         display: block;
         background: #fff;
         border: 1px solid var(--border);
@@ -391,8 +459,8 @@
       }
       #qr svg {
         display: block;
-        width: 200px;
-        height: 200px;
+        width: min(200px, 60vw);
+        height: min(200px, 60vw);
       }
       table {
         width: 100%;
@@ -402,15 +470,72 @@
       td {
         padding: 7px 0;
         border-bottom: 1px solid var(--border);
+        vertical-align: top;
       }
       td:last-child {
         text-align: right;
         font-family: var(--fd);
         font-weight: 700;
+        padding-left: 10px;
+        white-space: nowrap;
+      }
+      /* receipt hero */
+      .hero {
+        text-align: center;
+        padding: 6px 0 12px;
+      }
+      .hero b {
+        display: block;
+        font-family: var(--fd);
+        font-size: clamp(1.8rem, 8vw, 2.4rem);
+        color: var(--green);
+      }
+      .hero small {
+        color: var(--text3);
+        font-size: 0.74rem;
+      }
+      /* trip history (collapsible receipts) */
+      .hi {
+        border: 1px solid var(--border);
+        border-radius: var(--rs);
+        background: var(--bg3);
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+      .hi > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 11px 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.84rem;
+        min-height: 48px;
+      }
+      .hi > summary::-webkit-details-marker {
+        display: none;
+      }
+      .hi > summary::after {
+        content: "▾";
+        color: var(--text3);
+        margin-left: 6px;
+        transition: transform 0.2s;
+      }
+      .hi[open] > summary::after {
+        transform: rotate(180deg);
+      }
+      .hi .sm2 {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .hi .hb {
+        padding: 0 13px 13px;
       }
       .toast {
         position: fixed;
-        bottom: 24px;
+        bottom: calc(24px + env(safe-area-inset-bottom));
         left: 50%;
         transform: translateX(-50%);
         background: var(--bg2);
@@ -436,17 +561,25 @@
         .noprint {
           display: none !important;
         }
+        main {
+          overflow: visible;
+        }
       }
     </style>
   </head>
   <body>
     <header id="top">
-      <div class="logo"><i></i>🚖 Kadere</div>
+      <div class="logo"><i></i>🚖 <span>Kadere</span></div>
       <div class="row">
         <button id="locpill" class="btn bg sm" onclick="fixLoc()">📍 …</button>
         <select
           id="lg"
-          style="width: auto; padding: 6px 26px 6px 10px; font-size: 0.78rem"
+          style="
+            width: auto;
+            min-height: 34px;
+            padding: 6px 24px 6px 8px;
+            font-size: 0.78rem;
+          "
           onchange="window.I18N && I18N.set(this.value)"
         >
           <option value="en">🌐 EN</option>
@@ -456,7 +589,6 @@
       </div>
     </header>
     <main>
-      <!-- LOCATION WARNING (shown on every page when location is off) -->
       <div
         class="banner noprint"
         id="loc-banner"
@@ -468,6 +600,7 @@
           Turn on location
         </button>
       </div>
+
       <!-- REGISTER / EDIT -->
       <section id="p-reg" class="pg">
         <div class="card">
@@ -478,8 +611,9 @@
           <div id="form"></div>
           <div class="row">
             <button class="btn bg" id="r-back" onclick="regStep(-1)">
-              ‹ Back</button
-            ><button
+              ‹ Back
+            </button>
+            <button
               class="btn bp"
               id="r-next"
               style="flex: 1"
@@ -494,8 +628,9 @@
         </div>
         <div class="card" id="login-card">
           <div class="ct">Already registered? Sign in on this phone</div>
-          <div class="g2">
-            <input id="l-ph" placeholder="Phone" type="tel" /><input
+          <div class="g2 fx">
+            <input id="l-ph" placeholder="Phone" type="tel" />
+            <input
               id="l-pin"
               placeholder="PIN"
               type="password"
@@ -508,6 +643,7 @@
           </button>
         </div>
       </section>
+
       <!-- HOME -->
       <section id="p-home" class="pg">
         <div class="card">
@@ -517,6 +653,7 @@
           </div>
           <div class="xs muted" id="h-veh"></div>
           <div class="xs" id="h-cloud" style="margin-top: 6px"></div>
+                    <button class="btn bg sm" style="margin-top: 8px" onclick="restoreTrips()">↻ Restore trips from cloud</button>
         </div>
         <div class="g2">
           <div class="stat"><b id="h-n">0</b><small>Trips today</small></div>
@@ -525,49 +662,55 @@
           </div>
         </div>
         <button class="btn bgr bk big" onclick="newQuote()">＋ New trip</button>
-        <div class="card" id="h-hist-card" hidden>
-          <div class="ct">Recent trips</div>
-          <div id="h-hist"></div>
-        </div>
-        <div class="card">
-          <div class="ct">Settings</div>
-          <div class="srow">
-            Light mode
-            <div class="tog" id="tg-l" onclick="setOpt('lightMode')"></div>
+        <details class="card" id="h-hist-card" hidden open>
+          <summary>
+            Recent trips <span class="xs muted" id="h-hc"></span>
+          </summary>
+          <div class="in" id="h-hist"></div>
+        </details>
+        <details class="card">
+          <summary>Settings</summary>
+          <div class="in">
+            <div class="srow">
+              Light mode
+              <div class="tog" id="tg-l" onclick="setOpt('lightMode')"></div>
+            </div>
+            <div class="srow">
+              Compact view
+              <div class="tog" id="tg-c" onclick="setOpt('compactView')"></div>
+            </div>
+            <div class="srow">
+              Text size
+              <select
+                id="fs"
+                style="width: auto"
+                onchange="setOpt('fontSize', this.value)"
+              >
+                <option value="14px">Small</option>
+                <option value="16px">Default</option>
+                <option value="18px">Large</option>
+                <option value="20px">X-Large</option>
+              </select>
+            </div>
+            <div class="srow">
+              Test mode (simulated route)
+              <div class="tog" id="tg-t" onclick="toggleSim()"></div>
+            </div>
+            <div class="srow">
+              <span
+                >Sign out<br /><small class="muted xs"
+                  >Trips stay on this phone</small
+                ></span
+              ><button class="btn bg sm" onclick="logout()">Sign out</button>
+            </div>
           </div>
-          <div class="srow">
-            Compact view
-            <div class="tog" id="tg-c" onclick="setOpt('compactView')"></div>
-          </div>
-          <div class="srow">
-            Text size<select
-              id="fs"
-              style="width: auto"
-              onchange="setOpt('fontSize', this.value)"
-            >
-              <option value="14px">Small</option>
-              <option value="16px">Default</option>
-              <option value="18px">Large</option>
-              <option value="20px">X-Large</option>
-            </select>
-          </div>
-          <div class="srow">
-            Test mode (simulated route)
-            <div class="tog" id="tg-t" onclick="toggleSim()"></div>
-          </div>
-          <div class="srow">
-            <span
-              >Sign out<br /><small class="muted xs"
-                >Trips stay on this phone</small
-              ></span
-            ><button class="btn bg sm" onclick="logout()">Sign out</button>
-          </div>
-        </div>
+        </details>
         <div class="xs muted">
           Pricing and receipt aid only. Drivers are responsible for any required
           licences and insurance.
         </div>
       </section>
+
       <!-- QUOTE -->
       <section id="p-quote" class="pg">
         <div class="card">
@@ -575,7 +718,7 @@
             <span>Today's context</span
             ><button class="btn bg sm" onclick="show('home')">✕</button>
           </div>
-          <div class="g2">
+          <div class="g2 fx">
             <div class="fg">
               <label class="fl">Traffic</label
               ><select id="q_tr">
@@ -618,30 +761,35 @@
           Lock rate &amp; get QR
         </button>
       </section>
+
       <!-- TRIP -->
       <section id="p-trip" class="pg">
         <div class="banner noprint" id="warn">
           Keep CashSplit visible or in split screen for accurate tracking.
         </div>
-        <div class="card" id="t-share" style="text-align: center">
-          <div class="ct">Client scans to follow the trip</div>
-          <div id="qr"></div>
-          <div
-            class="xs muted"
-            id="qr-link"
-            style="margin: 10px 0; word-break: break-all"
-          ></div>
-          <div class="row" style="justify-content: center">
-            <button class="btn bg sm" onclick="shareWA()">WhatsApp link</button
-            ><button class="btn bg sm" onclick="copyLink()">Copy link</button>
+        <details class="card" id="t-share" style="text-align: center" open>
+          <summary>Client scans to follow the trip</summary>
+          <div class="in">
+            <div id="qr"></div>
+            <div
+              class="xs muted"
+              id="qr-link"
+              style="margin: 10px 0; word-break: break-all"
+            ></div>
+            <div class="row wrap" style="justify-content: center">
+              <button class="btn bg sm" onclick="shareWA()">
+                WhatsApp link
+              </button>
+              <button class="btn bg sm" onclick="copyLink()">Copy link</button>
+            </div>
           </div>
-        </div>
+        </details>
         <div class="card" style="text-align: center">
           <div class="xs muted" id="t-st"></div>
           <div class="stat" style="margin: 10px 0">
             <b id="fare" class="tg">0</b><small id="t-f">Fare</small>
           </div>
-          <div class="g2">
+          <div class="g4">
             <div class="stat"><b id="m-km">0 m</b><small>distance</small></div>
             <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
             <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
@@ -651,35 +799,41 @@
           </div>
         </div>
         <canvas id="cv"></canvas>
-        <div class="card noprint" id="t-ex">
-          <div class="ct">Extras</div>
-          <div class="g2">
-            <input id="x-lab" placeholder="Toll, parking, luggage" /><input
-              id="x-amt"
-              type="number"
-              placeholder="Amount"
-            />
+        <details class="card noprint" id="t-ex">
+          <summary>Extras <span class="xs muted" id="x-n"></span></summary>
+          <div class="in">
+            <div class="g2 fx">
+              <input id="x-lab" placeholder="Toll, parking, luggage" />
+              <input id="x-amt" type="number" placeholder="Amount" />
+            </div>
+            <button
+              class="btn bg sm bk"
+              style="margin-top: 8px"
+              onclick="addExtra()"
+            >
+              Add extra
+            </button>
+            <div class="xs muted" id="x-list" style="margin-top: 6px"></div>
           </div>
-          <button
-            class="btn bg sm bk"
-            style="margin-top: 8px"
-            onclick="addExtra()"
-          >
-            Add extra
-          </button>
-          <div class="xs muted" id="x-list" style="margin-top: 6px"></div>
-        </div>
-        <div class="row noprint" id="t-ctl" style="flex-wrap: wrap"></div>
+        </details>
+        <div class="row noprint wrap" id="t-ctl"></div>
       </section>
+
       <!-- RECEIPT -->
       <section id="p-rec" class="pg">
         <div class="card">
           <div class="ct">Receipt</div>
+          <div class="hero">
+            <b id="rec-total">0</b><small id="rec-sub"></small>
+          </div>
           <canvas id="cv2" style="margin-bottom: 12px"></canvas>
-          <div id="rec"></div>
+          <details id="rec-d" open class="hi" style="background: transparent">
+            <summary><b>Fare breakdown</b></summary>
+            <div class="hb" id="rec"></div>
+          </details>
           <div class="fg noprint" style="margin-top: 12px">
-            <label class="fl">Paid by</label
-            ><select id="pay" onchange="setPay()">
+            <label class="fl">Paid by</label>
+            <select id="pay" onchange="setPay()">
               <option value="cash">Cash</option>
               <option value="mpesa">M-Pesa</option>
             </select>
@@ -689,12 +843,13 @@
             receipt aid only.
           </div>
         </div>
-        <div class="row noprint" style="flex-wrap: wrap">
+        <div class="row noprint wrap">
           <button class="btn bgr" id="logb" onclick="logIncome()">
-            Log as income</button
-          ><button class="btn bg" onclick="shareRec()">WhatsApp</button
-          ><button class="btn bg" onclick="print()">Save PDF</button
-          ><button class="btn bp" onclick="done()">Done</button>
+            Log as income
+          </button>
+          <button class="btn bg" onclick="shareRec()">WhatsApp</button>
+          <button class="btn bg" onclick="print()">Save PDF</button>
+          <button class="btn bp" onclick="done()">Done</button>
         </div>
       </section>
     </main>
@@ -703,7 +858,7 @@
     <script>
       /* ---------- helpers & storage ---------- */
       const BACKEND_URL =
-        "https://script.google.com/macros/s/AKfycbyayi95cytmP0EJuY0XbLFzaSmODWApA8WEGWb0_jeBoQmriRCWM8X10Yio1xzOPk_5/exec"; /* Apps Script web app. Leave as is to run fully offline. */
+        "https://script.google.com/macros/s/AKfycbxiLhvoz7dSGhd1Vu8nlZgL0TrIf0h69wKFvfya9bZzYJIV5wlCtht_N8BO6aDasJp5/exec";
       const $ = (id) => document.getElementById(id),
         ls = localStorage;
       const J = (k, d) => {
@@ -841,7 +996,7 @@
               : Math.round(pre);
         return { d, t, w, mn, su, ex, rd: tot - pre, tot };
       }
-      /* ---------- route <-> one compact string (same format the sheet stores: 1 row per trip) ---------- */
+      /* ---------- route <-> one compact string ---------- */
       const eV = (v) => {
         v = v < 0 ? ~(v << 1) : v << 1;
         let s = "";
@@ -893,7 +1048,6 @@
         }
         return out;
       }
-      /* only for very long trips (sheet cell limit): drops points on straight stretches, keeps every real turn */
       function simp(pts, tol) {
         if (pts.length < 3) return pts;
         const k = Math.cos((pts[0][0] * Math.PI) / 180),
@@ -940,7 +1094,6 @@
         }
         return e;
       }
-      /* rebuild a route from the sheet (cache cleared, or opening an old receipt) */
       async function fetchRoute(T) {
         if (!live() || !T || !T.token) return [];
         try {
@@ -1059,7 +1212,7 @@
             o[f[0]] = f[2] == "number" ? parseFloat(x) || 0 : x.trim();
           }),
         );
-        if (P) o.phone = P.phone; /* phone is the login key, never changed */
+        if (P) o.phone = P.phone;
         const ph = o.phone.replace(/\D/g, "");
         if (!o.name || ph.length < 9) {
           step = 0;
@@ -1094,7 +1247,7 @@
               id = d.driverId || id;
             } else if (d.error === "exists")
               return toast("Phone already registered. Sign in instead.");
-          } catch (e) {} /* offline: registers later via sync */
+          } catch (e) {}
         } else if (!isNew && pin && remote) {
           try {
             const d = await post({
@@ -1142,7 +1295,8 @@
             pinHash: await sha(ph + pin),
             remote: 1,
           });
-          S("kd_driver", P);
+                   S("kd_driver", P);
+          await restoreTrips(true);
           show("home");
           sync();
         } catch (e) {
@@ -1161,6 +1315,13 @@
       }
       /* ---------- home ---------- */
       const trips = () => J("kd_trips_local", []);
+      const fdt = (t) =>
+        new Date(t).toLocaleString([], {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       function renderHome() {
         if (!P) return;
         $("h-name").textContent = "Hi, " + P.name;
@@ -1177,15 +1338,93 @@
         $("tg-t").classList.toggle("on", sim);
         const hl = J("kd_hist", []);
         $("h-hist-card").hidden = !hl.length;
+        $("h-hc").textContent = hl.length
+          ? "(" + Math.min(hl.length, 8) + ")"
+          : "";
+        /* each past trip is a collapsible receipt: tap to open the full breakdown */
         $("h-hist").innerHTML = hl
           .slice(0, 8)
           .map(
             (r) =>
-              `<div class="srow"><span>${new Date(r.endedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}<br><small class="muted xs">${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span><b>${m(r.fare)}</b> <button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">View</button></span></div>`,
+              `<details class="hi"><summary><span>${fdt(r.endedAt)}<br><small class="muted xs">${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span class="sm2"><b class="tg">${m(r.fare)}</b></span></summary><div class="hb">${recTable(r)}<div class="row wrap" style="margin-top:10px"><button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">🗺 Route &amp; receipt</button><button class="btn bg sm" onclick="shareRec('${esc(r.id)}')">WhatsApp</button></div></div></details>`,
           )
           .join("");
         cloud();
       }
+
+            /* pull this driver's finished trips from the sheet into this phone (new phone / cleared browser) */
+      async function restoreTrips(quiet) {
+        if (!P || !live()) return;
+        try {
+          const d = await post({
+            action: "driverTrips",
+            driverId: P.driverId,
+            pinHash: P.pinHash,
+          });
+          if (!d.ok) throw 0;
+          const hist = J("kd_hist", []),
+            loc = trips(),
+            have = new Set(hist.map((x) => x.id)),
+            haveL = new Set(loc.map((x) => x.id));
+          let added = 0;
+          d.trips.forEach((t) => {
+            if (!have.has(t.tripId)) {
+              const c = calc(
+                t.rates,
+                t.km,
+                t.sec,
+                t.waitSec,
+                t.mult,
+                t.extras.reduce((a, x) => a + x.amt, 0),
+              );
+              c.rd += t.fare - c.tot;
+              c.tot = t.fare; /* show exactly what was charged */
+              hist.push({
+                id: t.tripId,
+                token: t.token,
+                cur: t.currency,
+                startedAt: t.startedAt,
+                endedAt: t.endedAt,
+                km: t.km,
+                gapKm: t.gapKm,
+                sec: t.sec,
+                wait: t.waitSec,
+                fare: t.fare,
+                pay: t.pay,
+                rates: t.rates,
+                mult: t.mult,
+                extras: t.extras,
+                bd: c,
+                srvFare: t.fare,
+                status: "ended",
+                logged: 0,
+                pts: [],
+              });
+              added++;
+            }
+            if (!haveL.has(t.tripId))
+              loc.push({
+                id: t.tripId,
+                status: "ended",
+                endedAt: t.endedAt,
+                fare: t.fare,
+              });
+          });
+          hist.sort((a, b) => b.endedAt - a.endedAt);
+          loc.sort((a, b) => b.endedAt - a.endedAt);
+          try {
+            ls.setItem("kd_hist", JSON.stringify(hist.slice(0, 50)));
+          } catch (e) {}
+          S("kd_trips_local", loc.slice(0, 100));
+          renderHome();
+          if (!quiet)
+            toast(added ? added + " trip(s) restored" : "Nothing new to restore");
+        } catch (e) {
+          if (!quiet)
+            toast("Could not restore trips. Check internet and try again.");
+        }
+      }
+
       /* ---------- quote and analyser ---------- */
       let Q = { rate: 0, adj: 0 },
         bq = Promise.resolve();
@@ -1325,12 +1564,19 @@
         wake = null,
         tick = null,
         hid = 0;
-      /* live position state (not saved): latest raw fix from the device, used for the moving head and the status line */
       let gps = null,
         lastGpsErr = 0;
-      const ACC_MAX = 1e9; /* no accuracy filter: every fix the device reports is used as is */
-      let RV =
-        null; /* a finished trip opened from "Recent trips" (null = the current trip) */
+      /* GPS quality gates: fixes worse than ACC_MAX are ignored; the first point needs ACC_START or better */
+      const ACC_START = 40,
+        ACC_MAX = 60; /* metres */
+      const VMAX = {
+        boda: 110,
+        "tuk-tuk": 70,
+        car: 150,
+        van: 130,
+      }; /* km/h: a jump faster than this is rejected */
+      let cand = [];
+      let RV = null;
       const RT = () => RV || trip;
       const link = (T) => {
         T = T || RT();
@@ -1343,7 +1589,7 @@
           token: rid(14),
           driverId: P.driverId,
           cur: sym(),
-          created: 0 /* 1 once the server has the trip */,
+          created: 0,
           started: 0,
           rs: "quoted",
           endSent: 0,
@@ -1360,9 +1606,10 @@
           wait: 0,
           pts: [],
           sent: 0,
-          hb: 0 /* last time totals were sent to the server */,
+          hb: 0,
           err: "",
           last: null,
+          lt: 0,
           fare: 0,
           pay: "cash",
           est: {
@@ -1373,6 +1620,7 @@
         };
         trip = T;
         gps = null;
+        cand = [];
         S("kd_trip", T);
         openTrip();
         sync();
@@ -1382,6 +1630,9 @@
         HD = null;
         show("trip");
         $("t-share").hidden = trip.status == "ended";
+        $("t-share").open =
+          trip.status ==
+          "quoted"; /* QR open before the trip, collapsed once driving */
         renderQR();
         renderTrip();
         ctl();
@@ -1421,29 +1672,21 @@
       const exT = () => trip.extras.reduce((a, x) => a + x.amt, 0),
         cur = () =>
           calc(trip.rates, trip.km, trip.sec, trip.wait, trip.mult, exT());
-      /* distance shown in metres under 1 km, then in km */
       function fmtDist(km) {
         km = Math.max(0, +km || 0);
         return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(2) + " km";
       }
-      /* committed distance + the stretch from the last recorded point to the live device position (display only) */
+      /* display uses only accepted points, never raw GPS */
       function liveKm() {
-        let k = trip.km;
-        if (
-          trip.status == "active" &&
-          trip.last &&
-          gps &&
-          Date.now() - gps.ts < 10000
-        ) {
-          const d = hav(trip.last.lat, trip.last.lng, gps.lat, gps.lng);
-          if (d > 0 && d < 500) k += d / 1000;
-        }
-        return k;
+        return trip.km;
       }
       function gpsLine() {
         if (trip.status != "active") return "";
         if (!gps) return " · waiting for device location…";
-        return " · location ±" + Math.round(gps.acc) + " m";
+        const a = Math.round(gps.acc);
+        return !trip.last && a > ACC_START
+          ? " · improving GPS accuracy (±" + a + " m)…"
+          : " · location ±" + a + " m";
       }
       function renderTrip() {
         const c = cur();
@@ -1459,6 +1702,9 @@
         $("x-list").textContent = trip.extras
           .map((x) => x.label + " " + m(x.amt))
           .join(", ");
+        $("x-n").textContent = trip.extras.length
+          ? "(" + trip.extras.length + " · " + m(exT()) + ")"
+          : "";
         S("kd_trip", trip);
       }
       function ctl() {
@@ -1479,23 +1725,21 @@
         $("warn").hidden = s == "quoted" || s == "ended";
       }
       async function startTrip() {
-        /* a trip cannot start unless location is shared (test mode is exempt) */
         if (!sim && !(await fixLoc()))
           return toast("Turn on location to start the trip");
         trip.status = "active";
         trip.startedAt = Date.now();
         trip.sim = sim;
-        if (!sim && gps && Date.now() - gps.ts < 15000) {
-          trip.last = { lat: gps.lat, lng: gps.lng, ts: Date.now() };
-          trip.pts.push([gps.lat, gps.lng, Date.now(), 0]);
-        }
+        cand = [];
+        /* the first point comes from onPos once accuracy is good enough */
         S("kd_trip", trip);
         sync();
         startGeo();
         wl();
         ctl();
         renderTrip();
-        $("t-share").hidden = false;
+        $("t-share").open =
+          false; /* collapse QR so the meter and map are in view */
       }
       function pauseTrip() {
         trip.status = "paused";
@@ -1510,6 +1754,7 @@
         trip.paused += Date.now() - trip.pauseAt;
         trip.status = "active";
         if (trip.last) trip.last.ts = Date.now();
+        trip.lt = Date.now();
         ctl();
         renderTrip();
         sync();
@@ -1532,8 +1777,7 @@
         renderTrip();
       }
       /* ---------- location status ---------- */
-      let locPerm =
-        "unknown"; /* granted | prompt | denied | unsupported | unknown */
+      let locPerm = "unknown";
       async function initLoc() {
         if (!navigator.geolocation) {
           locPerm = "unsupported";
@@ -1556,8 +1800,7 @@
           locPerm = "unknown";
         }
         locUI();
-        if (locPerm !== "granted" && locPerm !== "denied")
-          fixLoc(); /* ask early */
+        if (locPerm !== "granted" && locPerm !== "denied") fixLoc();
       }
       function fixLoc() {
         return new Promise((res) => {
@@ -1598,8 +1841,8 @@
         const p = $("locpill"),
           b = $("loc-banner");
         if (!p) return;
-        const act = trip && trip.status === "active";
-        const fresh = gps && Date.now() - gps.ts < 20000;
+        const act = trip && trip.status === "active",
+          fresh = gps && Date.now() - gps.ts < 20000;
         let txt,
           cls,
           msg = "";
@@ -1692,7 +1935,6 @@
           wake = null;
         }
       }
-      /* some phones stop sending watchPosition updates: if no fix for 6 s, restart the watch and ask once directly */
       function geoWatchdog() {
         if (
           !trip ||
@@ -1715,9 +1957,10 @@
           maximumAge: 0,
         });
       }
-      /* Called on every location fix from the device. NO filtering: the latitude/longitude the phone
-         reports is recorded exactly as given, drawn exactly as given, and sent to the backend exactly
-         as given (encoded into the one route string per trip). Only an identical repeat is skipped. */
+      /* Every location fix passes through these gates before it can touch distance, fare or the route:
+   1. accuracy worse than ACC_MAX: ignored
+   2. impossible speed jump: rejected (3 agreeing fixes in a row re-anchor the position, no distance added)
+   3. movement inside GPS noise: counted as stationary (a parked car stays at 0 m) */
       function onPos(p) {
         const c = p.coords,
           ts = p.timestamp || Date.now();
@@ -1726,35 +1969,56 @@
           lng: c.longitude,
           acc: c.accuracy,
           ts,
-        };
+        }; /* raw: status line only */
         const T = trip;
         if (!T || T.status != "active") return;
-        const L = T.last;
+        if (c.accuracy > ACC_MAX) return renderTrip();
+        const fix = { lat: c.latitude, lng: c.longitude, ts },
+          L = T.last;
         if (!L) {
-          T.last = { lat: c.latitude, lng: c.longitude, ts };
-          T.pts.push([c.latitude, c.longitude, ts, 0]);
+          if (c.accuracy > ACC_START) return renderTrip();
+          T.last = fix;
+          T.lt = ts;
+          T.pts.push([fix.lat, fix.lng, ts, 0]);
           renderTrip();
           draw();
           kick();
           return;
         }
+        const prevLt = T.lt || ts,
+          dtw = (ts - prevLt) / 1000;
+        T.lt = ts; /* time since the previous usable fix */
         const dt = (ts - L.ts) / 1000;
         if (dt <= 0) return;
-        const d = hav(L.lat, L.lng, c.latitude, c.longitude),
-          sp = c.speed != null && c.speed >= 0 ? c.speed * 3.6 : (d / dt) * 3.6;
-        if (sp < 5 && dt < 60) T.wait += dt;
-        /* identical coordinates: nothing new to record */
-        if (d === 0) {
-          L.ts = ts;
-          renderTrip();
-          return;
+        const d = hav(L.lat, L.lng, fix.lat, fix.lng),
+          kmh = (d / dt) * 3.6;
+        if (d > 100 && kmh > (VMAX[P && P.vehicleType] || 150)) {
+          cand.push(fix);
+          if (cand.length > 4) cand.shift();
+          const q = cand.slice(-3);
+          if (
+            q.length == 3 &&
+            q.every((z) => hav(z.lat, z.lng, fix.lat, fix.lng) < 60)
+          ) {
+            cand = [];
+            T.pts.push([fix.lat, fix.lng, ts, 1]);
+            T.last = fix;
+            draw();
+            kick();
+          }
+          return renderTrip();
         }
-        const est = dt > 45 || hid > 20000 ? 1 : 0;
+        cand = [];
+        const sp = c.speed != null && c.speed >= 0 ? c.speed * 3.6 : kmh;
+        if (sp < 5 && dtw < 60) T.wait += dtw;
+        if (d < Math.max(8, c.accuracy * 0.5))
+          return renderTrip(); /* inside GPS noise: stationary */
+        const est = dtw > 45 || hid > 20000 ? 1 : 0;
         hid = 0;
         T.km += d / 1000;
         if (est) T.gapKm += d / 1000;
-        T.last = { lat: c.latitude, lng: c.longitude, ts };
-        T.pts.push([c.latitude, c.longitude, ts, est]);
+        T.last = fix;
+        T.pts.push([fix.lat, fix.lng, ts, est]);
         renderTrip();
         draw();
         kick();
@@ -1785,9 +2049,8 @@
           sync();
         }
       });
-      /* ---------- cloud sync (state based, retried, queued) ---------- */
+      /* ---------- cloud sync ---------- */
       const soft = (e) => e === "busy" || e === "server_error";
-      /* only these errors end syncing for a trip; everything else keeps retrying and shows its error */
       const FATAL = ["trip_locked", "auth_failed"];
       const Qs = () => J("kd_syncq", []);
       function queueTrip(T) {
@@ -1857,7 +2120,6 @@
           S("kd_driver", P);
         } catch (e) {}
       }
-      /* the server does not know this driver (sheet wiped or account never reached it): push the profile again */
       async function repairDriver() {
         if (!P) return;
         P.remote = 0;
@@ -1889,7 +2151,6 @@
         fare: T.fare,
         gapKm: T.gapKm,
       });
-      /* a call failed after the trip existed: if the server lost the trip, start over so the whole route is re-sent */
       function lost(T) {
         if (T.err === "not_found") {
           T.created = 0;
@@ -1899,7 +2160,6 @@
         }
         return !!T.dead;
       }
-      /* returns true when nothing more can/needs to be done for this trip */
       async function syncTrip(T) {
         if (T.dead) return true;
         if (T.status === "cancelled" && !T.created) return true;
@@ -1919,21 +2179,18 @@
           }
           T.created = 1;
         }
-        if (T.status === "cancelled") {
+        if (T.status === "cancelled")
           return (
             !!(await tcall(T, {
               action: "setTripStatus",
               status: "cancelled",
             })) || !!T.dead
           );
-        }
         if (T.status !== "quoted" && !T.started) {
           if (!(await tcall(T, { action: "startTrip" }))) return lost(T);
           T.started = 1;
           T.rs = "active";
         }
-        /* ONE row per trip on the server: the whole line (encoded) + totals. Throttled to every 6 s while
-           driving; pause / end send at once. The points on this phone stay as the cache. */
         if (
           T.status !== "ended" &&
           T.sent < T.pts.length &&
@@ -1952,14 +2209,8 @@
           T.sent = n;
           T.rt = T.hb = Date.now();
         }
-        /* heartbeat: while stopped (waiting in traffic) no new points arrive, but time, waiting and fare still change */
         if (T.status === "active" && Date.now() - (T.hb || 0) > 10000) {
-          if (
-            !(await tcall(T, {
-              action: "updateTrip",
-              totals: tots(T),
-            }))
-          )
+          if (!(await tcall(T, { action: "updateTrip", totals: tots(T) })))
             return lost(T);
           T.hb = Date.now();
         }
@@ -2000,7 +2251,6 @@
       let syncing = false,
         again = false,
         kt = 0;
-      /* schedule an upload shortly after a new point (batches several points into one call) */
       function kick() {
         if (kt) return;
         kt = setTimeout(() => {
@@ -2059,11 +2309,7 @@
           }
         }
       }
-      /* ---------- route drawing ----------
-         One continuous line made of straight segments through every recorded device coordinate,
-         exactly as the phone reported them (no smoothing, no curve fitting). The head of the line
-         glides to the live device position and the camera glides to its new framing.
-         Used for the live trip and the receipt. */
+      /* ---------- route drawing ---------- */
       const NICE = [
         5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
       ];
@@ -2100,11 +2346,9 @@
           x.fillText(o.msg || "…", W / 2, H / 2);
           return;
         }
-        /* metres from the first point: the exact device coordinates, no smoothing */
         const k = Math.cos((all[0][0] * Math.PI) / 180),
           M = 111320,
-          raw = all.map((q) => [q[1] * k * M, q[0] * M]),
-          D = raw;
+          D = all.map((q) => [q[1] * k * M, q[0] * M]);
         let x0 = 1e18,
           x1 = -1e18,
           y0 = 1e18,
@@ -2126,7 +2370,6 @@
           cy = ty,
           s = ts;
         if (C) {
-          /* the camera glides to the new framing instead of jumping */
           if (!C.i) {
             C.x = tx;
             C.y = ty;
@@ -2151,7 +2394,6 @@
           W / 2 + (q[0] - cx) * s,
           H / 2 - (q[1] - cy) * s,
         ]);
-        /* grid */
         let g = NICE[NICE.length - 1];
         for (const n of NICE)
           if (n * s >= 44) {
@@ -2180,7 +2422,6 @@
           x.lineTo(W, py);
         }
         x.stroke();
-        /* the route: one continuous line through the real points, white casing under a black line */
         x.lineCap = x.lineJoin = "round";
         if (sc.length > 1) {
           trace(x, sc);
@@ -2191,7 +2432,6 @@
           x.lineWidth = 4;
           x.stroke();
         }
-        /* A at the start, B at the end (letters only), an arrow at the live end */
         const tag = (t, p) => {
           x.font = "700 14px sans-serif";
           x.textAlign = "center";
@@ -2227,7 +2467,6 @@
           x.stroke();
           x.restore();
         }
-        /* scale bar + north */
         let nm = NICE[0];
         for (const q of NICE) if (q <= (1 / s) * 90) nm = q;
         const px = nm * s,
@@ -2258,15 +2497,16 @@
       const CAM = { i: 0 };
       function draw() {
         if (!trip || !$("p-trip").classList.contains("on")) return;
-        const on = trip.status == "active" && gps && trip.pts.length;
+        /* the arrow follows the last ACCEPTED point, never raw GPS */
+        const on = trip.status == "active" && trip.last && trip.pts.length;
         let moving = false;
         if (on) {
-          /* the line's head glides toward the phone's live position: the route is drawn as you drive */
-          if (!HD) HD = [gps.lat, gps.lng];
+          const g = [trip.last.lat, trip.last.lng];
+          if (!HD) HD = g;
           else {
-            HD[0] += (gps.lat - HD[0]) * 0.25;
-            HD[1] += (gps.lng - HD[1]) * 0.25;
-            if (hav(HD[0], HD[1], gps.lat, gps.lng) > 0.15) moving = true;
+            HD[0] += (g[0] - HD[0]) * 0.25;
+            HD[1] += (g[1] - HD[1]) * 0.25;
+            if (hav(HD[0], HD[1], g[0], g[1]) > 0.15) moving = true;
           }
         } else HD = null;
         const o = {
@@ -2278,7 +2518,7 @@
               ? "Route appears once the trip starts"
               : !gps
                 ? "Waiting for device location…"
-                : "Waiting for first location point…",
+                : "Waiting for an accurate first location point…",
         };
         paint($("cv"), trip.pts, o);
         if ((moving || o.moving) && !RAF)
@@ -2296,7 +2536,6 @@
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
       });
       /* ---------- end and receipt ---------- */
-      /* keep the finished trip (with its route) on this phone so the driver can reopen it later */
       function saveFull(T) {
         const r5 = (v) => Math.round(v * 1e6) / 1e6,
           rec = {
@@ -2339,7 +2578,6 @@
         const r = J("kd_hist", []).find((x) => x.id === id);
         if (!r) return;
         RV = r;
-        /* route no longer on this phone? fetch it from the sheet */
         if (!r.pts || r.pts.length < 2)
           fetchRoute(r).then((p) => {
             if (p.length < 2) return;
@@ -2357,19 +2595,7 @@
         drawRec(r);
       }
       async function endTrip() {
-        /* add the last stretch up to where the phone is now, so the line and the km reach the end */
-        if (
-          trip.status == "active" &&
-          trip.last &&
-          gps &&
-          Date.now() - gps.ts < 15000
-        ) {
-          const d = hav(trip.last.lat, trip.last.lng, gps.lat, gps.lng);
-          if (d > 0 && d < 500) {
-            trip.km += d / 1000;
-            trip.pts.push([gps.lat, gps.lng, gps.ts, 0]);
-          }
-        }
+        /* trip.last is already the last accepted point, nothing extra is added from raw GPS */
         stopGeo();
         trip.endedAt = Date.now();
         if (trip.status == "active")
@@ -2394,22 +2620,17 @@
         show("rec");
         drawRec(trip);
       }
-      function renderRec(T) {
-        T = T || RT();
-        const c = T.bd || cur(),
+      /* receipt table, shared by the receipt page and the collapsible history items */
+      function recTable(T) {
+        const c =
+            T.bd ||
+            (trip && trip.id === T.id
+              ? cur()
+              : { d: 0, t: 0, w: 0, mn: 0, su: 0, rd: 0, tot: T.fare }),
           r = T.rates,
-          row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`,
-          f = (t) =>
-            new Date(t).toLocaleString([], {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-        $("pay").value = T.pay;
-        $("logb").disabled = !!T.logged;
-        $("rec").innerHTML =
-          `<div class="xs muted" style="margin-bottom:8px">${esc(P.name)} · ${esc([P.vehicleType, P.plate].filter(Boolean).join(" "))}<br>${f(T.startedAt)} to ${f(T.endedAt)}</div><table>` +
+          row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+        return (
+          `<div class="xs muted" style="margin-bottom:8px">${esc(P.name)} · ${esc([P.vehicleType, P.plate].filter(Boolean).join(" "))}<br>${fdt(T.startedAt)} to ${fdt(T.endedAt)}</div><table>` +
           row(
             "Distance" +
               (T.gapKm ? " (" + T.gapKm.toFixed(2) + " km estimated)" : ""),
@@ -2432,7 +2653,18 @@
           (T.srvFare != null && Math.abs(T.srvFare - c.tot) > 0.01
             ? row("Cloud total (rider link)", m(T.srvFare))
             : "") +
-          "</table>";
+          "</table>"
+        );
+      }
+      function renderRec(T) {
+        T = T || RT();
+        const c = T.bd || cur();
+        $("pay").value = T.pay;
+        $("logb").disabled = !!T.logged;
+        $("rec-total").textContent = m(c.tot);
+        $("rec-sub").textContent =
+          fmtDist(T.km) + " · " + mmss(T.sec) + " · " + fdt(T.endedAt);
+        $("rec").innerHTML = recTable(T);
       }
       function setPay() {
         const T = RT();
@@ -2476,8 +2708,9 @@
             .writeText(link())
             .then(() => toast("Link copied"));
       }
-      function shareRec() {
-        const T = RT();
+      function shareRec(id) {
+        const T = id ? J("kd_hist", []).find((x) => x.id === id) : RT();
+        if (!T) return;
         wa(
           `Trip receipt: ${fmtDist(T.km)}, ${mmss(T.sec)}, total ${m(T.fare)}. Paid directly to the driver. ${link(T)}`,
         );
@@ -2495,20 +2728,20 @@
           S("kd_trip", null);
         }
         if (trip) {
-          trip.dead = 0; /* give a saved trip a fresh chance to sync */
+          trip.dead = 0;
           trip.err = "";
         }
         setInterval(sync, 5000);
         addEventListener("online", sync);
         sync();
-        if (!P) {
-          show("reg");
-        } else if (
-          trip &&
-          trip.status != "ended" &&
-          trip.status != "cancelled"
-        ) {
-          if (trip.status == "active" && trip.last) trip.last.ts = Date.now();
+        if (P && !J("kd_hist", []).length) restoreTrips(true);
+        if (!P) show("reg");
+        else if (trip && trip.status != "ended" && trip.status != "cancelled") {
+          if (trip.status == "active") {
+            const n = Date.now();
+            if (trip.last) trip.last.ts = n;
+            trip.lt = n;
+          }
           openTrip();
         } else show("home");
         if ("serviceWorker" in navigator)
