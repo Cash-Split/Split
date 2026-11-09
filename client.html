@@ -409,7 +409,7 @@
       /* route viewport: white, black route, blue endpoints */
       #cv {
         width: 100%;
-        height: 300px;
+        height: clamp(260px, 42vh, 420px);
         display: block;
         border-radius: var(--rs);
         background: #fff;
@@ -839,6 +839,7 @@
             </div>
           </div>
           <div class="xs mut" id="lastupd" style="margin-top: 12px"></div>
+          <div class="xs" id="m-ex" hidden style="margin-top: 6px"></div>
         </div>
 
         <details class="card" id="routecard" open>
@@ -1385,6 +1386,7 @@
           a_ok: "✓ Saved to your profile",
           a_linked: "Trip saved to your profile",
           a_taken: "This trip is already saved to another profile.",
+          route_wait: "Waiting for the driver's first location…",
         },
       };
       /* Swahili for the new profile strings and the two corrected notices live here, so clientswa.js can stay untouched.
@@ -1434,6 +1436,7 @@
         a_ok: "✓ Imehifadhiwa kwenye wasifu wako",
         a_linked: "Safari imehifadhiwa kwenye wasifu wako",
         a_taken: "Safari hii tayari imehifadhiwa kwenye wasifu mwingine.",
+        route_wait: "Inasubiri eneo la kwanza la dereva…",
       };
       D.sw = Object.assign({}, window.KC_SW || {}, SW_NEW);
       let lang =
@@ -1551,6 +1554,20 @@
           out.push([la / 1e5, ln / 1e5, 0, 0]);
         }
         return out;
+      }
+      /* the server also sends which points the driver's phone marked "estimated" (e.g. "3-5,9"): draw them dashed, like the driver sees */
+      function withEst(p, est) {
+        String(est || "")
+          .split(",")
+          .forEach((r) => {
+            if (!r) return;
+            const a = r.split("-"),
+              lo = +a[0],
+              hi = a.length > 1 ? +a[1] : lo;
+            for (let i = Math.max(0, lo); i <= hi && i < p.length; i++)
+              p[i][3] = 1;
+          });
+        return p;
       }
       const BACKOFF = [3000, 6000, 12000, 20000];
       function norm(d) {
@@ -1838,10 +1855,16 @@
             d.error ||
             d.expired
           ) {
-            if (!(sum && (sum.status == "ended" || sum.status == "cancelled")))
-              gone(false);
-            busy = false;
-            return stopPoll();
+            /* only a missing / expired trip means "link gone"; any other server hiccup just retries with backoff */
+            if (d && (d.expired || d.error === "not_found")) {
+              if (
+                !(sum && (sum.status == "ended" || sum.status == "cancelled"))
+              )
+                gone(false);
+              busy = false;
+              return stopPoll();
+            }
+            throw new Error((d && d.error) || "bad_response");
           }
           if (failing) {
             failing = false;
@@ -1852,7 +1875,7 @@
             np = (d.points || []).filter((p) => +p.seq > lastSeq);
           /* new protocol: the whole encoded line arrives only when its version changed */
           if (typeof d.route === "string") {
-            pts = decRoute(d.route);
+            pts = withEst(decRoute(d.route), d.est);
             lastSeq = pts.length;
           }
           if (d.routeN !== undefined) routeN = +d.routeN || 0;
@@ -2021,6 +2044,15 @@
           $("route-note"),
           sum.gapKm ? t("est_note", { n: sum.gapKm.toFixed(2) }) : "",
         );
+        /* extras the driver adds during the trip (toll, parking, luggage) show live; needs <div id="m-ex"> under #lastupd */
+        const mx = $("m-ex");
+        if (mx) {
+          const exl = sum.extras
+            .map((x) => x.label + " " + m(x.amt))
+            .join(" · ");
+          setText(mx, exl ? t("r_ex") + ": " + exl : "");
+          mx.hidden = !exl;
+        }
         renderNotices();
         renderAcctCard();
         meterTargets(true);
@@ -2189,10 +2221,20 @@
         const dt = Math.min(0.1, (ts - lastFrame) / 1000 || 0.016);
         lastFrame = ts;
         if (sum && !document.hidden) {
+          /* the clock runs on from the driver's last report (age included), and the fare is recomputed
+             with the same pricing function the driver phone uses, so it ticks like the driver's meter */
           let es = sum.sec;
-          if (sum.status == "active")
-            es += Math.min(15, (Date.now() - fetchedAt) / 1000);
+          if (sum.status == "active") es += Math.min(30, ageNow());
           tgt.sec = es;
+          let f = sum.fare;
+          if (sum.status == "active") {
+            const ex = sum.extras.reduce((a, x) => a + (+x.amt || 0), 0);
+            f = Math.max(
+              f,
+              calc(sum.rates, sum.km, es, sum.wait, sum.mult, ex).tot,
+            );
+          }
+          tgt.fare = f;
           const k = reduce ? 1 : 1 - Math.pow(0.001, dt);
           for (const key in tgt) disp[key] += (tgt[key] - disp[key]) * k;
           setText($("fare"), m(Math.round(disp.fare)));
@@ -2249,18 +2291,21 @@
         x.setTransform(dpr, 0, 0, dpr, 0, 0);
         x.fillStyle = bg2;
         x.fillRect(0, 0, W, H);
-        if (pts.length < 2) {
+        /* one point: show A straight away, exactly like the driver's screen */
+        const src = pts.length === 1 ? [pts[0], pts[0]] : pts;
+        if (src.length < 2) {
           hd = null;
           x.fillStyle = mut;
           x.font = "14px sans-serif";
           x.textAlign = "center";
-          x.fillText("…", W / 2, H / 2);
+          x.textBaseline = "middle";
+          x.fillText(t("route_wait"), W / 2, H / 2);
           return;
         }
         /* world in metres, exact device coordinates */
-        const k = Math.cos((pts[0][0] * Math.PI) / 180),
+        const k = Math.cos((src[0][0] * Math.PI) / 180),
           M = 111320,
-          P = pts.map((q) => [q[1] * k * M, q[0] * M, q[3]]),
+          P = src.map((q) => [q[1] * k * M, q[0] * M, q[3]]),
           n = P.length,
           ended = sum.status == "ended";
         /* moving head: follows the recorded line toward the newest point */
