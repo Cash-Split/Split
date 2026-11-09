@@ -1521,7 +1521,8 @@
         ) /* rider profile: {clientId,name,phone,hash} */,
         aMode = "in",
         linking = false;
-      /* decode the driver's encoded route string into [lat, lng, ts, est] points */
+      /* decode the driver's encoded route string into [lat, lng, ts, est] points.
+         These are the exact device coordinates the driver's phone recorded. */
       function decRoute(s) {
         const out = [];
         let i = 0,
@@ -1551,7 +1552,7 @@
         }
         return out;
       }
-      const BACKOFF = [5000, 10000, 20000, 30000];
+      const BACKOFF = [3000, 6000, 12000, 20000];
       function norm(d) {
         const x = d.trip || d.summary || d,
           rr = x.rates || {},
@@ -1797,8 +1798,9 @@
       );
 
       /* ---------- fetching ---------- */
+      /* poll quickly while the trip is live so the route keeps up with the driver */
       const interval = () =>
-        (sum ? sum.status : "quoted") == "active" ? 4500 : 15000;
+        (sum ? sum.status : "quoted") == "active" ? 3000 : 15000;
       function stopPoll() {
         clearTimeout(pollT);
         pollT = null;
@@ -2197,17 +2199,21 @@
           setText($("m-km"), disp.km.toFixed(2));
           setText($("m-t"), mmss(disp.sec));
           setText($("m-w"), mmss(disp.wait));
-          draw();
+          draw(dt);
         }
         requestAnimationFrame(frame);
       }
 
-      /* ---------- route viewport: black & white vector map, no tiles ---------- */
+      /* ---------- route viewport: black & white vector map, no tiles ----------
+         The line is built from the exact device coordinates the driver's phone sent (straight
+         segments, no smoothing). The moving head glides ALONG the recorded line toward the newest
+         point, so the car appears to move continuously between updates instead of jumping. */
       const cv = $("cv");
       let W = 0,
         H = 300,
         dpr = 1;
       const cam = { x: 0, y: 0, s: 0, init: false };
+      let hd = null; /* moving head: segment index + fraction along it */
       function resize() {
         dpr = window.devicePixelRatio || 1;
         W = cv.clientWidth || 300;
@@ -2219,7 +2225,7 @@
       const NICE = [
         5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
       ];
-      function draw() {
+      function draw(dt) {
         if (
           !sum ||
           $("routecard").hidden ||
@@ -2227,7 +2233,12 @@
           !cv.clientWidth
         )
           return;
-        if (cv.width !== Math.round(cv.clientWidth * dpr)) resize();
+        dt = dt || 0.016;
+        if (
+          cv.width !== Math.round(cv.clientWidth * dpr) ||
+          cv.height !== Math.round(cv.clientHeight * dpr)
+        )
+          resize();
         const x = cv.getContext("2d"),
           fg = "#000",
           bg = "#fff",
@@ -2239,21 +2250,60 @@
         x.fillStyle = bg2;
         x.fillRect(0, 0, W, H);
         if (pts.length < 2) {
+          hd = null;
           x.fillStyle = mut;
           x.font = "14px sans-serif";
           x.textAlign = "center";
           x.fillText("…", W / 2, H / 2);
           return;
         }
-        /* world in metres */
+        /* world in metres, exact device coordinates */
         const k = Math.cos((pts[0][0] * Math.PI) / 180),
           M = 111320,
-          P = pts.map((q) => [q[1] * k * M, q[0] * M, q[3]]);
+          P = pts.map((q) => [q[1] * k * M, q[0] * M, q[3]]),
+          n = P.length,
+          ended = sum.status == "ended";
+        /* moving head: follows the recorded line toward the newest point */
+        const sl = (i) =>
+          Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
+        if (!hd || reduce || ended || sum.status == "quoted")
+          hd = { i: n - 2, f: 1 };
+        else {
+          if (hd.i > n - 2) hd = { i: n - 2, f: 1 };
+          let R = sl(hd.i) * (1 - hd.f);
+          for (let j = hd.i + 1; j < n - 1; j++) R += sl(j);
+          /* close ~95% of the gap in about 2.5 s; snap when almost there */
+          let step = R < 0.3 ? R : R * (1 - Math.pow(0.05, dt / 2.5));
+          while (step > 0) {
+            const L = sl(hd.i),
+              left = L * (1 - hd.f);
+            if (L === 0 || step >= left) {
+              step -= left;
+              if (hd.i >= n - 2) {
+                hd.f = 1;
+                break;
+              }
+              hd.i++;
+              hd.f = 0;
+            } else {
+              hd.f += step / L;
+              step = 0;
+            }
+          }
+        }
+        const A0 = P[hd.i],
+          A1 = P[hd.i + 1],
+          HX = [
+            A0[0] + (A1[0] - A0[0]) * hd.f,
+            A0[1] + (A1[1] - A0[1]) * hd.f,
+            A1[2],
+          ],
+          Pd = P.slice(0, hd.i + 1).concat([HX]);
         let x0 = 1e18,
           x1 = -1e18,
           y0 = 1e18,
           y1 = -1e18;
-        for (const q of P) {
+        for (const q of Pd) {
           x0 = Math.min(x0, q[0]);
           x1 = Math.max(x1, q[0]);
           y0 = Math.min(y0, q[1]);
@@ -2280,9 +2330,9 @@
           Y = (q) => H / 2 - (q[1] - cam.y) * s;
         /* grid */
         let g = NICE[NICE.length - 1];
-        for (const n of NICE)
-          if (n * s >= 44) {
-            g = n;
+        for (const nn of NICE)
+          if (nn * s >= 44) {
+            g = nn;
             break;
           }
         const gx0 = Math.floor((cam.x - W / 2 / s) / g) * g,
@@ -2308,11 +2358,11 @@
         const run = (wd, col, est) => {
           x.strokeStyle = col;
           x.lineWidth = wd;
-          for (let i = 1; i < P.length; i++) {
-            if (!!P[i][2] !== est) continue;
+          for (let i = 1; i < Pd.length; i++) {
+            if (!!Pd[i][2] !== est) continue;
             x.beginPath();
-            x.moveTo(X(P[i - 1]), Y(P[i - 1]));
-            x.lineTo(X(P[i]), Y(P[i]));
+            x.moveTo(X(Pd[i - 1]), Y(Pd[i - 1]));
+            x.lineTo(X(Pd[i]), Y(Pd[i]));
             x.stroke();
           }
         };
@@ -2326,9 +2376,8 @@
         run(4, fg, true);
         x.setLineDash([]);
         /* start: hollow A */
-        const a = P[0],
-          e = P[P.length - 1],
-          ended = sum.status == "ended";
+        const a = Pd[0],
+          e = Pd[Pd.length - 1];
         x.beginPath();
         x.arc(X(a), Y(a), 11, 0, 7);
         x.fillStyle = bg;
@@ -2355,9 +2404,9 @@
           x.lineWidth = 2;
           x.stroke();
           x.globalAlpha = 1;
-          let o = P[P.length - 2];
-          for (let i = P.length - 2; i >= 0; i--) {
-            o = P[i];
+          let o = Pd[Math.max(0, Pd.length - 2)];
+          for (let i = Pd.length - 2; i >= 0; i--) {
+            o = Pd[i];
             if (Math.hypot(e[0] - o[0], e[1] - o[1]) * s > 6) break;
           }
           const ang = Math.atan2(-(e[1] - o[1]), e[0] - o[0]);
@@ -2380,7 +2429,7 @@
         /* scale bar + north */
         const mpp = 1 / s;
         let nm = NICE[0];
-        for (const n of NICE) if (n <= mpp * 90) nm = n;
+        for (const nn of NICE) if (nn <= mpp * 90) nm = nn;
         const px = nm * s,
           y = H - 14;
         x.strokeStyle = x.fillStyle = fg;
