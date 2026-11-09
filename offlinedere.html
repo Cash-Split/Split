@@ -140,7 +140,6 @@
         align-items: center;
         gap: 8px;
       }
-      /* collapsible cards */
       details.card {
         padding: 0;
       }
@@ -479,7 +478,6 @@
         padding-left: 10px;
         white-space: nowrap;
       }
-      /* receipt hero */
       .hero {
         text-align: center;
         padding: 6px 0 12px;
@@ -494,7 +492,6 @@
         color: var(--text3);
         font-size: 0.74rem;
       }
-      /* trip history (collapsible receipts) */
       .hi {
         border: 1px solid var(--border);
         border-radius: var(--rs);
@@ -653,7 +650,13 @@
           </div>
           <div class="xs muted" id="h-veh"></div>
           <div class="xs" id="h-cloud" style="margin-top: 6px"></div>
-                    <button class="btn bg sm" style="margin-top: 8px" onclick="restoreTrips()">↻ Restore trips from cloud</button>
+          <button
+            class="btn bg sm"
+            style="margin-top: 8px"
+            onclick="restoreTrips()"
+          >
+            ↻ Restore trips from cloud
+          </button>
         </div>
         <div class="g2">
           <div class="stat"><b id="h-n">0</b><small>Trips today</small></div>
@@ -996,7 +999,7 @@
               : Math.round(pre);
         return { d, t, w, mn, su, ex, rd: tot - pre, tot };
       }
-      /* ---------- route <-> one compact string ---------- */
+      /* ---------- route <-> one compact string (same format the sheet stores) ---------- */
       const eV = (v) => {
         v = v < 0 ? ~(v << 1) : v << 1;
         let s = "";
@@ -1295,7 +1298,7 @@
             pinHash: await sha(ph + pin),
             remote: 1,
           });
-                   S("kd_driver", P);
+          S("kd_driver", P);
           await restoreTrips(true);
           show("home");
           sync();
@@ -1341,7 +1344,6 @@
         $("h-hc").textContent = hl.length
           ? "(" + Math.min(hl.length, 8) + ")"
           : "";
-        /* each past trip is a collapsible receipt: tap to open the full breakdown */
         $("h-hist").innerHTML = hl
           .slice(0, 8)
           .map(
@@ -1351,8 +1353,7 @@
           .join("");
         cloud();
       }
-
-            /* pull this driver's finished trips from the sheet into this phone (new phone / cleared browser) */
+      /* pull this driver's finished trips from the sheet into this phone (new phone / cleared browser) */
       async function restoreTrips(quiet) {
         if (!P || !live()) return;
         try {
@@ -1378,7 +1379,7 @@
                 t.extras.reduce((a, x) => a + x.amt, 0),
               );
               c.rd += t.fare - c.tot;
-              c.tot = t.fare; /* show exactly what was charged */
+              c.tot = t.fare;
               hist.push({
                 id: t.tripId,
                 token: t.token,
@@ -1418,13 +1419,14 @@
           S("kd_trips_local", loc.slice(0, 100));
           renderHome();
           if (!quiet)
-            toast(added ? added + " trip(s) restored" : "Nothing new to restore");
+            toast(
+              added ? added + " trip(s) restored" : "Nothing new to restore",
+            );
         } catch (e) {
           if (!quiet)
             toast("Could not restore trips. Check internet and try again.");
         }
       }
-
       /* ---------- quote and analyser ---------- */
       let Q = { rate: 0, adj: 0 },
         bq = Promise.resolve();
@@ -1566,15 +1568,15 @@
         hid = 0;
       let gps = null,
         lastGpsErr = 0;
-      /* GPS quality gates: fixes worse than ACC_MAX are ignored; the first point needs ACC_START or better */
-      const ACC_START = 40,
-        ACC_MAX = 60; /* metres */
+      /* GPS safeguards. Stored coordinates are always the phone's own lat/lng; these only decide if a fix is believable. */
+      const ACC_FIRST = 40 /* first point: this good at once */,
+        ACC_MAX = 65; /* later fixes worse than this are ignored (m) */
       const VMAX = {
         boda: 110,
         "tuk-tuk": 70,
         car: 150,
         van: 130,
-      }; /* km/h: a jump faster than this is rejected */
+      }; /* km/h: faster than this is impossible */
       let cand = [];
       let RV = null;
       const RT = () => RV || trip;
@@ -1626,13 +1628,12 @@
         sync();
       }
       function openTrip() {
-        CAM.i = 0;
-        HD = null;
+        TS.cam = { init: 0 };
+        TS.hd = null;
+        TS.id = null;
         show("trip");
         $("t-share").hidden = trip.status == "ended";
-        $("t-share").open =
-          trip.status ==
-          "quoted"; /* QR open before the trip, collapsed once driving */
+        $("t-share").open = trip.status == "quoted";
         renderQR();
         renderTrip();
         ctl();
@@ -1676,7 +1677,7 @@
         km = Math.max(0, +km || 0);
         return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(2) + " km";
       }
-      /* display uses only accepted points, never raw GPS */
+      /* distance shown = accepted points only */
       function liveKm() {
         return trip.km;
       }
@@ -1684,8 +1685,8 @@
         if (trip.status != "active") return "";
         if (!gps) return " · waiting for device location…";
         const a = Math.round(gps.acc);
-        return !trip.last && a > ACC_START
-          ? " · improving GPS accuracy (±" + a + " m)…"
+        return !trip.last
+          ? " · finding position (±" + a + " m)…"
           : " · location ±" + a + " m";
       }
       function renderTrip() {
@@ -1729,17 +1730,31 @@
           return toast("Turn on location to start the trip");
         trip.status = "active";
         trip.startedAt = Date.now();
+        trip.lt = Date.now();
         trip.sim = sim;
         cand = [];
-        /* the first point comes from onPos once accuracy is good enough */
+        /* start point: use the position the phone just gave us if it is good; otherwise onPos picks the first point */
+        if (
+          !sim &&
+          gps &&
+          Date.now() - gps.ts < 15000 &&
+          gps.acc <= ACC_FIRST
+        ) {
+          trip.last = {
+            lat: gps.lat,
+            lng: gps.lng,
+            ts: Date.now(),
+            acc: gps.acc,
+          };
+          trip.pts.push([gps.lat, gps.lng, Date.now(), 0]);
+        }
         S("kd_trip", trip);
         sync();
         startGeo();
         wl();
         ctl();
         renderTrip();
-        $("t-share").open =
-          false; /* collapse QR so the meter and map are in view */
+        $("t-share").open = false;
       }
       function pauseTrip() {
         trip.status = "paused";
@@ -1753,8 +1768,10 @@
         if (!sim) fixLoc();
         trip.paused += Date.now() - trip.pauseAt;
         trip.status = "active";
-        if (trip.last) trip.last.ts = Date.now();
+        trip.last =
+          null; /* movement while paused is never counted; the next good fix is the new start */
         trip.lt = Date.now();
+        cand = [];
         ctl();
         renderTrip();
         sync();
@@ -1957,63 +1974,98 @@
           maximumAge: 0,
         });
       }
-      /* Every location fix passes through these gates before it can touch distance, fare or the route:
-   1. accuracy worse than ACC_MAX: ignored
-   2. impossible speed jump: rejected (3 agreeing fixes in a row re-anchor the position, no distance added)
+      /* Every fix from the phone goes through here. The coordinates recorded, drawn and sent to the backend are the
+   phone's exact lat/lng. Safeguards only decide whether a fix is believable before it counts:
+   1. poor accuracy: ignored (the very first point can never get stuck: a fair fix is taken after 8 s, any after 25 s)
+   2. impossible jump or "phone says stopped but position leapt": held back, 4 agreeing fixes re-anchor with NO distance added
    3. movement inside GPS noise: counted as stationary (a parked car stays at 0 m) */
       function onPos(p) {
         const c = p.coords,
           ts = p.timestamp || Date.now();
-        gps = {
-          lat: c.latitude,
-          lng: c.longitude,
-          acc: c.accuracy,
-          ts,
-        }; /* raw: status line only */
+        gps = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, ts };
         const T = trip;
         if (!T || T.status != "active") return;
-        if (c.accuracy > ACC_MAX) return renderTrip();
-        const fix = { lat: c.latitude, lng: c.longitude, ts },
+        if (
+          !Number.isFinite(c.latitude) ||
+          !Number.isFinite(c.longitude) ||
+          !Number.isFinite(c.accuracy)
+        )
+          return renderTrip();
+        const fix = { lat: c.latitude, lng: c.longitude, ts, acc: c.accuracy },
           L = T.last;
+
+        /* first point of the trip (or after resume) */
         if (!L) {
-          if (c.accuracy > ACC_START) return renderTrip();
+          const waited = (Date.now() - (T.lt || T.startedAt)) / 1000;
+          if (
+            !(
+              c.accuracy <= ACC_FIRST ||
+              (waited > 8 && c.accuracy <= 150) ||
+              waited > 25
+            )
+          )
+            return renderTrip();
           T.last = fix;
           T.lt = ts;
-          T.pts.push([fix.lat, fix.lng, ts, 0]);
+          cand = [];
+          T.pts.push([fix.lat, fix.lng, ts, T.pts.length ? 1 : 0]);
           renderTrip();
           draw();
           kick();
           return;
         }
-        const prevLt = T.lt || ts,
-          dtw = (ts - prevLt) / 1000;
-        T.lt = ts; /* time since the previous usable fix */
-        const dt = (ts - L.ts) / 1000;
-        if (dt <= 0) return;
+        if (c.accuracy > ACC_MAX)
+          return renderTrip(); /* poor later fixes are ignored */
+
+        const dt = (ts - L.ts) / 1000; /* since the last accepted point */
+        if (dt <= 0) return; /* old, cached or duplicate fix */
+        const dtw = Math.max(0, (ts - (T.lt || ts)) / 1000);
+        T.lt = ts;
         const d = hav(L.lat, L.lng, fix.lat, fix.lng),
-          kmh = (d / dt) * 3.6;
-        if (d > 100 && kmh > (VMAX[P && P.vehicleType] || 150)) {
+          vmax = (VMAX[P && P.vehicleType] || 150) / 3.6,
+          dop =
+            Number.isFinite(c.speed) && c.speed >= 0
+              ? c.speed
+              : null; /* the phone's own speed, m/s */
+
+        const reach = vmax * dt + (L.acc || 0) + c.accuracy + 5,
+          jump =
+            d > reach ||
+            (dop !== null &&
+              dop < 1 &&
+              dtw < 10 &&
+              d > (L.acc || 0) + c.accuracy + 15);
+        if (jump) {
           cand.push(fix);
           if (cand.length > 4) cand.shift();
-          const q = cand.slice(-3);
           if (
-            q.length == 3 &&
-            q.every((z) => hav(z.lat, z.lng, fix.lat, fix.lng) < 60)
+            cand.length == 4 &&
+            cand.every((z) => hav(z.lat, z.lng, fix.lat, fix.lng) < 40)
           ) {
             cand = [];
+            T.last =
+              fix; /* the old anchor was wrong: re-anchor, NO distance added */
             T.pts.push([fix.lat, fix.lng, ts, 1]);
-            T.last = fix;
             draw();
             kick();
           }
           return renderTrip();
         }
         cand = [];
-        const sp = c.speed != null && c.speed >= 0 ? c.speed * 3.6 : kmh;
+
+        const sp =
+          dop !== null
+            ? dop * 3.6
+            : (d / Math.max(dtw, 1)) *
+              3.6; /* waiting time: slower than ~5 km/h */
         if (sp < 5 && dtw < 60) T.wait += dtw;
-        if (d < Math.max(8, c.accuracy * 0.5))
-          return renderTrip(); /* inside GPS noise: stationary */
-        const est = dtw > 45 || hid > 20000 ? 1 : 0;
+
+        /* stationary: phone says stopped, or movement is inside GPS noise. The anchor is not moved,
+     so slow real movement still adds up once it clears the noise. */
+        if (dop !== null && dop < 0.5 && dtw < 10) return renderTrip();
+        if (d < Math.max(8, c.accuracy * 0.6)) return renderTrip();
+
+        const est = dt > 45 || hid > 20000 ? 1 : 0;
         hid = 0;
         T.km += d / 1000;
         if (est) T.gapKm += d / 1000;
@@ -2191,6 +2243,8 @@
           T.started = 1;
           T.rs = "active";
         }
+        /* the route: ONE row per trip on the server, the whole line (the exact points drawn on this phone) + totals.
+     Sent every 6 s while driving; pause / end send at once. */
         if (
           T.status !== "ended" &&
           T.sent < T.pts.length &&
@@ -2309,18 +2363,21 @@
           }
         }
       }
-      /* ---------- route drawing ---------- */
+      /* ---------- route drawing ----------
+   One line of straight segments through every recorded point (the same points that go to the backend).
+   The head glides ALONG the recorded line toward the newest point, and the camera eases, so nothing jumps. */
       const NICE = [
         5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
       ];
-      function trace(x, p) {
-        x.beginPath();
-        x.moveTo(p[0][0], p[0][1]);
-        for (let i = 1; i < p.length; i++) x.lineTo(p[i][0], p[i][1]);
-      }
+      const TS = { hd: null, cam: { init: 0 }, id: null };
+      let lastF = 0,
+        loopOn = false;
       function paint(cv, pts, o) {
         if (!cv || !cv.clientWidth) return;
-        const dpr = window.devicePixelRatio || 1,
+        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches,
+          dt = o.dt || 0.016,
+          st = o.st,
+          dpr = window.devicePixelRatio || 1,
           W = cv.clientWidth,
           H = cv.clientHeight;
         if (
@@ -2337,8 +2394,10 @@
         x.setTransform(dpr, 0, 0, dpr, 0, 0);
         x.fillStyle = bg;
         x.fillRect(0, 0, W, H);
-        const all = o.live ? pts.concat([o.live]) : pts.slice();
-        if (!all.length) {
+        if (pts.length === 1)
+          pts = [pts[0], pts[0]]; /* one point: show A straight away */
+        if (pts.length < 2) {
+          st.hd = null;
           x.fillStyle = "#666";
           x.font = "14px sans-serif";
           x.textAlign = "center";
@@ -2346,114 +2405,167 @@
           x.fillText(o.msg || "…", W / 2, H / 2);
           return;
         }
-        const k = Math.cos((all[0][0] * Math.PI) / 180),
+        const k = Math.cos((pts[0][0] * Math.PI) / 180),
           M = 111320,
-          D = all.map((q) => [q[1] * k * M, q[0] * M]);
+          P2 = pts.map((q) => [
+            q[1] * k * M,
+            q[0] * M,
+            q.length > 3 ? q[3] : q[2],
+          ]),
+          n = P2.length,
+          sl = (i) =>
+            Math.hypot(P2[i + 1][0] - P2[i][0], P2[i + 1][1] - P2[i][1]);
+        if (!st.hd || reduce || !o.live) st.hd = { i: n - 2, f: 1 };
+        else {
+          const h = st.hd;
+          if (h.i > n - 2) {
+            h.i = n - 2;
+            h.f = 1;
+          }
+          let R = sl(h.i) * (1 - h.f);
+          for (let j = h.i + 1; j < n - 1; j++) R += sl(j);
+          let step = R < 0.3 ? R : R * (1 - Math.pow(0.05, dt / 2.5));
+          while (step > 0) {
+            const L = sl(h.i),
+              left = L * (1 - h.f);
+            if (L === 0 || step >= left) {
+              step -= left;
+              if (h.i >= n - 2) {
+                h.f = 1;
+                break;
+              }
+              h.i++;
+              h.f = 0;
+            } else {
+              h.f += step / L;
+              step = 0;
+            }
+          }
+        }
+        const hd = st.hd,
+          A0 = P2[hd.i],
+          A1 = P2[hd.i + 1],
+          HX = [
+            A0[0] + (A1[0] - A0[0]) * hd.f,
+            A0[1] + (A1[1] - A0[1]) * hd.f,
+            A1[2],
+          ],
+          Pd = P2.slice(0, hd.i + 1).concat([HX]);
         let x0 = 1e18,
           x1 = -1e18,
           y0 = 1e18,
           y1 = -1e18;
-        for (const q of D) {
+        for (const q of Pd) {
           x0 = Math.min(x0, q[0]);
           x1 = Math.max(x1, q[0]);
           y0 = Math.min(y0, q[1]);
           y1 = Math.max(y1, q[1]);
         }
-        const pad = 40,
+        const pad = 36,
           w = Math.max(x1 - x0, 150),
-          h = Math.max(y1 - y0, 150),
-          ts = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h),
+          h2 = Math.max(y1 - y0, 150),
+          ts = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h2),
           tx = (x0 + x1) / 2,
           ty = (y0 + y1) / 2,
-          C = o.cam;
-        let cx = tx,
-          cy = ty,
-          s = ts;
-        if (C) {
-          if (!C.i) {
-            C.x = tx;
-            C.y = ty;
-            C.s = ts;
-            C.i = 1;
-          } else {
-            C.x += (tx - C.x) * 0.2;
-            C.y += (ty - C.y) * 0.2;
-            C.s += (ts - C.s) * 0.2;
-            if (
-              Math.abs(tx - C.x) > 0.3 ||
-              Math.abs(ty - C.y) > 0.3 ||
-              Math.abs(ts - C.s) / ts > 0.004
-            )
-              o.moving = true;
-          }
-          cx = C.x;
-          cy = C.y;
-          s = C.s;
+          cam = st.cam;
+        if (!cam.init || reduce) {
+          cam.x = tx;
+          cam.y = ty;
+          cam.s = ts;
+          cam.init = 1;
+        } else {
+          cam.x += (tx - cam.x) * 0.08;
+          cam.y += (ty - cam.y) * 0.08;
+          cam.s += (ts - cam.s) * 0.08;
         }
-        const sc = D.map((q) => [
-          W / 2 + (q[0] - cx) * s,
-          H / 2 - (q[1] - cy) * s,
-        ]);
+        const s = cam.s,
+          X = (q) => W / 2 + (q[0] - cam.x) * s,
+          Y = (q) => H / 2 - (q[1] - cam.y) * s;
         let g = NICE[NICE.length - 1];
-        for (const n of NICE)
-          if (n * s >= 44) {
-            g = n;
+        for (const nn of NICE)
+          if (nn * s >= 44) {
+            g = nn;
             break;
           }
         x.strokeStyle = "rgba(0,0,0,.08)";
         x.lineWidth = 1;
         x.beginPath();
         for (
-          let v = Math.floor((cx - W / 2 / s) / g) * g;
-          v <= cx + W / 2 / s;
+          let v = Math.floor((cam.x - W / 2 / s) / g) * g;
+          v <= cam.x + W / 2 / s;
           v += g
         ) {
-          const px = Math.round(W / 2 + (v - cx) * s) + 0.5;
+          const px = Math.round(W / 2 + (v - cam.x) * s) + 0.5;
           x.moveTo(px, 0);
           x.lineTo(px, H);
         }
         for (
-          let v = Math.floor((cy - H / 2 / s) / g) * g;
-          v <= cy + H / 2 / s;
+          let v = Math.floor((cam.y - H / 2 / s) / g) * g;
+          v <= cam.y + H / 2 / s;
           v += g
         ) {
-          const py = Math.round(H / 2 - (v - cy) * s) + 0.5;
+          const py = Math.round(H / 2 - (v - cam.y) * s) + 0.5;
           x.moveTo(0, py);
           x.lineTo(W, py);
         }
         x.stroke();
         x.lineCap = x.lineJoin = "round";
-        if (sc.length > 1) {
-          trace(x, sc);
-          x.strokeStyle = bg;
-          x.lineWidth = 9;
-          x.stroke();
-          x.strokeStyle = fg;
-          x.lineWidth = 4;
-          x.stroke();
-        }
-        const tag = (t, p) => {
-          x.font = "700 14px sans-serif";
-          x.textAlign = "center";
-          x.textBaseline = "middle";
-          x.lineWidth = 4;
-          x.strokeStyle = bg;
-          x.strokeText(t, p[0], p[1] - 15);
-          x.fillStyle = BL;
-          x.fillText(t, p[0], p[1] - 15);
+        const run = (wd, col, est) => {
+          x.strokeStyle = col;
+          x.lineWidth = wd;
+          for (let i = 1; i < Pd.length; i++) {
+            if (!!Pd[i][2] !== est) continue;
+            x.beginPath();
+            x.moveTo(X(Pd[i - 1]), Y(Pd[i - 1]));
+            x.lineTo(X(Pd[i]), Y(Pd[i]));
+            x.stroke();
+          }
         };
-        const e = sc[sc.length - 1];
-        tag("A", sc[0]);
-        if (o.ended && sc.length > 1) tag("B", e);
-        else if (!o.ended && sc.length > 1) {
-          let q = sc[sc.length - 2];
-          for (let i = sc.length - 2; i >= 0; i--) {
-            q = sc[i];
-            if (Math.hypot(e[0] - q[0], e[1] - q[1]) > 6) break;
+        x.setLineDash([]);
+        run(9, bg, false);
+        x.setLineDash([10, 9]);
+        run(9, bg, true);
+        x.setLineDash([]);
+        run(4, fg, false);
+        x.setLineDash([9, 8]);
+        run(4, fg, true);
+        x.setLineDash([]);
+        const a = Pd[0],
+          e = Pd[Pd.length - 1];
+        x.beginPath();
+        x.arc(X(a), Y(a), 11, 0, 7);
+        x.fillStyle = bg;
+        x.fill();
+        x.lineWidth = 3;
+        x.strokeStyle = BL;
+        x.stroke();
+        x.fillStyle = BL;
+        x.font = "700 11px sans-serif";
+        x.textAlign = "center";
+        x.textBaseline = "middle";
+        x.fillText("A", X(a), Y(a) + 0.5);
+        if (o.ended) {
+          x.fillStyle = BL;
+          x.fillRect(X(e) - 11, Y(e) - 11, 22, 22);
+          x.fillStyle = bg;
+          x.fillText("B", X(e), Y(e) + 0.5);
+        } else {
+          const pr = reduce ? 0 : (Date.now() % 1600) / 1600;
+          x.globalAlpha = 1 - pr;
+          x.beginPath();
+          x.arc(X(e), Y(e), 10 + pr * 20, 0, 7);
+          x.strokeStyle = BL;
+          x.lineWidth = 2;
+          x.stroke();
+          x.globalAlpha = 1;
+          let q = Pd[Math.max(0, Pd.length - 2)];
+          for (let i = Pd.length - 2; i >= 0; i--) {
+            q = Pd[i];
+            if (Math.hypot(e[0] - q[0], e[1] - q[1]) * s > 6) break;
           }
           x.save();
-          x.translate(e[0], e[1]);
-          x.rotate(Math.atan2(e[1] - q[1], e[0] - q[0]));
+          x.translate(X(e), Y(e));
+          x.rotate(Math.atan2(-(e[1] - q[1]), e[0] - q[0]));
           x.beginPath();
           x.moveTo(13, 0);
           x.lineTo(-9, -9);
@@ -2492,47 +2604,44 @@
         x.closePath();
         x.fill();
       }
-      let HD = null,
-        RAF = 0;
-      const CAM = { i: 0 };
-      function draw() {
-        if (!trip || !$("p-trip").classList.contains("on")) return;
-        /* the arrow follows the last ACCEPTED point, never raw GPS */
-        const on = trip.status == "active" && trip.last && trip.pts.length;
-        let moving = false;
-        if (on) {
-          const g = [trip.last.lat, trip.last.lng];
-          if (!HD) HD = g;
-          else {
-            HD[0] += (g[0] - HD[0]) * 0.25;
-            HD[1] += (g[1] - HD[1]) * 0.25;
-            if (hav(HD[0], HD[1], g[0], g[1]) > 0.15) moving = true;
+      function frame(t) {
+        const dt = Math.min(0.1, (t - lastF) / 1000 || 0.016);
+        lastF = t;
+        if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
+          if (TS.id !== trip.id) {
+            TS.id = trip.id;
+            TS.hd = null;
+            TS.cam = { init: 0 };
           }
-        } else HD = null;
-        const o = {
-          live: HD,
-          cam: CAM,
-          ended: trip.status == "ended",
-          msg:
-            trip.status == "quoted"
-              ? "Route appears once the trip starts"
-              : !gps
-                ? "Waiting for device location…"
-                : "Waiting for an accurate first location point…",
-        };
-        paint($("cv"), trip.pts, o);
-        if ((moving || o.moving) && !RAF)
-          RAF = requestAnimationFrame(() => {
-            RAF = 0;
-            draw();
+          paint($("cv"), trip.pts, {
+            dt,
+            st: TS,
+            live: trip.status == "active",
+            ended: trip.status == "ended",
+            msg:
+              trip.status == "quoted"
+                ? "Route appears once the trip starts"
+                : "Finding your position…",
           });
+        }
+        requestAnimationFrame(frame);
+      }
+      function draw() {
+        if (!loopOn) {
+          loopOn = true;
+          requestAnimationFrame(frame);
+        }
       }
       function drawRec(T) {
-        paint($("cv2"), T.pts || [], { ended: true, msg: "No route recorded" });
+        paint($("cv2"), T.pts || [], {
+          st: { hd: null, cam: { init: 0 } },
+          ended: true,
+          live: false,
+          msg: "No route recorded",
+        });
       }
       addEventListener("resize", () => {
-        CAM.i = 0;
-        draw();
+        TS.cam.init = 0;
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
       });
       /* ---------- end and receipt ---------- */
@@ -2595,7 +2704,20 @@
         drawRec(r);
       }
       async function endTrip() {
-        /* trip.last is already the last accepted point, nothing extra is added from raw GPS */
+        /* add the last stretch up to where the phone is now, only if that position is believable */
+        if (
+          trip.status == "active" &&
+          trip.last &&
+          gps &&
+          Date.now() - gps.ts < 15000 &&
+          gps.acc <= ACC_MAX
+        ) {
+          const d = hav(trip.last.lat, trip.last.lng, gps.lat, gps.lng);
+          if (d > Math.max(8, gps.acc * 0.6) && d < 300) {
+            trip.km += d / 1000;
+            trip.pts.push([gps.lat, gps.lng, gps.ts, 0]);
+          }
+        }
         stopGeo();
         trip.endedAt = Date.now();
         if (trip.status == "active")
