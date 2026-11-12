@@ -1148,6 +1148,35 @@
       }
       const costKm = (p) =>
         p.fuelPrice / p.kmPerLitre + p.maintPerKm + p.dailyFixed / p.kmPerDay;
+      /* ---------- name comes from CashSplit (index.html), locked here ---------- */
+      function csName() {
+        try {
+          const nick = (
+            localStorage.getItem("cashsplit_nickname") || ""
+          ).trim();
+          if (nick) return nick;
+          const pr = JSON.parse(
+            localStorage.getItem("cashsplit_profiles") || "null",
+          );
+          const a = pr && (pr.list || []).find((p) => p.id === pr.active);
+          return a
+            ? String(a.name)
+                .replace(/^[^\p{L}\p{N}]+/u, "")
+                .trim()
+            : "";
+        } catch (e) {
+          return "";
+        }
+      }
+      function syncName() {
+        if (!P) return;
+        const n = csName();
+        if (n && P.name !== n) {
+          P.name = n;
+          P.dirty = 1; /* makes syncProfile push the new name to the Kadere backend */
+          S("kd_driver", P);
+        }
+      }
       /* ---------- registration & profile ---------- */
       const FD = [
         [
@@ -1223,6 +1252,10 @@
           (g, i) =>
             `<div data-s="${i}" ${i ? "hidden" : ""}><div class="xs muted" style="margin-bottom:10px">${g[0]}</div>${g[1].map((f) => `<div class="fg"><label class="fl">${f[1]}</label>${Array.isArray(f[2]) ? `<select id="f_${f[0]}">${f[2].map((o) => `<option ${v[f[0]] == o ? "selected" : ""}>${o}</option>`).join("")}</select>` : `<input id="f_${f[0]}" type="${f[2] || "text"}" ${f[2] == "number" ? 'step="any"' : ""} ${f[0] == "pin" ? 'maxlength="4" inputmode="numeric" placeholder="' + (P ? "leave blank to keep" : "") + '"' : ""} value="${f[0] == "pin" ? "" : esc(v[f[0]] ?? "")}">`}</div>`).join("")}</div>`,
         ).join("");
+        const nf = $("f_name");
+        nf.value = csName() || v.name || "";
+        nf.readOnly = true;
+        nf.previousElementSibling.textContent = "Name (from CashSplit, locked)";
         step = 0;
         paintStep();
       }
@@ -1248,6 +1281,7 @@
           }),
         );
         if (P) o.phone = P.phone;
+        o.name = csName() || (P && P.name) || o.name;
         const ph = o.phone.replace(/\D/g, "");
         if (!o.name || ph.length < 9) {
           step = 0;
@@ -1330,6 +1364,7 @@
             pinHash: await sha(ph + pin),
             remote: 1,
           });
+          syncName();
           S("kd_driver", P);
           await restoreTrips(true);
           show("home");
@@ -1359,6 +1394,7 @@
         });
       function renderHome() {
         if (!P) return;
+        syncName();
         $("h-name").textContent = "Hi, " + P.name;
         $("h-veh").textContent = [P.vehicleType, P.make, P.plate, P.area]
           .filter(Boolean)
@@ -2393,6 +2429,7 @@
           if ($("m-s")) $("m-s").textContent = t;
         };
         try {
+          syncName();
           if (!live()) return st(trip ? "local only" : "—");
           if (!navigator.onLine) return st("waiting for internet");
           await syncProfile();
