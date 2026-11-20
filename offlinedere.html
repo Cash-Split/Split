@@ -549,6 +549,86 @@
           animation: none;
         }
       }
+      .home-screen {
+        gap: 10px;
+      }
+      .home-map-wrap {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        gap: 10px;
+      }
+      .home-map-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .home-map-top strong {
+        font-family: var(--fd);
+        font-size: 1rem;
+      }
+      #home-map {
+        height: min(62vh, 620px);
+        min-height: 280px;
+        border-radius: 16px;
+      }
+      .start-home {
+        flex-shrink: 0;
+      }
+      .home-note {
+        text-align: center;
+      }
+      .page-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .page-heading h2 {
+        font: 700 1.15rem var(--fd);
+        color: var(--bl);
+      }
+      .bottom-nav {
+        flex-shrink: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        z-index: 50;
+      }
+      .nav-item {
+        border: 0;
+        background: transparent;
+        color: var(--text3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-height: 48px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .nav-item span {
+        font-size: 1.2rem;
+        line-height: 1.1;
+      }
+      .nav-item small {
+        font-size: 0.68rem;
+      }
+      .nav-item.active {
+        color: var(--bl);
+      }
+      main {
+        padding-bottom: 12px;
+      }
+      @media (max-width: 380px) {
+        #home-map {
+          min-height: 250px;
+        }
+      }
       @media print {
         body {
           overflow: visible;
@@ -568,21 +648,9 @@
     <header id="top">
       <div class="logo"><i></i>🚖 <span>Kadere</span></div>
       <div class="row">
-        <button id="locpill" class="btn bg sm" onclick="fixLoc()">📍 …</button>
-        <select
-          id="lg"
-          style="
-            width: auto;
-            min-height: 34px;
-            padding: 6px 24px 6px 8px;
-            font-size: 0.78rem;
-          "
-          onchange="window.I18N && I18N.set(this.value)"
-        >
-          <option value="en">🌐 EN</option>
-          <option value="sw">🌐 SW</option>
-        </select>
-        <a class="btn bg sm" href="index.html">‹ CashSplit</a>
+        <button id="locpill" class="btn bg sm" onclick="fixLoc()">
+          📍 Location
+        </button>
       </div>
     </header>
     <main>
@@ -641,128 +709,108 @@
         </div>
       </section>
 
-      <!-- HOME -->
-      <section id="p-home" class="pg">
-        <div class="card">
-          <div class="ct">
-            <span id="h-name"></span
-            ><button class="btn bg sm" onclick="editProf()">✎ Profile</button>
+      <!-- HOME: map first, one direct start action -->
+      <section id="p-home" class="pg home-screen">
+        <div class="home-map-wrap">
+          <div class="home-map-top">
+            <div>
+              <strong id="h-name">Driver</strong>
+              <div class="xs muted" id="h-veh"></div>
+            </div>
+            <span class="xs muted" id="h-cloud"></span>
           </div>
-          <div class="xs muted" id="h-veh"></div>
-          <div class="xs" id="h-cloud" style="margin-top: 6px"></div>
+          <canvas id="home-map" aria-label="Trip map"></canvas>
           <button
-            class="btn bg sm"
-            style="margin-top: 8px"
+            class="btn bgr bk big start-home"
+            id="home-start"
+            onclick="lockTrip()"
+          >
+            ▶ Start trip
+          </button>
+          <div class="xs muted home-note">
+            Your trip is recorded automatically when you start
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="p-history" class="pg">
+        <div class="page-heading">
+          <div>
+            <h2>Trip history</h2>
+            <div class="xs muted" id="history-count"></div>
+          </div>
+          <button class="btn bg sm" onclick="restoreTrips()">↻ Sync</button>
+        </div>
+        <div id="history-list"></div>
+        <div class="card xs muted" id="history-empty" hidden>
+          No completed trips yet. Your recorded trips will appear here.
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="p-settings" class="pg">
+        <div class="page-heading"><h2>Settings</h2></div>
+        <div class="card">
+          <div class="ct">Driver &amp; fare settings</div>
+          <div class="srow">
+            <span id="settings-driver"></span
+            ><button class="btn bg sm" onclick="editProf()">
+              Edit details &amp; rates
+            </button>
+          </div>
+          <div class="xs muted" id="settings-vehicle"></div>
+          <button
+            class="btn bg sm bk"
+            style="margin-top: 10px"
             onclick="restoreTrips()"
           >
             ↻ Restore trips from cloud
           </button>
         </div>
-        <div class="g2">
-          <div class="stat"><b id="h-n">0</b><small>Trips today</small></div>
-          <div class="stat">
-            <b id="h-e" class="tg">0</b><small>Earned today</small>
-          </div>
-        </div>
-        <button class="btn bgr bk big" onclick="newQuote()">＋ New trip</button>
-        <details class="card" id="h-hist-card" hidden open>
-          <summary>
-            Recent trips <span class="xs muted" id="h-hc"></span>
-          </summary>
-          <div class="in" id="h-hist"></div>
-        </details>
-        <details class="card">
-          <summary>Settings</summary>
-          <div class="in">
-            <div class="srow">
-              Light mode
-              <div class="tog" id="tg-l" onclick="setOpt('lightMode')"></div>
-            </div>
-            <div class="srow">
-              Compact view
-              <div class="tog" id="tg-c" onclick="setOpt('compactView')"></div>
-            </div>
-            <div class="srow">
-              Text size
-              <select
-                id="fs"
-                style="width: auto"
-                onchange="setOpt('fontSize', this.value)"
-              >
-                <option value="14px">Small</option>
-                <option value="16px">Default</option>
-                <option value="18px">Large</option>
-                <option value="20px">X-Large</option>
-              </select>
-            </div>
-            <div class="srow">
-              Test mode (simulated route)
-              <div class="tog" id="tg-t" onclick="toggleSim()"></div>
-            </div>
-            <div class="srow">
-              <span
-                >Sign out<br /><small class="muted xs"
-                  >Trips stay on this phone</small
-                ></span
-              ><button class="btn bg sm" onclick="logout()">Sign out</button>
-            </div>
-          </div>
-        </details>
-        <div class="xs muted">
-          Pricing and receipt aid only. Drivers are responsible for any required
-          licences and insurance.
-        </div>
-      </section>
-
-      <!-- QUOTE -->
-      <section id="p-quote" class="pg">
         <div class="card">
-          <div class="ct">
-            <span>Today's context</span
-            ><button class="btn bg sm" onclick="show('home')">✕</button>
+          <div class="ct">Appearance</div>
+          <div class="srow">
+            Light mode
+            <div class="tog" id="tg-l" onclick="setOpt('lightMode')"></div>
           </div>
-          <div class="g2 fx">
-            <div class="fg">
-              <label class="fl">Traffic</label
-              ><select id="q_tr">
-                <option>light</option>
-                <option selected>normal</option>
-                <option>heavy</option>
-              </select>
-            </div>
-            <div class="fg">
-              <label class="fl">Weather</label
-              ><select id="q_wx">
-                <option>dry</option>
-                <option>rain</option>
-              </select>
-            </div>
-            <div class="fg">
-              <label class="fl">Time of day</label
-              ><select id="q_time">
-                <option value="day">Day</option>
-                <option value="peak">Peak hour</option>
-                <option value="night">Night</option>
-              </select>
-            </div>
-            <div class="fg">
-              <label class="fl">Distance km (optional)</label
-              ><input id="q_km" type="number" step="0.1" placeholder="e.g. 7" />
-            </div>
+          <div class="srow">
+            Compact view
+            <div class="tog" id="tg-c" onclick="setOpt('compactView')"></div>
           </div>
-          <div class="fg">
-            <label class="fl">Time in minutes (optional)</label
-            ><input id="q_min" type="number" placeholder="e.g. 20" />
+          <div class="srow">
+            Text size
+            <select
+              id="fs"
+              style="width: auto"
+              onchange="setOpt('fontSize', this.value)"
+            >
+              <option value="14px">Small</option>
+              <option value="16px">Default</option>
+              <option value="18px">Large</option>
+              <option value="20px">X-Large</option>
+            </select>
           </div>
-          <button class="btn bp bk" onclick="analyse()">Suggest a rate</button>
         </div>
         <div class="card">
-          <div class="ct">Rate analyser</div>
-          <div id="log"></div>
+          <div class="ct">Trip recording</div>
+          <div class="srow">
+            Test mode (simulated route)
+            <div class="tog" id="tg-t" onclick="toggleSim()"></div>
+          </div>
+          <div class="xs muted">
+            Keep location enabled while recording a real trip.
+          </div>
         </div>
-        <button class="btn bgr bk big" id="lock" onclick="lockTrip()" hidden>
-          Lock rate &amp; get QR
-        </button>
+        <div class="card">
+          <div class="srow">
+            <span
+              >Sign out<br /><small class="muted xs"
+                >Trips stay on this phone</small
+              ></span
+            ><button class="btn bg sm" onclick="logout()">Sign out</button>
+          </div>
+        </div>
       </section>
 
       <!-- TRIP -->
@@ -856,6 +904,21 @@
         </div>
       </section>
     </main>
+    <nav
+      id="bottom-nav"
+      class="bottom-nav noprint"
+      aria-label="Main navigation"
+    >
+      <button class="nav-item active" data-page="home" onclick="show('home')">
+        <span>⌖</span><small>Map</small>
+      </button>
+      <button class="nav-item" data-page="history" onclick="show('history')">
+        <span>▤</span><small>History</small>
+      </button>
+      <button class="nav-item" data-page="settings" onclick="show('settings')">
+        <span>⚙</span><small>Settings</small>
+      </button>
+    </nav>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="./kiswahili.js"></script>
     <script>
@@ -940,8 +1003,19 @@
         document
           .querySelectorAll(".pg")
           .forEach((p) => p.classList.toggle("on", p.id === "p-" + id));
+        const nav = $("bottom-nav");
+        const primary = ["home", "history", "settings"].includes(id);
+        nav.hidden = !primary;
+        nav
+          .querySelectorAll(".nav-item")
+          .forEach((b) => b.classList.toggle("active", b.dataset.page === id));
         $("p-" + id).parentNode.scrollTop = 0;
-        if (id === "home") renderHome();
+        if (id === "home") {
+          renderHome();
+          draw();
+        }
+        if (id === "history") renderHistory();
+        if (id === "settings") renderHome();
       }
       /* ---------- theme & settings shared with index.html ---------- */
       function applyTheme() {
@@ -1395,31 +1469,32 @@
       function renderHome() {
         if (!P) return;
         syncName();
-        $("h-name").textContent = "Hi, " + P.name;
+        $("h-name").textContent = P.name || "Driver";
         $("h-veh").textContent = [P.vehicleType, P.make, P.plate, P.area]
           .filter(Boolean)
           .join(" · ");
-        const t0 = new Date().toDateString(),
-          l = trips().filter(
-            (x) =>
-              x.status == "ended" && new Date(x.endedAt).toDateString() == t0,
-          );
-        $("h-n").textContent = l.length;
-        $("h-e").textContent = m(l.reduce((a, x) => a + x.fare, 0));
-        $("tg-t").classList.toggle("on", sim);
+        $("settings-driver").textContent = P.name || "Driver";
+        $("settings-vehicle").textContent = [
+          P.vehicleType,
+          P.make,
+          P.plate,
+          P.area,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        cloud();
+      }
+      function renderHistory() {
         const hl = J("kd_hist", []);
-        $("h-hist-card").hidden = !hl.length;
-        $("h-hc").textContent = hl.length
-          ? "(" + Math.min(hl.length, 8) + ")"
-          : "";
-        $("h-hist").innerHTML = hl
-          .slice(0, 8)
+        $("history-count").textContent =
+          hl.length + " saved trip" + (hl.length === 1 ? "" : "s");
+        $("history-empty").hidden = !!hl.length;
+        $("history-list").innerHTML = hl
           .map(
             (r) =>
               `<details class="hi"><summary><span>${fdt(r.endedAt)}<br><small class="muted xs">${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span class="sm2"><b class="tg">${m(r.fare)}</b></span></summary><div class="hb">${recTable(r)}<div class="row wrap" style="margin-top:10px"><button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">🗺 Route &amp; receipt</button><button class="btn bg sm" onclick="shareRec('${esc(r.id)}')">WhatsApp</button></div></div></details>`,
           )
           .join("");
-        cloud();
       }
       /* pull this driver's finished trips from the sheet into this phone (new phone / cleared browser) */
       async function restoreTrips(quiet) {
@@ -1486,6 +1561,7 @@
           } catch (e) {}
           S("kd_trips_local", loc.slice(0, 100));
           renderHome();
+          if ($("p-history").classList.contains("on")) renderHistory();
           if (!quiet)
             toast(
               added ? added + " trip(s) restored" : "Nothing new to restore",
@@ -1495,138 +1571,19 @@
             toast("Could not restore trips. Check internet and try again.");
         }
       }
-      /* ---------- quote and analyser ---------- */
-      let Q = { rate: 0, adj: 0 },
-        bq = Promise.resolve();
-      const bot = (h) => {
-        bq = bq.then(
-          () =>
-            new Promise((r) => {
-              const l = $("log"),
-                t = document.createElement("div");
-              t.className = "msg typing";
-              t.innerHTML = "<i></i><i></i><i></i>";
-              l.appendChild(t);
-              l.scrollTop = 1e9;
-              setTimeout(() => {
-                t.remove();
-                const d = document.createElement("div");
-                d.className = "msg";
-                d.innerHTML = typeof h == "function" ? h() : h;
-                l.appendChild(d);
-                l.scrollTop = 1e9;
-                r();
-              }, 450);
-            }),
-        );
-      };
-      const acts = (a) =>
-        `<div class="acts">${a.map((x) => `<button class="btn bg sm" data-a="${x[1]}">${x[0]}</button>`).join("")}</div>`;
-      function newQuote() {
-        const h = new Date().getHours();
-        $("q_time").value =
-          h >= 22 || h < 5
-            ? "night"
-            : (h >= 6 && h < 9) || (h >= 16 && h < 19)
-              ? "peak"
-              : "day";
-        $("log").innerHTML = "";
-        $("lock").hidden = true;
-        show("quote");
-      }
+      /* ---------- saved fare settings ---------- */
+      let Q = { rate: 0, adj: 0 };
       function rates() {
         return {
           model: P.pricingModel,
           base: P.baseFare,
-          perKm: Q.rate,
+          perKm: P.ratePerKm,
           perMin: P.ratePerMin,
           wait: P.waitRate,
           min: P.minFare,
           round: P.rounding,
         };
       }
-      function analyse() {
-        const p = P,
-          c = costKm(p),
-          tg = c * (1 + p.margin / 100),
-          tm = $("q_time").value,
-          rain = $("q_wx").value == "rain",
-          heavy = $("q_tr").value == "heavy";
-        const adj =
-          (tm == "night" ? p.nightPct : 0) +
-          (tm == "peak" ? p.peakPct : 0) +
-          (rain ? p.rainPct : 0) +
-          (heavy ? 10 : 0);
-        Q.adj = adj;
-        Q.rate = Math.round(tg);
-        $("log").innerHTML = "";
-        bot(
-          `<h4>Your costs</h4>Fuel ${m(p.fuelPrice / p.kmPerLitre)}/km + maintenance ${m(p.maintPerKm)}/km + fixed ${m(p.dailyFixed / p.kmPerDay)}/km. Break-even rate is <b>${m(c)}/km</b>.`,
-        );
-        bot(
-          `With your ${p.margin}% margin the target is <b>${m(tg)}/km</b>. To earn ${m(p.targetIncome)} in an 8-hour day you need about <b>${m(p.targetIncome / 480)}/min</b> on average.`,
-        );
-        if (adj)
-          bot(
-            `${[tm == "night" ? "night" : "", tm == "peak" ? "peak hour" : "", rain ? "rain" : "", heavy ? "heavy traffic" : ""].filter(Boolean).join(", ")}: I added <b>${adj}%</b> on top of the fare.`,
-          );
-        bot(verdict);
-      }
-      function verdict() {
-        const eff = Q.rate * (1 + Q.adj / 100),
-          c = costKm(P),
-          lr = P.localRate,
-          df = lr ? ((eff - lr) / lr) * 100 : 0;
-        let v = "Fair",
-          w = "Close to the market and above your break-even.";
-        if (eff < c || df < -20) {
-          v = "Underpriced";
-          w =
-            eff < c
-              ? "This is below your break-even, so you lose money on every km."
-              : "More than 20% under the local rate, you may be leaving money behind.";
-        } else if (df > 20) {
-          v = "Overpriced";
-          w = "More than 20% above the local rate, you may lose clients.";
-        } else if (df < -5) {
-          v = "Competitive";
-          w = "A little under the market and still above break-even.";
-        }
-        const km = parseFloat($("q_km").value) || 0,
-          mn = parseFloat($("q_min").value) || 0,
-          r = rates();
-        let rg = "Final fare follows the live meter.";
-        if (km) {
-          const lo = calc(r, km * 0.9, (mn || km * 3) * 54, 0, Q.adj, 0).tot,
-            hi = calc(r, km * 1.15, (mn || km * 3) * 78, 0, Q.adj, 0).tot;
-          rg = `About <b>${m(lo)} to ${m(hi)}</b> depending on traffic. Final fare follows the live meter.`;
-        }
-        return `<h4>Suggested ${m(Q.rate)}/km${Q.adj ? " (+" + Q.adj + "%)" : ""}</h4>Verdict: <b>${v}</b>. ${w}${lr ? ` Local rate: ${m(lr)}/km.` : ""}<br>${rg}${acts(
-          [
-            ["Use this rate", "use"],
-            ["Raise 5%", "up"],
-            ["Lower 5%", "dn"],
-            ["Explain", "ex"],
-          ],
-        )}`;
-      }
-      $("log").addEventListener("click", (e) => {
-        const a = e.target.dataset.a;
-        if (!a) return;
-        if (a == "up" || a == "dn") {
-          Q.rate = Math.round(Q.rate * (a == "up" ? 1.05 : 0.95) * 10) / 10;
-          bot(verdict());
-        }
-        if (a == "use") {
-          $("lock").hidden = false;
-          toast("Rate chosen: " + m(Q.rate) + "/km");
-          $("lock").scrollIntoView({ behavior: "smooth" });
-        }
-        if (a == "ex")
-          bot(
-            `Fare = base ${m(P.baseFare)} + (km × ${m(Q.rate)}) + (minutes × ${m(P.ratePerMin)}) + waiting, never below ${m(P.minFare)}, plus ${Q.adj}% surcharges, rounded up to ${P.rounding}. The client sees this formula.`,
-          );
-      });
       /* ---------- trip ---------- */
       let trip = J("kd_trip", null),
         wid = null,
@@ -1654,6 +1611,11 @@
           .href;
       };
       function lockTrip() {
+        if (!P) return show("reg");
+        if (trip && ["active", "paused"].includes(trip.status))
+          return openTrip();
+        Q.rate = Number(P.ratePerKm) || 0;
+        Q.adj = 0;
         const T = {
           id: "t_" + rid(5),
           token: rid(14),
@@ -1665,7 +1627,7 @@
           endSent: 0,
           status: "quoted",
           rates: rates(),
-          mult: Q.adj,
+          mult: 0,
           extras: [],
           startedAt: 0,
           paused: 0,
@@ -1682,10 +1644,7 @@
           lt: 0,
           fare: 0,
           pay: "cash",
-          est: {
-            km: parseFloat($("q_km").value) || 0,
-            min: parseFloat($("q_min").value) || 0,
-          },
+          est: { km: 0, min: 0 },
           sim: sim,
         };
         trip = T;
@@ -1693,16 +1652,15 @@
         cand = [];
         S("kd_trip", T);
         openTrip();
-        sync();
+        startTrip();
       }
       function openTrip() {
         TS.cam = { init: 0 };
         TS.hd = null;
         TS.id = null;
         show("trip");
-        $("t-share").hidden = trip.status == "ended";
-        $("t-share").open = trip.status == "quoted";
-        renderQR();
+        $("t-share").hidden = true;
+        $("t-share").open = false;
         renderTrip();
         ctl();
         draw();
@@ -2707,6 +2665,15 @@
       function frame(t) {
         const dt = Math.min(0.1, (t - lastF) / 1000 || 0.016);
         lastF = t;
+        if (!document.hidden && $("p-home").classList.contains("on")) {
+          paint($("home-map"), [], {
+            dt,
+            st: { hd: null, cam: { init: 0 } },
+            live: false,
+            ended: false,
+            msg: "Your map will appear here",
+          });
+        }
         if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
           if (TS.id !== trip.id) {
             TS.id = trip.id;
@@ -2966,6 +2933,7 @@
           }
           openTrip();
         } else show("home");
+        draw();
         if ("serviceWorker" in navigator)
           navigator.serviceWorker.register("./sw.js").catch(() => {});
       });
