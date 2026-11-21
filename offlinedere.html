@@ -8,6 +8,12 @@
     />
     <title>CashSplit Kadere — Driver</title>
     <link rel="manifest" href="./manifest.json" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
     <style>
       :root {
         --bg: #060a12;
@@ -441,13 +447,56 @@
         gap: 6px;
         margin-top: 10px;
       }
-      canvas {
+      .leaflet-map {
         width: 100%;
         height: clamp(260px, 42vh, 420px);
+        min-height: 260px;
         display: block;
-        background: #fff;
+        background: #e8edf3;
         border: 1px solid var(--border);
         border-radius: var(--rs);
+        overflow: hidden;
+        isolation: isolate;
+      }
+      .leaflet-container {
+        width: 100%;
+        height: 100%;
+        background: #e8edf3;
+        font-family: var(--fm);
+      }
+      .leaflet-control-attribution {
+        font-size: 10px !important;
+      }
+      .kd-map-pin {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        color: #fff;
+        background: #2563eb;
+        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.35);
+        font:
+          800 11px/1 Arial,
+          sans-serif;
+      }
+      .kd-map-pin.end {
+        border-radius: 7px;
+        background: #16a34a;
+      }
+      .kd-map-pin.live {
+        width: 18px;
+        height: 18px;
+        border: 3px solid #fff;
+        background: #2563eb;
+        box-shadow:
+          0 0 0 7px rgba(37, 99, 235, 0.18),
+          0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+      .leaflet-control-zoom a {
+        color: #172033 !important;
       }
       #qr {
         background: #fff;
@@ -719,7 +768,12 @@
             </div>
             <span class="xs muted" id="h-cloud"></span>
           </div>
-          <canvas id="home-map" aria-label="Trip map"></canvas>
+          <div
+            id="home-map"
+            class="leaflet-map"
+            role="application"
+            aria-label="OpenStreetMap trip map"
+          ></div>
           <button
             class="btn bgr bk big start-home"
             id="home-start"
@@ -849,7 +903,12 @@
             </div>
           </div>
         </div>
-        <canvas id="cv"></canvas>
+        <div
+          id="cv"
+          class="leaflet-map"
+          role="application"
+          aria-label="OpenStreetMap active trip map"
+        ></div>
         <details class="card noprint" id="t-ex">
           <summary>Extras <span class="xs muted" id="x-n"></span></summary>
           <div class="in">
@@ -877,7 +936,13 @@
           <div class="hero">
             <b id="rec-total">0</b><small id="rec-sub"></small>
           </div>
-          <canvas id="cv2" style="margin-bottom: 12px"></canvas>
+          <div
+            id="cv2"
+            class="leaflet-map"
+            style="margin-bottom: 12px"
+            role="application"
+            aria-label="OpenStreetMap recorded trip map"
+          ></div>
           <details id="rec-d" open class="hi" style="background: transparent">
             <summary><b>Fare breakdown</b></summary>
             <div class="hb" id="rec"></div>
@@ -919,6 +984,11 @@
         <span>⚙</span><small>Settings</small>
       </button>
     </nav>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="./kiswahili.js"></script>
     <script>
@@ -1010,6 +1080,13 @@
           .querySelectorAll(".nav-item")
           .forEach((b) => b.classList.toggle("active", b.dataset.page === id));
         $("p-" + id).parentNode.scrollTop = 0;
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            Object.values(KD_MAPS).forEach((entry) => {
+              if (entry && entry.map) entry.map.invalidateSize({ pan: false });
+            });
+          }),
+        );
         if (id === "home") {
           renderHome();
           draw();
@@ -2009,7 +2086,13 @@
       function onPos(p) {
         const c = p.coords,
           ts = p.timestamp || Date.now();
-        gps = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, ts, heading: c.heading };
+        gps = {
+          lat: c.latitude,
+          lng: c.longitude,
+          acc: c.accuracy,
+          ts,
+          heading: c.heading,
+        };
         const T = trip;
         if (!T || T.status != "active") return;
         if (
@@ -2433,6 +2516,9 @@
       let lastF = 0,
         loopOn = false;
 
+      // Leaflet map registry is declared before the cached-border loader runs.
+      const KD_MAPS = Object.create(null);
+
       // World country borders (Natural Earth, simplified 1:110m boundaries).
       // Cache locally after the first successful download so borders remain
       // available on later visits, including when temporarily offline.
@@ -2440,17 +2526,28 @@
       const WORLD_BORDERS_CACHE = "kd_world_country_borders_v1";
       function loadWorldCountryBorders() {
         try {
-          const cached = JSON.parse(localStorage.getItem(WORLD_BORDERS_CACHE) || "null");
-          if (cached && Array.isArray(cached.features)) worldCountryFeatures = cached.features;
+          const cached = JSON.parse(
+            localStorage.getItem(WORLD_BORDERS_CACHE) || "null",
+          );
+          if (cached && Array.isArray(cached.features))
+            worldCountryFeatures = cached.features;
         } catch (e) {}
-        if (worldCountryFeatures.length) draw();
-        fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson")
-          .then(r => { if (!r.ok) throw new Error("Country borders unavailable"); return r.json(); })
-          .then(data => {
-            if (!data || !Array.isArray(data.features)) throw new Error("Invalid country borders");
+        if (worldCountryFeatures.length) refreshCountryLayers();
+        fetch(
+          "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+        )
+          .then((r) => {
+            if (!r.ok) throw new Error("Country borders unavailable");
+            return r.json();
+          })
+          .then((data) => {
+            if (!data || !Array.isArray(data.features))
+              throw new Error("Invalid country borders");
             worldCountryFeatures = data.features;
-            try { localStorage.setItem(WORLD_BORDERS_CACHE, JSON.stringify(data)); } catch (e) {}
-            draw();
+            try {
+              localStorage.setItem(WORLD_BORDERS_CACHE, JSON.stringify(data));
+            } catch (e) {}
+            refreshCountryLayers();
             if ($("p-home").classList.contains("on")) renderHome();
             if ($("p-trip").classList.contains("on")) draw();
             if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
@@ -2459,289 +2556,279 @@
       }
       loadWorldCountryBorders();
 
-      function paint(cv, pts, o) {
-        if (!cv || !cv.clientWidth) return;
-        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches,
-          dt = o.dt || 0.016,
-          st = o.st,
-          dpr = window.devicePixelRatio || 1,
-          W = cv.clientWidth,
-          H = cv.clientHeight;
-        if (
-          cv.width !== Math.round(W * dpr) ||
-          cv.height !== Math.round(H * dpr)
-        ) {
-          cv.width = Math.round(W * dpr);
-          cv.height = Math.round(H * dpr);
+      /*
+       * Kadere map integration:
+       * - Leaflet supplies the draggable/zoomable OpenStreetMap road-map base.
+       * - Trip paths, start/end markers, and live position remain drawn by Kadere
+       *   from the driver's own recorded GPS points (no routing/Overpass requests).
+       * - Country borders remain a separate, optional Natural Earth overlay.
+       */
+      const KD_OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+      const KD_DEFAULT_CENTER = [-1.146, 36.96]; // Ruiru / Nairobi region
+
+      function kdIcon(label, extra) {
+        return L.divIcon({
+          className: "",
+          html:
+            '<span class="kd-map-pin ' +
+            (extra || "") +
+            '">' +
+            (label || "") +
+            "</span>",
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+      }
+
+      function initLeafletMap(id, state) {
+        const el = $(id);
+        if (!el || !window.L) return null;
+        if (KD_MAPS[id]) return KD_MAPS[id];
+
+        const map = L.map(el, {
+          zoomControl: true,
+          attributionControl: true,
+          scrollWheelZoom: true,
+          doubleClickZoom: true,
+          touchZoom: true,
+          dragging: true,
+          keyboard: true,
+          zoomSnap: 0.1,
+          zoomDelta: 0.5,
+          minZoom: 0,
+          maxZoom: 24,
+          worldCopyJump: true,
+          preferCanvas: true,
+        }).setView(KD_DEFAULT_CENTER, 13);
+
+        L.tileLayer(KD_OSM_URL, {
+          minZoom: 0,
+          maxZoom: 24,
+          maxNativeZoom: 19,
+          subdomains: "abc",
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+          updateWhenIdle: true,
+          keepBuffer: 3,
+        }).addTo(map);
+
+        const routeGroup = L.layerGroup().addTo(map);
+        const borderGroup = L.layerGroup().addTo(map);
+        const entry = {
+          map,
+          routeGroup,
+          borderGroup,
+          state,
+          userMoved: false,
+          hasFit: false,
+          lastPointKey: "",
+          lastBoundsKey: "",
+          syncing: false,
+          lastPoints: [],
+        };
+        KD_MAPS[id] = entry;
+
+        map.on("dragstart zoomstart", () => {
+          if (!entry.syncing) {
+            entry.userMoved = true;
+            if (state && state.cam) state.cam.userMoved = true;
+          }
+        });
+        map.on("dblclick", () => {
+          entry.userMoved = false;
+          if (state && state.cam) state.cam.userMoved = false;
+          if (entry.lastPoints.length)
+            fitKdRoute(entry, entry.lastPoints, true);
+          else map.setView(KD_DEFAULT_CENTER, 13);
+        });
+        map.whenReady(() => {
+          setTimeout(() => map.invalidateSize({ pan: false }), 80);
+          refreshCountryLayerFor(entry);
+        });
+        return entry;
+      }
+
+      function refreshCountryLayerFor(entry) {
+        if (!entry || !window.L || !worldCountryFeatures.length) return;
+        entry.borderGroup.clearLayers();
+        try {
+          L.geoJSON(
+            { type: "FeatureCollection", features: worldCountryFeatures },
+            {
+              interactive: false,
+              style: {
+                color: "#2563eb",
+                weight: 1,
+                opacity: 0.38,
+                fill: false,
+              },
+              filter: (feature) => !!feature && !!feature.geometry,
+            },
+          ).addTo(entry.borderGroup);
+        } catch (e) {}
+      }
+
+      function refreshCountryLayers() {
+        Object.values(KD_MAPS).forEach(refreshCountryLayerFor);
+      }
+
+      function fitKdRoute(entry, pts, force) {
+        if (!entry || !pts || !pts.length) return;
+        const valid = pts.filter(
+          (p) => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]),
+        );
+        if (!valid.length) return;
+        const bounds = L.latLngBounds(valid.map((p) => [+p[0], +p[1]]));
+        entry.syncing = true;
+        if (valid.length === 1) {
+          if (force || !entry.userMoved)
+            entry.map.setView(
+              [+valid[0][0], +valid[0][1]],
+              Math.max(entry.map.getZoom(), 15),
+            );
+        } else if (force || !entry.userMoved) {
+          entry.map.fitBounds(bounds, {
+            padding: [34, 34],
+            maxZoom: 17,
+            animate: false,
+          });
         }
-        const x = cv.getContext("2d"),
-          fg = "#000",
-          bg = "#fff",
-          BL = "#2563eb";
-        x.setTransform(dpr, 0, 0, dpr, 0, 0);
-        x.fillStyle = bg;
-        x.fillRect(0, 0, W, H);
-        const singlePoint = pts.length === 1;
-        if (singlePoint) pts = [pts[0], pts[0]]; /* one point: show A straight away */
-        if (pts.length < 2) {
-          st.hd = null;
-          if (o.idleArrow) {
-            x.save(); x.translate(W / 2, H / 2); x.rotate(-Math.PI / 2);
-            x.beginPath(); x.moveTo(16, 0); x.lineTo(-11, -10); x.lineTo(-5, 0); x.lineTo(-11, 10); x.closePath();
-            x.fillStyle = "#2563eb"; x.fill(); x.lineWidth = 3; x.strokeStyle = "#fff"; x.stroke(); x.restore();
+        entry.syncing = false;
+        entry.hasFit = true;
+      }
+
+      function kdUpdateRoute(entry, pts, options) {
+        if (!entry || !entry.map) return;
+        const o = options || {};
+        const valid = (pts || []).filter(
+          (p) => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]),
+        );
+        entry.lastPoints = valid;
+        entry.routeGroup.clearLayers();
+
+        if (!valid.length) {
+          if (
+            o.idleArrow &&
+            gps &&
+            Number.isFinite(gps.lat) &&
+            Number.isFinite(gps.lng)
+          ) {
+            const here = L.marker([gps.lat, gps.lng], {
+              icon: kdIcon("", "live"),
+              keyboard: false,
+            });
+            here.addTo(entry.routeGroup);
+            if (!entry.userMoved && !entry.hasFit) {
+              entry.syncing = true;
+              entry.map.setView([gps.lat, gps.lng], 16, { animate: false });
+              entry.syncing = false;
+              entry.hasFit = true;
+            }
           }
           return;
         }
-        const k = Math.cos((pts[0][0] * Math.PI) / 180),
-          M = 111320,
-          P2 = pts.map((q) => [
-            q[1] * k * M,
-            q[0] * M,
-            q.length > 3 ? q[3] : q[2],
-          ]),
-          n = P2.length,
-          sl = (i) =>
-            Math.hypot(P2[i + 1][0] - P2[i][0], P2[i + 1][1] - P2[i][1]);
-        if (!st.hd || reduce || !o.live) st.hd = { i: n - 2, f: 1 };
-        else {
-          const h = st.hd;
-          if (h.i > n - 2) {
-            h.i = n - 2;
-            h.f = 1;
-          }
-          let R = sl(h.i) * (1 - h.f);
-          for (let j = h.i + 1; j < n - 1; j++) R += sl(j);
-          let step = R < 0.3 ? R : R * (1 - Math.pow(0.05, dt / 2.5));
-          while (step > 0) {
-            const L = sl(h.i),
-              left = L * (1 - h.f);
-            if (L === 0 || step >= left) {
-              step -= left;
-              if (h.i >= n - 2) {
-                h.f = 1;
-                break;
-              }
-              h.i++;
-              h.f = 0;
-            } else {
-              h.f += step / L;
-              step = 0;
-            }
-          }
-        }
-        const hd = st.hd,
-          A0 = P2[hd.i],
-          A1 = P2[hd.i + 1],
-          HX = [
-            A0[0] + (A1[0] - A0[0]) * hd.f,
-            A0[1] + (A1[1] - A0[1]) * hd.f,
-            A1[2],
-          ],
-          Pd = P2.slice(0, hd.i + 1).concat([HX]);
-        let x0 = 1e18,
-          x1 = -1e18,
-          y0 = 1e18,
-          y1 = -1e18;
-        for (const q of Pd) {
-          x0 = Math.min(x0, q[0]);
-          x1 = Math.max(x1, q[0]);
-          y0 = Math.min(y0, q[1]);
-          y1 = Math.max(y1, q[1]);
-        }
-        const pad = 36,
-          w = Math.max(x1 - x0, 150),
-          h2 = Math.max(y1 - y0, 150),
-          ts = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h2),
-          tx = (x0 + x1) / 2,
-          ty = (y0 + y1) / 2,
-          cam = st.cam;
-        if (!cam.init || reduce) {
-          cam.x = tx;
-          cam.y = ty;
-          cam.s = ts;
-          cam.init = 1;
-        } else if (!cam.userMoved) {
-          // Follow the route gently until the driver manually moves the map.
-          const follow = 1 - Math.pow(0.001, Math.max(0.001, dt) / 0.85);
-          cam.x += (tx - cam.x) * follow;
-          cam.y += (ty - cam.y) * follow;
-          // Keep the map's ground scale fixed while a trip grows. Re-fitting
-          // to the entire accumulated route made the map zoom out continuously
-          // (often after only a short distance such as 200 metres).
-        }
-        cam.zoom = Math.max(1e-12, Math.min(1e12, Number.isFinite(cam.zoom) ? cam.zoom : 1));
-        if (!Number.isFinite(cam.z)) cam.z = cam.zoom;
-        // Ease towards the requested zoom instead of changing scale in one frame.
-        const zoomEase = 1 - Math.pow(0.001, Math.max(0.001, dt) / 0.38);
-        cam.z += (cam.zoom - cam.z) * zoomEase;
-        if (Math.abs(cam.zoom - cam.z) < 0.0005) cam.z = cam.zoom;
-        const zoomNow = cam.z;
-        let s = cam.s * zoomNow;
-        // Use the same local equirectangular projection as the recorded route.
-        // Country outlines are passive decoration: they never alter zoom,
-        // camera position, route geometry, or GPS eligibility.
-        const kx = Math.cos((pts[0][0] * Math.PI) / 180), KM = 111320;
-        const X = (q) => W / 2 + (q[0] - cam.x) * s,
-          Y = (q) => H / 2 - (q[1] - cam.y) * s;
-        st.screenA = [X(P2[0]), Y(P2[0])]; st.screenB = [X(P2[n-1]), Y(P2[n-1])];
-        st.geoA = pts[0]; st.geoB = pts[pts.length-1]; st.canvas = cv;
 
-        // Draw only country borders (no country fills or labels). Split rings
-        // at the ±180° meridian so countries near the date line do not create
-        // unwanted lines across the entire map.
-        if (worldCountryFeatures.length && zoomNow < 2.5) {
-          x.save();
-          x.beginPath();
-          const drawRing = ring => {
-            let drawing = false, previousLon = null;
-            for (const point of ring) {
-              const lon = point[0], lat = point[1];
-              if (!Number.isFinite(lon) || !Number.isFinite(lat)) { drawing = false; previousLon = null; continue; }
-              if (previousLon !== null && Math.abs(lon - previousLon) > 180) drawing = false;
-              const px = X([lon * kx * KM, lat * KM]);
-              const py = Y([lon * kx * KM, lat * KM]);
-              if (!drawing) { x.moveTo(px, py); drawing = true; }
-              else x.lineTo(px, py);
-              previousLon = lon;
-            }
-          };
-          for (const feature of worldCountryFeatures) {
-            const geom = feature && feature.geometry;
-            if (!geom) continue;
-            if (geom.type === "Polygon") geom.coordinates.forEach(drawRing);
-            else if (geom.type === "MultiPolygon") geom.coordinates.forEach(poly => poly.forEach(drawRing));
+        // Kadere point format: [latitude, longitude, timestamp, estimatedFlag].
+        // Keep the route manually drawn from the driver's own recorded GPS points.
+        if (valid.length > 1) {
+          L.polyline(
+            valid.map((p) => [+p[0], +p[1]]),
+            {
+              color: "#ffffff",
+              weight: 8,
+              opacity: 0.92,
+              lineCap: "round",
+              lineJoin: "round",
+            },
+          ).addTo(entry.routeGroup);
+
+          for (let i = 1; i < valid.length; i++) {
+            const a = valid[i - 1],
+              b = valid[i];
+            const estimated = Number(b[3]) === 1;
+            L.polyline(
+              [
+                [+a[0], +a[1]],
+                [+b[0], +b[1]],
+              ],
+              {
+                color: estimated ? "#f59e0b" : "#2563eb",
+                weight: 4,
+                opacity: 0.98,
+                dashArray: estimated ? "8 8" : null,
+                lineCap: "round",
+                lineJoin: "round",
+              },
+            ).addTo(entry.routeGroup);
           }
-          x.strokeStyle = "rgba(37,99,235,.42)";
-          x.lineWidth = 1.15;
-          x.setLineDash([]);
-          x.stroke();
-          x.restore();
         }
-        let g = NICE[NICE.length - 1];
-        for (const nn of NICE)
-          if (nn * s >= 44) {
-            g = nn;
-            break;
-          }
-        // At very distant zoom levels, enlarge the grid interval so the
-        // renderer never tries to draw thousands of off-screen grid lines.
-        if (s > 0) g = Math.max(g, W / s / 80, H / s / 80);
-        x.strokeStyle = "rgba(0,0,0,.08)";
-        x.lineWidth = 1;
-        x.beginPath();
-        for (
-          let v = Math.floor((cam.x - W / 2 / s) / g) * g;
-          v <= cam.x + W / 2 / s;
-          v += g
-        ) {
-          const px = Math.round(W / 2 + (v - cam.x) * s) + 0.5;
-          x.moveTo(px, 0);
-          x.lineTo(px, H);
-        }
-        for (
-          let v = Math.floor((cam.y - H / 2 / s) / g) * g;
-          v <= cam.y + H / 2 / s;
-          v += g
-        ) {
-          const py = Math.round(H / 2 - (v - cam.y) * s) + 0.5;
-          x.moveTo(0, py);
-          x.lineTo(W, py);
-        }
-        x.stroke();
-        x.lineCap = x.lineJoin = "round";
-        const run = (wd, col, est) => {
-          x.strokeStyle = col;
-          x.lineWidth = wd;
-          for (let i = 1; i < Pd.length; i++) {
-            if (!!Pd[i][2] !== est) continue;
-            x.beginPath();
-            x.moveTo(X(Pd[i - 1]), Y(Pd[i - 1]));
-            x.lineTo(X(Pd[i]), Y(Pd[i]));
-            x.stroke();
-          }
-        };
-        x.setLineDash([]);
-        run(9, bg, false);
-        x.setLineDash([10, 9]);
-        run(9, bg, true);
-        x.setLineDash([]);
-        run(4, fg, false);
-        x.setLineDash([9, 8]);
-        run(4, fg, true);
-        x.setLineDash([]);
-        const a = Pd[0],
-          e = Pd[Pd.length - 1];
-        x.beginPath();
-        x.arc(X(a), Y(a), 11, 0, 7);
-        x.fillStyle = bg;
-        x.fill();
-        x.lineWidth = 3;
-        x.strokeStyle = BL;
-        x.stroke();
-        x.fillStyle = BL;
-        x.font = "700 11px sans-serif";
-        x.textAlign = "center";
-        x.textBaseline = "middle";
-        x.fillText("A", X(a), Y(a) + 0.5);
+
+        const first = valid[0],
+          last = valid[valid.length - 1];
+        L.marker([+first[0], +first[1]], { icon: kdIcon("A"), keyboard: false })
+          .addTo(entry.routeGroup)
+          .on("click", () =>
+            window.open(
+              "https://www.google.com/maps?q=" +
+                encodeURIComponent(first[0] + "," + first[1]),
+              "_blank",
+              "noopener",
+            ),
+          );
+
         if (o.ended) {
-          x.fillStyle = BL;
-          x.fillRect(X(e) - 11, Y(e) - 11, 22, 22);
-          x.fillStyle = bg;
-          x.fillText("B", X(e), Y(e) + 0.5);
+          L.marker([+last[0], +last[1]], {
+            icon: kdIcon("B", "end"),
+            keyboard: false,
+          })
+            .addTo(entry.routeGroup)
+            .on("click", () =>
+              window.open(
+                "https://www.google.com/maps?q=" +
+                  encodeURIComponent(last[0] + "," + last[1]),
+                "_blank",
+                "noopener",
+              ),
+            );
         } else {
-          const pr = reduce ? 0 : (Date.now() % 1600) / 1600;
-          x.globalAlpha = 1 - pr;
-          x.beginPath();
-          x.arc(X(e), Y(e), 10 + pr * 20, 0, 7);
-          x.strokeStyle = BL;
-          x.lineWidth = 2;
-          x.stroke();
-          x.globalAlpha = 1;
-          let q = Pd[Math.max(0, Pd.length - 2)];
-          for (let i = Pd.length - 2; i >= 0; i--) {
-            q = Pd[i];
-            if (Math.hypot(e[0] - q[0], e[1] - q[1]) * s > 6) break;
-          }
-          x.save();
-          x.translate(X(e), Y(e));
-          x.rotate(singlePoint && Number.isFinite(o.heading) ? (90-o.heading)*Math.PI/180 : singlePoint ? -Math.PI/2 : Math.atan2(-(e[1] - q[1]), e[0] - q[0]));
-          x.beginPath();
-          x.moveTo(13, 0);
-          x.lineTo(-9, -9);
-          x.lineTo(-4, 0);
-          x.lineTo(-9, 9);
-          x.closePath();
-          x.fillStyle = BL;
-          x.fill();
-          x.lineWidth = 2.5;
-          x.strokeStyle = bg;
-          x.stroke();
-          x.restore();
+          L.marker([+last[0], +last[1]], {
+            icon: kdIcon("", "live"),
+            keyboard: false,
+          }).addTo(entry.routeGroup);
         }
-        let nm = NICE[0];
-        for (const q of NICE) if (q <= (1 / s) * 90) nm = q;
-        const px = nm * s,
-          y = H - 14;
-        x.strokeStyle = x.fillStyle = fg;
-        x.lineWidth = 2;
-        x.beginPath();
-        x.moveTo(14, y - 5);
-        x.lineTo(14, y);
-        x.lineTo(14 + px, y);
-        x.lineTo(14 + px, y - 5);
-        x.stroke();
-        x.font = "600 11px sans-serif";
-        x.textAlign = "left";
-        x.textBaseline = "alphabetic";
-        x.fillText(nm >= 1000 ? nm / 1000 + " km" : nm + " m", 18, y - 8);
-        x.textAlign = "center";
-        x.fillText("N", W - 18, 20);
-        x.beginPath();
-        x.moveTo(W - 18, 26);
-        x.lineTo(W - 23, 38);
-        x.lineTo(W - 13, 38);
-        x.closePath();
-        x.fill();
+
+        const pointKey = valid.length + ":" + last[0] + "," + last[1];
+        if (!entry.hasFit) fitKdRoute(entry, valid, true);
+        else if (
+          !entry.userMoved &&
+          !o.ended &&
+          pointKey !== entry.lastPointKey
+        ) {
+          // Follow the newest GPS fix without repeatedly zooming out to fit the full route.
+          entry.syncing = true;
+          entry.map.panTo([+last[0], +last[1]], {
+            animate: true,
+            duration: 0.25,
+          });
+          entry.syncing = false;
+        }
+        entry.lastPointKey = pointKey;
+      }
+
+      function paint(cv, pts, o) {
+        if (!cv) return;
+        const id = cv.id;
+        const state = o && o.st;
+        const entry = initLeafletMap(id, state);
+        if (!entry) return;
+        kdUpdateRoute(entry, pts || [], o || {});
+      }
+
+      function wireMapCanvas(id, state) {
+        const entry = initLeafletMap(id, state);
+        if (!entry) return;
+        // Resize safely when the existing Kadere page/tab becomes visible.
+        requestAnimationFrame(() => entry.map.invalidateSize({ pan: false }));
       }
       function frame(t) {
         const dt = Math.min(0.1, (t - lastF) / 1000 || 0.016);
@@ -2807,109 +2894,37 @@
           msg: "No route recorded",
         });
       }
-      /* Smooth map controls: gradual wheel/pinch zoom and direct drag-to-pan. */
-      function wireMapCanvas(id, state) {
-        const cv=$(id); if (!cv || cv.dataset.mapControls) return;
-        cv.dataset.mapControls="1";
-        cv.style.touchAction="none";
-        const clampZoom = z => Math.max(1e-12, Math.min(1e12, Number.isFinite(z) ? z : 1));
-        const redraw = () => {
-          if (id === "cv2" && RT()) drawRec(RT());
-          else if (id === "home-map") draw();
-          else if (id === "cv") draw();
-        };
-        cv.addEventListener("wheel", e => {
-          e.preventDefault();
-          const rect=cv.getBoundingClientRect();
-          const px=e.clientX-rect.left, py=e.clientY-rect.top;
-          const delta=e.deltaMode===1 ? e.deltaY*16 : e.deltaMode===2 ? e.deltaY*rect.height : e.deltaY;
-          const factor=Math.exp(-Math.max(-80,Math.min(80,delta))*0.00075);
-          const oldZoom=state.cam.zoom||1, nextZoom=clampZoom(oldZoom*factor);
-          const z=state.cam.z||oldZoom, scale=(state.cam.s||1)*z;
-          // Keep the geographic point under the cursor stationary while zooming.
-          const wx=state.cam.x+(px-rect.width/2)/scale;
-          const wy=state.cam.y-(py-rect.height/2)/scale;
-          state.cam.zoom=nextZoom;
-          const nextScale=(state.cam.s||1)*nextZoom;
-          state.cam.x=wx-(px-rect.width/2)/nextScale;
-          state.cam.y=wy+(py-rect.height/2)/nextScale;
-          state.cam.userMoved=true;
-          redraw();
-        },{passive:false});
-
-        const active=new Map();
-        let pinchDistance=0, moved=false, lastPoint=null;
-        cv.addEventListener("pointerdown", e=>{
-          if(e.pointerType==="mouse" && e.button!==0) return;
-          cv.setPointerCapture(e.pointerId);
-          active.set(e.pointerId,{x:e.clientX,y:e.clientY});
-          moved=false;
-          if(active.size===1) lastPoint={x:e.clientX,y:e.clientY};
-          if(active.size===2){
-            const a=[...active.values()];
-            pinchDistance=Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y);
-          }
-        });
-        cv.addEventListener("pointermove", e=>{
-          if(!active.has(e.pointerId)) return;
-          const prev=active.get(e.pointerId);
-          const dx=e.clientX-prev.x, dy=e.clientY-prev.y;
-          active.set(e.pointerId,{x:e.clientX,y:e.clientY});
-          if(active.size===1){
-            if(Math.abs(dx)+Math.abs(dy)>1) moved=true;
-            const rect=cv.getBoundingClientRect();
-            const z=state.cam.z||state.cam.zoom||1;
-            const scale=(state.cam.s||1)*z;
-            if(scale>0){
-              state.cam.x-=dx/scale;
-              state.cam.y+=dy/scale;
-              state.cam.userMoved=true;
-              redraw();
-            }
-          } else if(active.size===2){
-            const a=[...active.values()];
-            const d=Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y);
-            if(pinchDistance>0 && d>0){
-              const ratio=d/pinchDistance;
-              if(Math.abs(ratio-1)>0.001) moved=true;
-              // Small incremental changes prevent a coarse jump on high-rate touch screens.
-              state.cam.zoom=clampZoom((state.cam.zoom||1)*Math.pow(ratio,0.72));
-              state.cam.userMoved=true;
-              redraw();
-            }
-            pinchDistance=d;
-          }
-        });
-        const release=e=>{
-          active.delete(e.pointerId);
-          if(active.size<2) pinchDistance=0;
-          if(!active.size) lastPoint=null;
-        };
-        cv.addEventListener("pointerup",release);
-        cv.addEventListener("pointercancel",release);
-        cv.addEventListener("lostpointercapture",release);
-        cv.addEventListener("click", e=>{
-          if(moved){moved=false;return;}
-          const r=cv.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
-          const a=state.screenA,b=state.screenB; let target=null;
-          if(a && Math.hypot(px-a[0],py-a[1])<25) target=state.geoA;
-          else if(b && Math.hypot(px-b[0],py-b[1])<25) target=state.geoB;
-          if(target) window.open("https://www.google.com/maps?q="+encodeURIComponent(target[0]+","+target[1]),"_blank","noopener");
-        });
-        cv.addEventListener("dblclick", e=>{
-          e.preventDefault();
-          state.cam.userMoved=false;
-          state.cam.zoom=1;
-          state.cam.z=state.cam.z||1;
-          redraw();
+      /* Leaflet owns map dragging, wheel zoom, pinch zoom and double-click zoom. */
+      wireMapCanvas("home-map", HS);
+      wireMapCanvas("cv", TS);
+      const RS = { hd: null, cam: { init: 0, zoom: 1 } };
+      function drawRec(T) {
+        paint($("cv2"), T.pts || [], {
+          st: RS,
+          ended: true,
+          live: false,
+          msg: "No route recorded",
         });
       }
-      wireMapCanvas("home-map",HS); wireMapCanvas("cv",TS);
-      const RS={hd:null,cam:{init:0,zoom:1}};
-      function drawRec(T) { paint($("cv2"),T.pts||[],{st:RS,ended:true,live:false,msg:"No route recorded"}); }
-      wireMapCanvas("cv2",RS);
+      wireMapCanvas("cv2", RS);
+      if ("ResizeObserver" in window) {
+        const kdMapResizeObserver = new ResizeObserver((entries) => {
+          for (const item of entries) {
+            const entry = KD_MAPS[item.target.id];
+            if (entry) entry.map.invalidateSize({ pan: false });
+          }
+        });
+        ["home-map", "cv", "cv2"].forEach((id) => {
+          const el = $(id);
+          if (el) kdMapResizeObserver.observe(el);
+        });
+      }
+
       addEventListener("resize", () => {
         TS.cam.init = 0;
+        Object.values(KD_MAPS).forEach((entry) =>
+          entry.map.invalidateSize({ pan: false }),
+        );
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
       });
       /* ---------- end and receipt ---------- */
@@ -2955,7 +2970,8 @@
         const r = J("kd_hist", []).find((x) => x.id === id);
         if (!r) return;
         RV = r;
-        RS.hd=null; RS.cam={init:0,zoom:1};
+        RS.hd = null;
+        RS.cam = { init: 0, zoom: 1 };
         if (!r.pts || r.pts.length < 2)
           fetchRoute(r).then((p) => {
             if (p.length < 2) return;
