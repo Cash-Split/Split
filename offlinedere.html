@@ -2432,6 +2432,33 @@
       const HS = { hd: null, cam: { init: 0 }, id: null };
       let lastF = 0,
         loopOn = false;
+
+      // World country borders (Natural Earth, simplified 1:110m boundaries).
+      // Cache locally after the first successful download so borders remain
+      // available on later visits, including when temporarily offline.
+      let worldCountryFeatures = [];
+      const WORLD_BORDERS_CACHE = "kd_world_country_borders_v1";
+      function loadWorldCountryBorders() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(WORLD_BORDERS_CACHE) || "null");
+          if (cached && Array.isArray(cached.features)) worldCountryFeatures = cached.features;
+        } catch (e) {}
+        if (worldCountryFeatures.length) draw();
+        fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson")
+          .then(r => { if (!r.ok) throw new Error("Country borders unavailable"); return r.json(); })
+          .then(data => {
+            if (!data || !Array.isArray(data.features)) throw new Error("Invalid country borders");
+            worldCountryFeatures = data.features;
+            try { localStorage.setItem(WORLD_BORDERS_CACHE, JSON.stringify(data)); } catch (e) {}
+            draw();
+            if ($("p-home").classList.contains("on")) renderHome();
+            if ($("p-trip").classList.contains("on")) draw();
+            if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
+          })
+          .catch(() => {});
+      }
+      loadWorldCountryBorders();
+
       function paint(cv, pts, o) {
         if (!cv || !cv.clientWidth) return;
         const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -2542,7 +2569,7 @@
           // to the entire accumulated route made the map zoom out continuously
           // (often after only a short distance such as 200 metres).
         }
-        cam.zoom = Math.max(0.12, Math.min(12, cam.zoom || 1));
+        cam.zoom = Math.max(0.001, Math.min(100, cam.zoom || 1));
         if (!Number.isFinite(cam.z)) cam.z = cam.zoom;
         // Ease towards the requested zoom instead of changing scale in one frame.
         const zoomEase = 1 - Math.pow(0.001, Math.max(0.001, dt) / 0.38);
@@ -2550,50 +2577,45 @@
         if (Math.abs(cam.zoom - cam.z) < 0.0005) cam.z = cam.zoom;
         const zoomNow = cam.z;
         let s = cam.s * zoomNow;
-        /* When zoomed well out, frame the whole of Kenya and keep the recorded route in its geographic context. */
-        const kenya = [[-0.85829,40.993],[-1.68325,41.58513],[-2.08255,40.88477],[-2.49979,40.63785],[-2.57309,40.26304],[-3.27768,40.12119],[-3.68116,39.80006],[-4.34653,39.60489],[-4.67677,39.20222],[-3.67712,37.7669],[-3.09699,37.69869],[-1.05982,34.07262],[-0.95,33.903711],[0.109814,33.893569],[0.515,34.18],[1.17694,34.6721],[1.90584,35.03599],[3.05374,34.59607],[3.5556,34.47913],[4.249885,34.005],[4.847123,34.620196],[5.0304,35.298007],[5.0,35.817448],[4.776966,35.817448],[4.447864,36.159079],[4.447864,36.855093],[3.598605,38.120915],[3.58851,38.43697],[3.61607,38.67114],[3.50074,38.89251],[3.42206,39.559384],[3.83879,39.85494],[4.25702,40.76848],[3.91909,41.1718],[3.918912,41.855083],[2.78452,40.98105],[-0.85829,40.993]];
+        // Use the same local equirectangular projection as the recorded route.
+        // Country outlines are passive decoration: they never alter zoom,
+        // camera position, route geometry, or GPS eligibility.
         const kx = Math.cos((pts[0][0] * Math.PI) / 180), KM = 111320;
-        const K = kenya.map(([la,lo]) => [lo * kx * KM, la * KM]);
-        // The country outline is a Kenya-only context layer. Require a fresh
-        // GPS fix inside Kenya; a saved route or stale location never enables it.
-        const fixIsFresh = !!(gps && Date.now() - gps.ts < 20000);
-        const pointInKenya = (lat, lng) => {
-          let inside = false;
-          for (let i = 0, j = kenya.length - 1; i < kenya.length; j = i++) {
-            const [yi, xi] = kenya[i], [yj, xj] = kenya[j];
-            const crosses = ((yi > lat) !== (yj > lat)) &&
-              (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi);
-            if (crosses) inside = !inside;
-          }
-          return inside;
-        };
-        const driverInKenya = fixIsFresh && pointInKenya(gps.lat, gps.lng);
-        const showKenyaContext = driverInKenya && zoomNow < 0.80;
-        if (showKenyaContext) {
-          const bx = K.map(q=>q[0]), by=K.map(q=>q[1]);
-          const cx=(Math.min(...bx)+Math.max(...bx))/2, cy=(Math.min(...by)+Math.max(...by))/2;
-          const fit=Math.min((W-70)/(Math.max(...bx)-Math.min(...bx)),(H-70)/(Math.max(...by)-Math.min(...by)));
-          // Cross-fade between Kenya framing and route framing. This avoids
-          // the old hard scale switch at 0.58 that caused huge zoom jumps.
-          const blendRaw = Math.max(0, Math.min(1, (zoomNow - 0.34) / 0.46));
-          const blend = blendRaw * blendRaw * (3 - 2 * blendRaw);
-          const kenyaScale = fit * (zoomNow / 0.58);
-          const routeScale = cam.s * zoomNow;
-          s = kenyaScale * (1 - blend) + routeScale * blend;
-          if (!cam.userMoved) {
-            const centreEase = 0.18 * (1 - blend);
-            cam.x += (cx-cam.x)*centreEase;
-            cam.y += (cy-cam.y)*centreEase;
-          }
-        }
         const X = (q) => W / 2 + (q[0] - cam.x) * s,
           Y = (q) => H / 2 - (q[1] - cam.y) * s;
         st.screenA = [X(P2[0]), Y(P2[0])]; st.screenB = [X(P2[n-1]), Y(P2[n-1])];
         st.geoA = pts[0]; st.geoB = pts[pts.length-1]; st.canvas = cv;
-        if (showKenyaContext) {
-          x.save(); x.beginPath(); K.forEach((q,i)=>i?x.lineTo(X(q),Y(q)):x.moveTo(X(q),Y(q))); x.closePath();
-          x.fillStyle="rgba(37,99,235,.035)"; x.fill(); x.strokeStyle="#2563eb"; x.lineWidth=2; x.setLineDash([]); x.stroke();
-          x.fillStyle="#2563eb"; x.font="700 12px sans-serif"; x.textAlign="center"; x.fillText("KENYA",W/2,H/2); x.restore();
+
+        // Draw only country borders (no country fills or labels). Split rings
+        // at the ±180° meridian so countries near the date line do not create
+        // unwanted lines across the entire map.
+        if (worldCountryFeatures.length && zoomNow < 2.5) {
+          x.save();
+          x.beginPath();
+          const drawRing = ring => {
+            let drawing = false, previousLon = null;
+            for (const point of ring) {
+              const lon = point[0], lat = point[1];
+              if (!Number.isFinite(lon) || !Number.isFinite(lat)) { drawing = false; previousLon = null; continue; }
+              if (previousLon !== null && Math.abs(lon - previousLon) > 180) drawing = false;
+              const px = X([lon * kx * KM, lat * KM]);
+              const py = Y([lon * kx * KM, lat * KM]);
+              if (!drawing) { x.moveTo(px, py); drawing = true; }
+              else x.lineTo(px, py);
+              previousLon = lon;
+            }
+          };
+          for (const feature of worldCountryFeatures) {
+            const geom = feature && feature.geometry;
+            if (!geom) continue;
+            if (geom.type === "Polygon") geom.coordinates.forEach(drawRing);
+            else if (geom.type === "MultiPolygon") geom.coordinates.forEach(poly => poly.forEach(drawRing));
+          }
+          x.strokeStyle = "rgba(37,99,235,.42)";
+          x.lineWidth = 1.15;
+          x.setLineDash([]);
+          x.stroke();
+          x.restore();
         }
         let g = NICE[NICE.length - 1];
         for (const nn of NICE)
@@ -2787,7 +2809,7 @@
         const cv=$(id); if (!cv || cv.dataset.mapControls) return;
         cv.dataset.mapControls="1";
         cv.style.touchAction="none";
-        const clampZoom = z => Math.max(0.12, Math.min(12, z));
+        const clampZoom = z => Math.max(0.001, Math.min(100, z));
         const redraw = () => {
           if (id === "cv2" && RT()) drawRec(RT());
           else if (id === "home-map") draw();
