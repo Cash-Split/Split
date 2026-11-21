@@ -678,10 +678,6 @@
       .trip-running #cv { height:clamp(300px, calc(100dvh - 315px), 720px); min-height:300px; flex:1 0 auto; }
       .trip-running #p-trip #t-share { display:none; }
       .trip-running #p-trip #t-ex { flex-shrink:0; }
-      /* Keep the live ride panel vertically swipeable without interfering with map gestures. */
-      .trip-running #p-trip { touch-action: pan-y; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
-      .trip-running #p-trip > :not(#cv) { touch-action: pan-y; }
-      .trip-running #cv { touch-action: pan-x pan-y pinch-zoom; }
       @media (max-width:380px) {
         .more-stats { gap:5px; }
         .more-stats .stat small { font-size:.62rem; }
@@ -694,9 +690,6 @@
       .trip-running main { padding-bottom:10px; }
       .leaflet-control-kd-center a { display:flex !important; align-items:center; justify-content:center; width:38px !important; height:38px !important; border-radius:10px !important; background:#fff !important; color:#1d4ed8 !important; font-size:21px !important; font-weight:800; text-decoration:none; box-shadow:0 1px 5px rgba(0,0,0,.35); }
       .leaflet-control-kd-center a:active { background:#dbeafe !important; }
-      /* Let the whole live-trip page scroll; keep the bottom navigation fixed in the layout. */
-      .trip-running main { overflow-y:auto; overflow-x:hidden; }
-      .trip-running #p-trip { flex:0 0 auto; min-height:auto; overflow:visible; touch-action:pan-y; }
 </style>
   </head>
   <body>
@@ -2611,7 +2604,6 @@
         const entry = {
           map, routeGroup, borderGroup, state,
           userMoved: false,
-          heading: null,
           hasFit: false,
           lastPointKey: "",
           lastBoundsKey: "",
@@ -2627,9 +2619,6 @@
           }
         });
         map.on("move zoom resize viewreset", () => drawKdRouteCanvas(entry));
-        // CSS individual rotate composes with Leaflet's own translate transform,
-        // keeping OSM tiles, route canvas and markers aligned while heading-up.
-        map.getPane("mapPane").style.transformOrigin = "50% 50%";
         map.on("dblclick", () => {
           entry.userMoved = false;
           if (state && state.cam) state.cam.userMoved = false;
@@ -2656,41 +2645,9 @@
           entry.syncing = true;
           entry.userMoved = false;
           if (entry.state && entry.state.cam) entry.state.cam.userMoved = false;
-          entry.heading = pos.heading != null && Number.isFinite(+pos.heading) ? +pos.heading : entry.heading;
-          entry.map.setView([pos.lat, pos.lng], Math.max(entry.map.getZoom(), 18), { animate: true });
-          // Put the driver's position slightly below centre, leaving more road visible ahead.
-          requestAnimationFrame(() => {
-            if (entry.map && entry.map.getSize().y > 0) {
-              entry.map.panBy([0, -Math.round(entry.map.getSize().y * 0.16)], { animate: true, duration: 0.35 });
-            }
-          });
+          entry.map.setView([pos.lat, pos.lng], Math.max(entry.map.getZoom(), 16), { animate: true });
           entry.syncing = false;
-          applyKdHeading(entry, pos.heading);
         });
-      }
-
-      function kdBearing(a, b) {
-        const rad = Math.PI / 180, y = Math.sin((b[1] - a[1]) * rad) * Math.cos(b[0] * rad);
-        const x = Math.cos(a[0] * rad) * Math.sin(b[0] * rad) -
-          Math.sin(a[0] * rad) * Math.cos(b[0] * rad) * Math.cos((b[1] - a[1]) * rad);
-        return (Math.atan2(y, x) / rad + 360) % 360;
-      }
-      function applyKdHeading(entry, suppliedHeading) {
-        if (!entry || !entry.map) return;
-        let heading = suppliedHeading != null && Number.isFinite(+suppliedHeading) ? +suppliedHeading : null;
-        const pts = entry.lastPoints || [];
-        if (heading === null && pts.length > 1) {
-          for (let i = pts.length - 1; i > 0; i--) {
-            if (hav(+pts[i-1][0], +pts[i-1][1], +pts[i][0], +pts[i][1]) > 4) {
-              heading = kdBearing(pts[i-1], pts[i]);
-              break;
-            }
-          }
-        }
-        if (heading === null || !Number.isFinite(heading)) return;
-        entry.heading = heading;
-        const pane = entry.map.getPane("mapPane");
-        if (pane) pane.style.rotate = (-heading) + "deg";
       }
 
       function refreshCountryLayerFor(entry) {
@@ -2887,14 +2844,7 @@
         const routeNeedsFit = !entry.hasFit ||
           (o.fitRecorded && entry.lastFitRouteKey !== routeKey);
         if (routeNeedsFit) {
-          if (o.live && !o.fitRecorded) {
-            entry.syncing = true;
-            entry.map.setView([+last[0], +last[1]], Math.max(entry.map.getZoom(), 18), { animate: false });
-            entry.syncing = false;
-            entry.hasFit = true;
-          } else {
-            fitKdRoute(entry, valid, !!o.fitRecorded || isNewRoute);
-          }
+          fitKdRoute(entry, valid, !!o.fitRecorded || isNewRoute);
           if (o.fitRecorded) entry.lastFitRouteKey = routeKey;
         } else if (!entry.userMoved && !o.ended && pointKey !== entry.lastPointKey) {
           entry.syncing = true;
@@ -2954,7 +2904,6 @@
             idleArrow: !homePts.length,
             heading: gps && gps.heading,
           });
-          applyKdHeading(KD_MAPS["home-map"], gps && gps.heading);
         }
         if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
           if (TS.id !== trip.id) {
@@ -2972,7 +2921,6 @@
                 ? "Route appears once the trip starts"
                 : "Finding your position…",
           });
-          applyKdHeading(KD_MAPS["cv"], gps && gps.heading);
         }
         requestAnimationFrame(frame);
       }
