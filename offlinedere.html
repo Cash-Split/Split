@@ -1655,7 +1655,7 @@
         startTrip();
       }
       function openTrip() {
-        TS.cam = { init: 0 };
+        TS.cam = { init: 0, zoom: 1 };
         TS.hd = null;
         TS.id = null;
         show("trip");
@@ -1843,7 +1843,7 @@
           locPerm = "unknown";
         }
         locUI();
-        if (locPerm !== "granted" && locPerm !== "denied") fixLoc();
+        if (locPerm !== "denied") fixLoc();
       }
       function fixLoc() {
         return new Promise((res) => {
@@ -1860,6 +1860,7 @@
                 lng: p.coords.longitude,
                 acc: p.coords.accuracy,
                 ts: p.timestamp || Date.now(),
+                heading: p.coords.heading,
               };
               if (trip && ["active", "paused"].includes(trip.status))
                 startGeo();
@@ -2008,7 +2009,7 @@
       function onPos(p) {
         const c = p.coords,
           ts = p.timestamp || Date.now();
-        gps = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, ts };
+        gps = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, ts, heading: c.heading };
         const T = trip;
         if (!T || T.status != "active") return;
         if (
@@ -2453,15 +2454,15 @@
         x.setTransform(dpr, 0, 0, dpr, 0, 0);
         x.fillStyle = bg;
         x.fillRect(0, 0, W, H);
-        if (pts.length === 1)
-          pts = [pts[0], pts[0]]; /* one point: show A straight away */
+        const singlePoint = pts.length === 1;
+        if (singlePoint) pts = [pts[0], pts[0]]; /* one point: show A straight away */
         if (pts.length < 2) {
           st.hd = null;
-          x.fillStyle = "#666";
-          x.font = "14px sans-serif";
-          x.textAlign = "center";
-          x.textBaseline = "middle";
-          x.fillText(o.msg || "…", W / 2, H / 2);
+          if (o.idleArrow) {
+            x.save(); x.translate(W / 2, H / 2); x.rotate(-Math.PI / 2);
+            x.beginPath(); x.moveTo(16, 0); x.lineTo(-11, -10); x.lineTo(-5, 0); x.lineTo(-11, 10); x.closePath();
+            x.fillStyle = "#2563eb"; x.fill(); x.lineWidth = 3; x.strokeStyle = "#fff"; x.stroke(); x.restore();
+          }
           return;
         }
         const k = Math.cos((pts[0][0] * Math.PI) / 180),
@@ -2532,14 +2533,66 @@
           cam.y = ty;
           cam.s = ts;
           cam.init = 1;
-        } else {
-          cam.x += (tx - cam.x) * 0.08;
-          cam.y += (ty - cam.y) * 0.08;
-          cam.s += (ts - cam.s) * 0.08;
+        } else if (!cam.userMoved) {
+          // Follow the route gently until the driver manually moves the map.
+          const follow = 1 - Math.pow(0.001, Math.max(0.001, dt) / 0.85);
+          cam.x += (tx - cam.x) * follow;
+          cam.y += (ty - cam.y) * follow;
+          cam.s += (ts - cam.s) * follow;
         }
-        const s = cam.s,
-          X = (q) => W / 2 + (q[0] - cam.x) * s,
+        cam.zoom = Math.max(0.12, Math.min(12, cam.zoom || 1));
+        if (!Number.isFinite(cam.z)) cam.z = cam.zoom;
+        // Ease towards the requested zoom instead of changing scale in one frame.
+        const zoomEase = 1 - Math.pow(0.001, Math.max(0.001, dt) / 0.38);
+        cam.z += (cam.zoom - cam.z) * zoomEase;
+        if (Math.abs(cam.zoom - cam.z) < 0.0005) cam.z = cam.zoom;
+        const zoomNow = cam.z;
+        let s = cam.s * zoomNow;
+        /* When zoomed well out, frame the whole of Kenya and keep the recorded route in its geographic context. */
+        const kenya = [[-0.85829,40.993],[-1.68325,41.58513],[-2.08255,40.88477],[-2.49979,40.63785],[-2.57309,40.26304],[-3.27768,40.12119],[-3.68116,39.80006],[-4.34653,39.60489],[-4.67677,39.20222],[-3.67712,37.7669],[-3.09699,37.69869],[-1.05982,34.07262],[-0.95,33.903711],[0.109814,33.893569],[0.515,34.18],[1.17694,34.6721],[1.90584,35.03599],[3.05374,34.59607],[3.5556,34.47913],[4.249885,34.005],[4.847123,34.620196],[5.0304,35.298007],[5.0,35.817448],[4.776966,35.817448],[4.447864,36.159079],[4.447864,36.855093],[3.598605,38.120915],[3.58851,38.43697],[3.61607,38.67114],[3.50074,38.89251],[3.42206,39.559384],[3.83879,39.85494],[4.25702,40.76848],[3.91909,41.1718],[3.918912,41.855083],[2.78452,40.98105],[-0.85829,40.993]];
+        const kx = Math.cos((pts[0][0] * Math.PI) / 180), KM = 111320;
+        const K = kenya.map(([la,lo]) => [lo * kx * KM, la * KM]);
+        // The country outline is a Kenya-only context layer. Require a fresh
+        // GPS fix inside Kenya; a saved route or stale location never enables it.
+        const fixIsFresh = !!(gps && Date.now() - gps.ts < 20000);
+        const pointInKenya = (lat, lng) => {
+          let inside = false;
+          for (let i = 0, j = kenya.length - 1; i < kenya.length; j = i++) {
+            const [yi, xi] = kenya[i], [yj, xj] = kenya[j];
+            const crosses = ((yi > lat) !== (yj > lat)) &&
+              (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi);
+            if (crosses) inside = !inside;
+          }
+          return inside;
+        };
+        const driverInKenya = fixIsFresh && pointInKenya(gps.lat, gps.lng);
+        const showKenyaContext = driverInKenya && zoomNow < 0.80;
+        if (showKenyaContext) {
+          const bx = K.map(q=>q[0]), by=K.map(q=>q[1]);
+          const cx=(Math.min(...bx)+Math.max(...bx))/2, cy=(Math.min(...by)+Math.max(...by))/2;
+          const fit=Math.min((W-70)/(Math.max(...bx)-Math.min(...bx)),(H-70)/(Math.max(...by)-Math.min(...by)));
+          // Cross-fade between Kenya framing and route framing. This avoids
+          // the old hard scale switch at 0.58 that caused huge zoom jumps.
+          const blendRaw = Math.max(0, Math.min(1, (zoomNow - 0.34) / 0.46));
+          const blend = blendRaw * blendRaw * (3 - 2 * blendRaw);
+          const kenyaScale = fit * (zoomNow / 0.58);
+          const routeScale = cam.s * zoomNow;
+          s = kenyaScale * (1 - blend) + routeScale * blend;
+          if (!cam.userMoved) {
+            const centreEase = 0.18 * (1 - blend);
+            cam.x += (cx-cam.x)*centreEase;
+            cam.y += (cy-cam.y)*centreEase;
+          }
+        }
+        const X = (q) => W / 2 + (q[0] - cam.x) * s,
           Y = (q) => H / 2 - (q[1] - cam.y) * s;
+        st.screenA = [X(P2[0]), Y(P2[0])]; st.screenB = [X(P2[n-1]), Y(P2[n-1])];
+        st.geoA = pts[0]; st.geoB = pts[pts.length-1]; st.canvas = cv;
+        if (showKenyaContext) {
+          x.save(); x.beginPath(); K.forEach((q,i)=>i?x.lineTo(X(q),Y(q)):x.moveTo(X(q),Y(q))); x.closePath();
+          x.fillStyle="rgba(37,99,235,.035)"; x.fill(); x.strokeStyle="#2563eb"; x.lineWidth=2; x.setLineDash([]); x.stroke();
+          x.fillStyle="#2563eb"; x.font="700 12px sans-serif"; x.textAlign="center"; x.fillText("KENYA",W/2,H/2); x.restore();
+        }
         let g = NICE[NICE.length - 1];
         for (const nn of NICE)
           if (nn * s >= 44) {
@@ -2624,7 +2677,7 @@
           }
           x.save();
           x.translate(X(e), Y(e));
-          x.rotate(Math.atan2(-(e[1] - q[1]), e[0] - q[0]));
+          x.rotate(singlePoint && Number.isFinite(o.heading) ? (90-o.heading)*Math.PI/180 : singlePoint ? -Math.PI/2 : Math.atan2(-(e[1] - q[1]), e[0] - q[0]));
           x.beginPath();
           x.moveTo(13, 0);
           x.lineTo(-9, -9);
@@ -2682,21 +2735,23 @@
           if (HS.id !== (activeTrip && activeTrip.id)) {
             HS.id = activeTrip && activeTrip.id;
             HS.hd = null;
-            HS.cam = { init: 0 };
+            HS.cam = { init: 0, zoom: 1 };
           }
           paint($("home-map"), homePts, {
             dt,
             st: HS,
             live: !!(activeTrip && activeTrip.status === "active"),
             ended: false,
-            msg: "Waiting for GPS location…",
+            msg: "",
+            idleArrow: !homePts.length,
+            heading: gps && gps.heading,
           });
         }
         if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
           if (TS.id !== trip.id) {
             TS.id = trip.id;
             TS.hd = null;
-            TS.cam = { init: 0 };
+            TS.cam = { init: 0, zoom: 1 };
           }
           paint($("cv"), trip.pts, {
             dt,
@@ -2725,6 +2780,107 @@
           msg: "No route recorded",
         });
       }
+      /* Smooth map controls: gradual wheel/pinch zoom and direct drag-to-pan. */
+      function wireMapCanvas(id, state) {
+        const cv=$(id); if (!cv || cv.dataset.mapControls) return;
+        cv.dataset.mapControls="1";
+        cv.style.touchAction="none";
+        const clampZoom = z => Math.max(0.12, Math.min(12, z));
+        const redraw = () => {
+          if (id === "cv2" && RT()) drawRec(RT());
+          else if (id === "home-map") draw();
+          else if (id === "cv") draw();
+        };
+        cv.addEventListener("wheel", e => {
+          e.preventDefault();
+          const rect=cv.getBoundingClientRect();
+          const px=e.clientX-rect.left, py=e.clientY-rect.top;
+          const delta=e.deltaMode===1 ? e.deltaY*16 : e.deltaMode===2 ? e.deltaY*rect.height : e.deltaY;
+          const factor=Math.exp(-Math.max(-80,Math.min(80,delta))*0.00075);
+          const oldZoom=state.cam.zoom||1, nextZoom=clampZoom(oldZoom*factor);
+          const z=state.cam.z||oldZoom, scale=(state.cam.s||1)*z;
+          // Keep the geographic point under the cursor stationary while zooming.
+          const wx=state.cam.x+(px-rect.width/2)/scale;
+          const wy=state.cam.y-(py-rect.height/2)/scale;
+          state.cam.zoom=nextZoom;
+          const nextScale=(state.cam.s||1)*nextZoom;
+          state.cam.x=wx-(px-rect.width/2)/nextScale;
+          state.cam.y=wy+(py-rect.height/2)/nextScale;
+          state.cam.userMoved=true;
+          redraw();
+        },{passive:false});
+
+        const active=new Map();
+        let pinchDistance=0, moved=false, lastPoint=null;
+        cv.addEventListener("pointerdown", e=>{
+          if(e.pointerType==="mouse" && e.button!==0) return;
+          cv.setPointerCapture(e.pointerId);
+          active.set(e.pointerId,{x:e.clientX,y:e.clientY});
+          moved=false;
+          if(active.size===1) lastPoint={x:e.clientX,y:e.clientY};
+          if(active.size===2){
+            const a=[...active.values()];
+            pinchDistance=Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y);
+          }
+        });
+        cv.addEventListener("pointermove", e=>{
+          if(!active.has(e.pointerId)) return;
+          const prev=active.get(e.pointerId);
+          const dx=e.clientX-prev.x, dy=e.clientY-prev.y;
+          active.set(e.pointerId,{x:e.clientX,y:e.clientY});
+          if(active.size===1){
+            if(Math.abs(dx)+Math.abs(dy)>1) moved=true;
+            const rect=cv.getBoundingClientRect();
+            const z=state.cam.z||state.cam.zoom||1;
+            const scale=(state.cam.s||1)*z;
+            if(scale>0){
+              state.cam.x-=dx/scale;
+              state.cam.y+=dy/scale;
+              state.cam.userMoved=true;
+              redraw();
+            }
+          } else if(active.size===2){
+            const a=[...active.values()];
+            const d=Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y);
+            if(pinchDistance>0 && d>0){
+              const ratio=d/pinchDistance;
+              if(Math.abs(ratio-1)>0.001) moved=true;
+              // Small incremental changes prevent a coarse jump on high-rate touch screens.
+              state.cam.zoom=clampZoom((state.cam.zoom||1)*Math.pow(ratio,0.72));
+              state.cam.userMoved=true;
+              redraw();
+            }
+            pinchDistance=d;
+          }
+        });
+        const release=e=>{
+          active.delete(e.pointerId);
+          if(active.size<2) pinchDistance=0;
+          if(!active.size) lastPoint=null;
+        };
+        cv.addEventListener("pointerup",release);
+        cv.addEventListener("pointercancel",release);
+        cv.addEventListener("lostpointercapture",release);
+        cv.addEventListener("click", e=>{
+          if(moved){moved=false;return;}
+          const r=cv.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+          const a=state.screenA,b=state.screenB; let target=null;
+          if(a && Math.hypot(px-a[0],py-a[1])<25) target=state.geoA;
+          else if(b && Math.hypot(px-b[0],py-b[1])<25) target=state.geoB;
+          if(target) window.open("https://www.google.com/maps?q="+encodeURIComponent(target[0]+","+target[1]),"_blank","noopener");
+        });
+        cv.addEventListener("dblclick", e=>{
+          e.preventDefault();
+          state.cam.userMoved=false;
+          state.cam.zoom=1;
+          state.cam.z=state.cam.z||1;
+          redraw();
+        });
+      }
+      wireMapCanvas("home-map",HS); wireMapCanvas("cv",TS);
+      const RS={hd:null,cam:{init:0,zoom:1}};
+      function drawRec(T) { paint($("cv2"),T.pts||[],{st:RS,ended:true,live:false,msg:"No route recorded"}); }
+      wireMapCanvas("cv2",RS);
       addEventListener("resize", () => {
         TS.cam.init = 0;
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
@@ -2772,6 +2928,7 @@
         const r = J("kd_hist", []).find((x) => x.id === id);
         if (!r) return;
         RV = r;
+        RS.hd=null; RS.cam={init:0,zoom:1};
         if (!r.pts || r.pts.length < 2)
           fetchRoute(r).then((p) => {
             if (p.length < 2) return;
