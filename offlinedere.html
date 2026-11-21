@@ -9,12 +9,12 @@
     <title>CashSplit Kadere — Driver</title>
     <link rel="manifest" href="./manifest.json" />
     <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-    <style>
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
       :root {
         --bg: #060a12;
         --bg2: #0d1424;
@@ -448,56 +448,23 @@
         margin-top: 10px;
       }
       .leaflet-map {
-        width: 100%;
-        height: clamp(260px, 42vh, 420px);
-        min-height: 260px;
-        display: block;
-        background: #e8edf3;
-        border: 1px solid var(--border);
-        border-radius: var(--rs);
-        overflow: hidden;
-        isolation: isolate;
+        width: 100%; height: clamp(260px, 42vh, 420px); min-height: 260px;
+        display: block; background: #e8edf3; border: 1px solid var(--border);
+        border-radius: var(--rs); overflow: hidden; isolation: isolate;
       }
-      .leaflet-container {
-        width: 100%;
-        height: 100%;
-        background: #e8edf3;
-        font-family: var(--fm);
-      }
-      .leaflet-control-attribution {
-        font-size: 10px !important;
-      }
+      .leaflet-container { width: 100%; height: 100%; background: #e8edf3; font-family: var(--fm); }
+      .leaflet-control-attribution { font-size: 10px !important; }
       .kd-map-pin {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border: 3px solid #fff;
-        border-radius: 50%;
-        color: #fff;
-        background: #2563eb;
-        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.35);
-        font:
-          800 11px/1 Arial,
-          sans-serif;
+        display:flex; align-items:center; justify-content:center; width:28px; height:28px;
+        border:3px solid #fff; border-radius:50%; color:#fff; background:#2563eb;
+        box-shadow:0 2px 9px rgba(0,0,0,.35); font:800 11px/1 Arial,sans-serif;
       }
-      .kd-map-pin.end {
-        border-radius: 7px;
-        background: #16a34a;
-      }
+      .kd-map-pin.end { border-radius:7px; background:#16a34a; }
       .kd-map-pin.live {
-        width: 18px;
-        height: 18px;
-        border: 3px solid #fff;
-        background: #2563eb;
-        box-shadow:
-          0 0 0 7px rgba(37, 99, 235, 0.18),
-          0 2px 8px rgba(0, 0, 0, 0.35);
+        width:18px; height:18px; border:3px solid #fff; background:#2563eb;
+        box-shadow:0 0 0 7px rgba(37,99,235,.18), 0 2px 8px rgba(0,0,0,.35);
       }
-      .leaflet-control-zoom a {
-        color: #172033 !important;
-      }
+      .leaflet-control-zoom a { color:#172033 !important; }
       #qr {
         background: #fff;
         padding: 10px;
@@ -641,7 +608,7 @@
       .bottom-nav {
         flex-shrink: 0;
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
         background: var(--bg2);
         border-top: 1px solid var(--border);
@@ -671,7 +638,7 @@
         color: var(--bl);
       }
       main {
-        padding-bottom: 12px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
       @media (max-width: 380px) {
         #home-map {
@@ -691,18 +658,62 @@
           overflow: visible;
         }
       }
-      .kd-route-canvas {
-        display: block;
+      #top { position:relative; z-index:1000; }
+      #top-more-panel {
+        position:absolute; top:calc(100% + 6px); right:10px; width:min(340px, calc(100vw - 20px));
+        padding:12px; border:1px solid var(--border); border-radius:12px;
+        background:var(--bg2); box-shadow:0 12px 30px rgba(0,0,0,.32); z-index:1200;
       }
-    </style>
+      #top-more-panel[hidden] { display:none !important; }
+      .more-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:9px 0; }
+      .more-stats .stat { padding:9px 5px; }
+      .more-stats .stat b { font-size:.9rem; }
+      #top-more-panel .banner { margin-top:8px; }
+      .trip-live-summary { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:10px; padding:10px 14px; }
+      .trip-live-summary small { display:block; color:var(--text2); font-size:.72rem; margin-bottom:3px; }
+      .trip-live-summary b { display:block; font:800 clamp(1.25rem,5vw,1.8rem) var(--fd); }
+      .trip-fare { text-align:right; }
+      .trip-running main { padding:8px 10px 10px; overflow:hidden; }
+      .trip-running #p-trip { flex:1; min-height:0; gap:8px; overflow-y:auto; }
+      .trip-running #cv { height:clamp(300px, calc(100dvh - 315px), 720px); min-height:300px; flex:1 0 auto; }
+      .trip-running #p-trip #t-share { display:none; }
+      .trip-running #p-trip #t-ex { flex-shrink:0; }
+      /* Keep the live ride panel vertically swipeable without interfering with map gestures. */
+      .trip-running #p-trip { touch-action: pan-y; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+      .trip-running #p-trip > :not(#cv) { touch-action: pan-y; }
+      .trip-running #cv { touch-action: pan-x pan-y pinch-zoom; }
+      @media (max-width:380px) {
+        .more-stats { gap:5px; }
+        .more-stats .stat small { font-size:.62rem; }
+        .trip-live-summary { padding:9px 11px; }
+      }
+          .kd-route-canvas { display:block; }
+      .bottom-nav { box-shadow: 0 -8px 24px rgba(0,0,0,.22); }
+      .nav-item { position:relative; }
+      .nav-item.active::before { content:""; position:absolute; top:-7px; width:28px; height:3px; border-radius:4px; background:var(--blue); }
+      .trip-running main { padding-bottom:10px; }
+      .leaflet-control-kd-center a { display:flex !important; align-items:center; justify-content:center; width:38px !important; height:38px !important; border-radius:10px !important; background:#fff !important; color:#1d4ed8 !important; font-size:21px !important; font-weight:800; text-decoration:none; box-shadow:0 1px 5px rgba(0,0,0,.35); }
+      .leaflet-control-kd-center a:active { background:#dbeafe !important; }
+      /* Let the whole live-trip page scroll; keep the bottom navigation fixed in the layout. */
+      .trip-running main { overflow-y:auto; overflow-x:hidden; }
+      .trip-running #p-trip { flex:0 0 auto; min-height:auto; overflow:visible; touch-action:pan-y; }
+</style>
   </head>
   <body>
     <header id="top">
       <div class="logo"><i></i>🚖 <span>Kadere</span></div>
       <div class="row">
-        <button id="locpill" class="btn bg sm" onclick="fixLoc()">
-          📍 Location
-        </button>
+        <button id="locpill" class="btn bg sm" onclick="fixLoc()">📍 Location</button>
+        <button id="top-more-btn" class="btn bg sm" type="button" onclick="toggleMore()" aria-expanded="false" hidden>More ▾</button>
+      </div>
+      <div id="top-more-panel" hidden>
+        <div class="xs muted" id="t-st"></div>
+        <div class="more-stats">
+          <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
+          <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
+          <div class="stat" onclick="retrySync()" style="cursor:pointer"><b id="m-s" class="xs">—</b><small>sync · tap to retry</small></div>
+        </div>
+        <div class="banner noprint" id="warn">Keep Kadere visible or in split screen for accurate tracking.</div>
       </div>
     </header>
     <main>
@@ -771,12 +782,7 @@
             </div>
             <span class="xs muted" id="h-cloud"></span>
           </div>
-          <div
-            id="home-map"
-            class="leaflet-map"
-            role="application"
-            aria-label="OpenStreetMap trip map"
-          ></div>
+          <div id="home-map" class="leaflet-map" role="application" aria-label="OpenStreetMap trip map"></div>
           <button
             class="btn bgr bk big start-home"
             id="home-start"
@@ -872,46 +878,22 @@
 
       <!-- TRIP -->
       <section id="p-trip" class="pg">
-        <div class="banner noprint" id="warn">
-          Keep CashSplit visible or in split screen for accurate tracking.
-        </div>
         <details class="card" id="t-share" style="text-align: center" open>
           <summary>Client scans to follow the trip</summary>
           <div class="in">
             <div id="qr"></div>
-            <div
-              class="xs muted"
-              id="qr-link"
-              style="margin: 10px 0; word-break: break-all"
-            ></div>
-            <div class="row wrap" style="justify-content: center">
-              <button class="btn bg sm" onclick="shareWA()">
-                WhatsApp link
-              </button>
+            <div class="xs muted" id="qr-link" style="margin:10px 0;word-break:break-all"></div>
+            <div class="row wrap" style="justify-content:center">
+              <button class="btn bg sm" onclick="shareWA()">WhatsApp link</button>
               <button class="btn bg sm" onclick="copyLink()">Copy link</button>
             </div>
           </div>
         </details>
-        <div class="card" style="text-align: center">
-          <div class="xs muted" id="t-st"></div>
-          <div class="stat" style="margin: 10px 0">
-            <b id="fare" class="tg">0</b><small id="t-f">Fare</small>
-          </div>
-          <div class="g4">
-            <div class="stat"><b id="m-km">0 m</b><small>distance</small></div>
-            <div class="stat"><b id="m-t">00:00</b><small>time</small></div>
-            <div class="stat"><b id="m-w">00:00</b><small>waiting</small></div>
-            <div class="stat" onclick="retrySync()" style="cursor: pointer">
-              <b id="m-s" class="xs">—</b><small>sync (tap to retry)</small>
-            </div>
-          </div>
+        <div id="cv" class="leaflet-map" role="application" aria-label="OpenStreetMap active trip map"></div>
+        <div class="trip-live-summary card">
+          <div class="trip-distance"><small>Distance covered</small><b id="m-km">0 m</b></div>
+          <div class="trip-fare"><small id="t-f">Current amount</small><b id="fare" class="tg">0</b></div>
         </div>
-        <div
-          id="cv"
-          class="leaflet-map"
-          role="application"
-          aria-label="OpenStreetMap active trip map"
-        ></div>
         <details class="card noprint" id="t-ex">
           <summary>Extras <span class="xs muted" id="x-n"></span></summary>
           <div class="in">
@@ -939,13 +921,7 @@
           <div class="hero">
             <b id="rec-total">0</b><small id="rec-sub"></small>
           </div>
-          <div
-            id="cv2"
-            class="leaflet-map"
-            style="margin-bottom: 12px"
-            role="application"
-            aria-label="OpenStreetMap recorded trip map"
-          ></div>
+          <div id="cv2" class="leaflet-map" style="margin-bottom: 12px" role="application" aria-label="OpenStreetMap recorded trip map"></div>
           <details id="rec-d" open class="hi" style="background: transparent">
             <summary><b>Fare breakdown</b></summary>
             <div class="hb" id="rec"></div>
@@ -980,6 +956,9 @@
       <button class="nav-item active" data-page="home" onclick="show('home')">
         <span>⌖</span><small>Map</small>
       </button>
+      <button class="nav-item" data-page="trip" onclick="show('trip')">
+        <span>➤</span><small>Trip</small>
+      </button>
       <button class="nav-item" data-page="history" onclick="show('history')">
         <span>▤</span><small>History</small>
       </button>
@@ -988,11 +967,11 @@
       </button>
     </nav>
     <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="./kiswahili.js"></script>
     <script>
       /* ---------- helpers & storage ---------- */
@@ -1077,25 +1056,32 @@
           .querySelectorAll(".pg")
           .forEach((p) => p.classList.toggle("on", p.id === "p-" + id));
         const nav = $("bottom-nav");
-        const primary = ["home", "history", "settings"].includes(id);
-        nav.hidden = !primary;
+        $("top-more-btn").hidden = id !== "trip";
+        $("top-more-panel").hidden = true;
+        $("top-more-btn").setAttribute("aria-expanded", "false");
+        document.body.classList.toggle("trip-running", id === "trip" && trip && ["active", "paused"].includes(trip.status));
+        nav.hidden = id === "reg" || !P;
+        const activeNav = id === "rec" ? "trip" : id;
         nav
           .querySelectorAll(".nav-item")
-          .forEach((b) => b.classList.toggle("active", b.dataset.page === id));
+          .forEach((b) => b.classList.toggle("active", b.dataset.page === activeNav));
         $("p-" + id).parentNode.scrollTop = 0;
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            Object.values(KD_MAPS).forEach((entry) => {
-              if (entry && entry.map) entry.map.invalidateSize({ pan: false });
-            });
-          }),
-        );
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          Object.values(KD_MAPS).forEach(entry => {
+            if (entry && entry.map) entry.map.invalidateSize({ pan: false });
+          });
+        }));
         if (id === "home") {
           renderHome();
           draw();
         }
         if (id === "history") renderHistory();
         if (id === "settings") renderHome();
+      }
+      function toggleMore() {
+        const panel = $("top-more-panel");
+        panel.hidden = !panel.hidden;
+        $("top-more-btn").setAttribute("aria-expanded", String(!panel.hidden));
       }
       /* ---------- theme & settings shared with index.html ---------- */
       function applyTheme() {
@@ -1564,6 +1550,11 @@
           .join(" · ");
         cloud();
       }
+      function historyRouteLabel(r) {
+        const from = String(r.fromName || r.startName || r.originName || r.from || "").trim();
+        const to = String(r.toName || r.endName || r.destinationName || r.to || "").trim();
+        return from && to ? `From ${esc(from)} → ${esc(to)}` : "Recorded trip";
+      }
       function renderHistory() {
         const hl = J("kd_hist", []);
         $("history-count").textContent =
@@ -1572,7 +1563,7 @@
         $("history-list").innerHTML = hl
           .map(
             (r) =>
-              `<details class="hi"><summary><span>${fdt(r.endedAt)}<br><small class="muted xs">${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span class="sm2"><b class="tg">${m(r.fare)}</b></span></summary><div class="hb">${recTable(r)}<div class="row wrap" style="margin-top:10px"><button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">🗺 Route &amp; receipt</button><button class="btn bg sm" onclick="shareRec('${esc(r.id)}')">WhatsApp</button></div></div></details>`,
+              `<details class="hi"><summary><span><b>${historyRouteLabel(r)}</b><br><small class="muted xs">${fdt(r.endedAt)} · ${fmtDist(r.km)} · ${mmss(r.sec)}</small></span><span class="sm2"><b class="tg">${m(r.fare)}</b></span></summary><div class="hb">${recTable(r)}<div class="row wrap" style="margin-top:10px"><button class="btn bg sm" onclick="viewTrip('${esc(r.id)}')">🗺 Route &amp; receipt</button><button class="btn bg sm" onclick="shareRec('${esc(r.id)}')">WhatsApp</button></div></div></details>`,
           )
           .join("");
       }
@@ -1609,6 +1600,8 @@
                 cur: t.currency,
                 startedAt: t.startedAt,
                 endedAt: t.endedAt,
+                fromName: t.fromName || t.startName || t.originName || "",
+                toName: t.toName || t.endName || t.destinationName || "",
                 km: t.km,
                 gapKm: t.gapKm,
                 sec: t.sec,
@@ -1797,6 +1790,8 @@
       }
       function renderTrip() {
         const c = cur();
+        document.body.classList.toggle("trip-running", $("p-trip").classList.contains("on") && ["active", "paused"].includes(trip.status));
+        $("top-more-btn").hidden = !["active", "paused"].includes(trip.status) || !$("p-trip").classList.contains("on");
         trip.fare = c.tot;
         $("fare").textContent = m(c.tot);
         $("m-km").textContent = fmtDist(liveKm());
@@ -2089,13 +2084,7 @@
       function onPos(p) {
         const c = p.coords,
           ts = p.timestamp || Date.now();
-        gps = {
-          lat: c.latitude,
-          lng: c.longitude,
-          acc: c.accuracy,
-          ts,
-          heading: c.heading,
-        };
+        gps = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, ts, heading: c.heading };
         const T = trip;
         if (!T || T.status != "active") return;
         if (
@@ -2529,27 +2518,16 @@
       const WORLD_BORDERS_CACHE = "kd_world_country_borders_v1";
       function loadWorldCountryBorders() {
         try {
-          const cached = JSON.parse(
-            localStorage.getItem(WORLD_BORDERS_CACHE) || "null",
-          );
-          if (cached && Array.isArray(cached.features))
-            worldCountryFeatures = cached.features;
+          const cached = JSON.parse(localStorage.getItem(WORLD_BORDERS_CACHE) || "null");
+          if (cached && Array.isArray(cached.features)) worldCountryFeatures = cached.features;
         } catch (e) {}
         if (worldCountryFeatures.length) refreshCountryLayers();
-        fetch(
-          "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
-        )
-          .then((r) => {
-            if (!r.ok) throw new Error("Country borders unavailable");
-            return r.json();
-          })
-          .then((data) => {
-            if (!data || !Array.isArray(data.features))
-              throw new Error("Invalid country borders");
+        fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson")
+          .then(r => { if (!r.ok) throw new Error("Country borders unavailable"); return r.json(); })
+          .then(data => {
+            if (!data || !Array.isArray(data.features)) throw new Error("Invalid country borders");
             worldCountryFeatures = data.features;
-            try {
-              localStorage.setItem(WORLD_BORDERS_CACHE, JSON.stringify(data));
-            } catch (e) {}
+            try { localStorage.setItem(WORLD_BORDERS_CACHE, JSON.stringify(data)); } catch (e) {}
             refreshCountryLayers();
             if ($("p-home").classList.contains("on")) renderHome();
             if ($("p-trip").classList.contains("on")) draw();
@@ -2572,14 +2550,9 @@
       function kdIcon(label, extra) {
         return L.divIcon({
           className: "",
-          html:
-            '<span class="kd-map-pin ' +
-            (extra || "") +
-            '">' +
-            (label || "") +
-            "</span>",
+          html: '<span class="kd-map-pin ' + (extra || '') + '">' + (label || '') + '</span>',
           iconSize: [28, 28],
-          iconAnchor: [14, 14],
+          iconAnchor: [14, 14]
         });
       }
 
@@ -2601,7 +2574,7 @@
           minZoom: 0,
           maxZoom: 24,
           worldCopyJump: true,
-          preferCanvas: true,
+          preferCanvas: true
         }).setView(KD_DEFAULT_CENTER, 13);
 
         L.tileLayer(KD_OSM_URL, {
@@ -2609,25 +2582,41 @@
           maxZoom: 24,
           maxNativeZoom: 19,
           subdomains: "abc",
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
           updateWhenIdle: true,
-          keepBuffer: 3,
+          keepBuffer: 3
         }).addTo(map);
+
+        const CenterControl = L.Control.extend({
+          options: { position: "topright" },
+          onAdd: function() {
+            const wrap = L.DomUtil.create("div", "leaflet-control-kd-center");
+            const button = L.DomUtil.create("a", "", wrap);
+            button.href = "#";
+            button.title = "Center on my location";
+            button.setAttribute("aria-label", "Center on my location");
+            button.textContent = "◎";
+            L.DomEvent.disableClickPropagation(wrap);
+            L.DomEvent.on(button, "click", function(e) {
+              L.DomEvent.preventDefault(e);
+              centerMapOnLocation(id);
+            });
+            return wrap;
+          }
+        });
+        map.addControl(new CenterControl());
 
         const routeGroup = L.layerGroup().addTo(map);
         const borderGroup = L.layerGroup().addTo(map);
         const entry = {
-          map,
-          routeGroup,
-          borderGroup,
-          state,
+          map, routeGroup, borderGroup, state,
           userMoved: false,
+          heading: null,
           hasFit: false,
           lastPointKey: "",
           lastBoundsKey: "",
           syncing: false,
-          lastPoints: [],
+          lastPoints: []
         };
         KD_MAPS[id] = entry;
 
@@ -2638,11 +2627,13 @@
           }
         });
         map.on("move zoom resize viewreset", () => drawKdRouteCanvas(entry));
+        // CSS individual rotate composes with Leaflet's own translate transform,
+        // keeping OSM tiles, route canvas and markers aligned while heading-up.
+        map.getPane("mapPane").style.transformOrigin = "50% 50%";
         map.on("dblclick", () => {
           entry.userMoved = false;
           if (state && state.cam) state.cam.userMoved = false;
-          if (entry.lastPoints.length)
-            fitKdRoute(entry, entry.lastPoints, true);
+          if (entry.lastPoints.length) fitKdRoute(entry, entry.lastPoints, true);
           else map.setView(KD_DEFAULT_CENTER, 13);
         });
         map.whenReady(() => {
@@ -2652,23 +2643,70 @@
         return entry;
       }
 
+      async function centerMapOnLocation(id) {
+        let pos = gps && Date.now() - gps.ts < 60000 ? gps : null;
+        if (!pos) {
+          const ok = await fixLoc();
+          if (!ok || !gps) return toast("Unable to get your location");
+          pos = gps;
+        }
+        const targets = id ? [KD_MAPS[id]] : Object.values(KD_MAPS);
+        targets.forEach(entry => {
+          if (!entry || !entry.map) return;
+          entry.syncing = true;
+          entry.userMoved = false;
+          if (entry.state && entry.state.cam) entry.state.cam.userMoved = false;
+          entry.heading = pos.heading != null && Number.isFinite(+pos.heading) ? +pos.heading : entry.heading;
+          entry.map.setView([pos.lat, pos.lng], Math.max(entry.map.getZoom(), 18), { animate: true });
+          // Put the driver's position slightly below centre, leaving more road visible ahead.
+          requestAnimationFrame(() => {
+            if (entry.map && entry.map.getSize().y > 0) {
+              entry.map.panBy([0, -Math.round(entry.map.getSize().y * 0.16)], { animate: true, duration: 0.35 });
+            }
+          });
+          entry.syncing = false;
+          applyKdHeading(entry, pos.heading);
+        });
+      }
+
+      function kdBearing(a, b) {
+        const rad = Math.PI / 180, y = Math.sin((b[1] - a[1]) * rad) * Math.cos(b[0] * rad);
+        const x = Math.cos(a[0] * rad) * Math.sin(b[0] * rad) -
+          Math.sin(a[0] * rad) * Math.cos(b[0] * rad) * Math.cos((b[1] - a[1]) * rad);
+        return (Math.atan2(y, x) / rad + 360) % 360;
+      }
+      function applyKdHeading(entry, suppliedHeading) {
+        if (!entry || !entry.map) return;
+        let heading = suppliedHeading != null && Number.isFinite(+suppliedHeading) ? +suppliedHeading : null;
+        const pts = entry.lastPoints || [];
+        if (heading === null && pts.length > 1) {
+          for (let i = pts.length - 1; i > 0; i--) {
+            if (hav(+pts[i-1][0], +pts[i-1][1], +pts[i][0], +pts[i][1]) > 4) {
+              heading = kdBearing(pts[i-1], pts[i]);
+              break;
+            }
+          }
+        }
+        if (heading === null || !Number.isFinite(heading)) return;
+        entry.heading = heading;
+        const pane = entry.map.getPane("mapPane");
+        if (pane) pane.style.rotate = (-heading) + "deg";
+      }
+
       function refreshCountryLayerFor(entry) {
         if (!entry || !window.L || !worldCountryFeatures.length) return;
         entry.borderGroup.clearLayers();
         try {
-          L.geoJSON(
-            { type: "FeatureCollection", features: worldCountryFeatures },
-            {
-              interactive: false,
-              style: {
-                color: "#2563eb",
-                weight: 1,
-                opacity: 0.38,
-                fill: false,
-              },
-              filter: (feature) => !!feature && !!feature.geometry,
+          L.geoJSON({ type: "FeatureCollection", features: worldCountryFeatures }, {
+            interactive: false,
+            style: {
+              color: "#2563eb",
+              weight: 1,
+              opacity: 0.38,
+              fill: false
             },
-          ).addTo(entry.borderGroup);
+            filter: feature => !!feature && !!feature.geometry
+          }).addTo(entry.borderGroup);
         } catch (e) {}
       }
 
@@ -2678,24 +2716,14 @@
 
       function fitKdRoute(entry, pts, force) {
         if (!entry || !pts || !pts.length) return;
-        const valid = pts.filter(
-          (p) => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]),
-        );
+        const valid = pts.filter(p => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]));
         if (!valid.length) return;
-        const bounds = L.latLngBounds(valid.map((p) => [+p[0], +p[1]]));
+        const bounds = L.latLngBounds(valid.map(p => [+p[0], +p[1]]));
         entry.syncing = true;
         if (valid.length === 1) {
-          if (force || !entry.userMoved)
-            entry.map.setView(
-              [+valid[0][0], +valid[0][1]],
-              Math.max(entry.map.getZoom(), 15),
-            );
+          if (force || !entry.userMoved) entry.map.setView([+valid[0][0], +valid[0][1]], Math.max(entry.map.getZoom(), 15));
         } else if (force || !entry.userMoved) {
-          entry.map.fitBounds(bounds, {
-            padding: [34, 34],
-            maxZoom: 17,
-            animate: false,
-          });
+          entry.map.fitBounds(bounds, { padding: [34, 34], maxZoom: 17, animate: false });
         }
         entry.syncing = false;
         entry.hasFit = true;
@@ -2706,15 +2734,12 @@
       // canvas draws the GPS trace itself with the original casing/line styling.
       function ensureKdRouteCanvas(entry) {
         if (entry.routeCanvas) return entry.routeCanvas;
-        const pane =
-          entry.map.getPane("kdRoutePane") ||
-          entry.map.createPane("kdRoutePane");
+        const pane = entry.map.getPane("kdRoutePane") || entry.map.createPane("kdRoutePane");
         pane.style.zIndex = 450;
         pane.style.pointerEvents = "none";
         const canvas = document.createElement("canvas");
         canvas.className = "kd-route-canvas";
-        canvas.style.cssText =
-          "position:absolute;left:0;top:0;pointer-events:none;";
+        canvas.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;";
         pane.appendChild(canvas);
         entry.routeCanvas = canvas;
         entry.routeTopLeft = null;
@@ -2723,10 +2748,8 @@
 
       function drawKdRouteCanvas(entry) {
         if (!entry || !entry.map) return;
-        const map = entry.map,
-          canvas = ensureKdRouteCanvas(entry);
-        const size = map.getSize(),
-          dpr = window.devicePixelRatio || 1;
+        const map = entry.map, canvas = ensureKdRouteCanvas(entry);
+        const size = map.getSize(), dpr = window.devicePixelRatio || 1;
         if (!size.x || !size.y) return;
         canvas.width = Math.round(size.x * dpr);
         canvas.height = Math.round(size.y * dpr);
@@ -2739,7 +2762,7 @@
         ctx.clearRect(0, 0, size.x, size.y);
         const pts = entry.lastPoints || [];
         if (!pts.length) return;
-        const xy = pts.map((p) => {
+        const xy = pts.map(p => {
           const q = map.latLngToLayerPoint([+p[0], +p[1]]).subtract(topLeft);
           return { x: q.x, y: q.y, estimated: Number(p[3]) === 1 };
         });
@@ -2764,44 +2787,29 @@
         strokeRoute("#f59e0b", 4, true, [9, 8]);
         ctx.setLineDash([]);
 
-        const a = xy[0],
-          e = xy[xy.length - 1];
+        const a = xy[0], e = xy[xy.length - 1];
         // Start marker: white circular badge with blue A.
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 11, 0, Math.PI * 2);
-        ctx.fillStyle = "#fff";
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#2563eb";
-        ctx.stroke();
-        ctx.fillStyle = "#2563eb";
-        ctx.font = "700 11px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("A", a.x, a.y + 0.5);
+        ctx.beginPath(); ctx.arc(a.x, a.y, 11, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff"; ctx.fill();
+        ctx.lineWidth = 3; ctx.strokeStyle = "#2563eb"; ctx.stroke();
+        ctx.fillStyle = "#2563eb"; ctx.font = "700 11px sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("A", a.x, a.y + .5);
 
         if (entry.routeEnded) {
           ctx.fillStyle = "#2563eb";
           ctx.fillRect(e.x - 11, e.y - 11, 22, 22);
-          ctx.fillStyle = "#fff";
-          ctx.fillText("B", e.x, e.y + 0.5);
+          ctx.fillStyle = "#fff"; ctx.fillText("B", e.x, e.y + .5);
         } else {
           // Live-position marker and subtle pulse, matching the original design.
           const pulse = (Date.now() % 1600) / 1600;
           ctx.globalAlpha = 1 - pulse;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, 10 + pulse * 20, 0, Math.PI * 2);
-          ctx.strokeStyle = "#2563eb";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.beginPath(); ctx.arc(e.x, e.y, 10 + pulse * 20, 0, Math.PI * 2);
+          ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2; ctx.stroke();
           ctx.globalAlpha = 1;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, 6, 0, Math.PI * 2);
-          ctx.fillStyle = "#2563eb";
-          ctx.fill();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = "#fff";
-          ctx.stroke();
+          ctx.beginPath(); ctx.arc(e.x, e.y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "#2563eb"; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke();
           // Direction arrow follows the latest meaningful GPS segment.
           let previous = xy[Math.max(0, xy.length - 2)];
           for (let i = xy.length - 2; i >= 0; i--) {
@@ -2812,16 +2820,10 @@
           ctx.translate(e.x, e.y);
           ctx.rotate(Math.atan2(-(e.y - previous.y), e.x - previous.x));
           ctx.beginPath();
-          ctx.moveTo(13, 0);
-          ctx.lineTo(-9, -9);
-          ctx.lineTo(-4, 0);
-          ctx.lineTo(-9, 9);
+          ctx.moveTo(13, 0); ctx.lineTo(-9, -9); ctx.lineTo(-4, 0); ctx.lineTo(-9, 9);
           ctx.closePath();
-          ctx.fillStyle = "#2563eb";
-          ctx.fill();
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = "#fff";
-          ctx.stroke();
+          ctx.fillStyle = "#2563eb"; ctx.fill();
+          ctx.lineWidth = 2.5; ctx.strokeStyle = "#fff"; ctx.stroke();
           ctx.restore();
         }
       }
@@ -2829,8 +2831,8 @@
       function kdUpdateRoute(entry, pts, options) {
         if (!entry || !entry.map) return;
         const o = options || {};
-        const valid = (pts || []).filter(
-          (p) => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]),
+        const valid = (pts || []).filter(p =>
+          p && Number.isFinite(+p[0]) && Number.isFinite(+p[1])
         );
         entry.lastPoints = valid;
         entry.routeEnded = !!o.ended;
@@ -2839,26 +2841,15 @@
           entry.lastPoints = [];
           if (entry.routeCanvas) {
             const ctx = entry.routeCanvas.getContext("2d");
-            ctx.clearRect(
-              0,
-              0,
-              entry.routeCanvas.width,
-              entry.routeCanvas.height,
-            );
+            ctx.clearRect(0, 0, entry.routeCanvas.width, entry.routeCanvas.height);
           }
           if (entry.routeGroup) entry.routeGroup.clearLayers();
           entry.routeKey = "";
           entry.hasFit = false;
-          if (
-            o.idleArrow &&
-            gps &&
-            Number.isFinite(gps.lat) &&
-            Number.isFinite(gps.lng)
-          ) {
+          if (o.idleArrow && gps && Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
             if (!entry.liveMarker) {
               entry.liveMarker = L.marker([gps.lat, gps.lng], {
-                icon: kdIcon("", "live"),
-                keyboard: false,
+                icon: kdIcon("", "live"), keyboard: false
               }).addTo(entry.routeGroup);
             } else entry.liveMarker.setLatLng([gps.lat, gps.lng]);
             if (!entry.userMoved && !entry.hasFit) {
@@ -2872,12 +2863,9 @@
           return;
         }
 
-        const first = valid[0],
-          last = valid[valid.length - 1];
+        const first = valid[0], last = valid[valid.length - 1];
         const routeKey = (+first[0]).toFixed(6) + "," + (+first[1]).toFixed(6);
-        const isNewRoute =
-          entry.routeKey !== routeKey ||
-          valid.length < (entry.renderedCount || 0);
+        const isNewRoute = entry.routeKey !== routeKey || valid.length < (entry.renderedCount || 0);
         if (isNewRoute) {
           entry.routeGroup.clearLayers();
           entry.routeKey = routeKey;
@@ -2896,22 +2884,22 @@
         drawKdRouteCanvas(entry);
 
         const pointKey = valid.length + ":" + last[0] + "," + last[1];
-        const routeNeedsFit =
-          !entry.hasFit ||
+        const routeNeedsFit = !entry.hasFit ||
           (o.fitRecorded && entry.lastFitRouteKey !== routeKey);
         if (routeNeedsFit) {
-          fitKdRoute(entry, valid, !!o.fitRecorded || isNewRoute);
+          if (o.live && !o.fitRecorded) {
+            entry.syncing = true;
+            entry.map.setView([+last[0], +last[1]], Math.max(entry.map.getZoom(), 18), { animate: false });
+            entry.syncing = false;
+            entry.hasFit = true;
+          } else {
+            fitKdRoute(entry, valid, !!o.fitRecorded || isNewRoute);
+          }
           if (o.fitRecorded) entry.lastFitRouteKey = routeKey;
-        } else if (
-          !entry.userMoved &&
-          !o.ended &&
-          pointKey !== entry.lastPointKey
-        ) {
+        } else if (!entry.userMoved && !o.ended && pointKey !== entry.lastPointKey) {
           entry.syncing = true;
           entry.map.panTo([+last[0], +last[1]], {
-            animate: true,
-            duration: 0.45,
-            easeLinearity: 0.25,
+            animate: true, duration: 0.45, easeLinearity: 0.25
           });
           entry.syncing = false;
         }
@@ -2966,6 +2954,7 @@
             idleArrow: !homePts.length,
             heading: gps && gps.heading,
           });
+          applyKdHeading(KD_MAPS["home-map"], gps && gps.heading);
         }
         if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
           if (TS.id !== trip.id) {
@@ -2983,6 +2972,7 @@
                 ? "Route appears once the trip starts"
                 : "Finding your position…",
           });
+          applyKdHeading(KD_MAPS["cv"], gps && gps.heading);
         }
         requestAnimationFrame(frame);
       }
@@ -3003,7 +2993,7 @@
       /* Leaflet owns map dragging, wheel zoom, pinch zoom and double-click zoom. */
       wireMapCanvas("home-map", HS);
       wireMapCanvas("cv", TS);
-      const RS = { hd: null, cam: { init: 0, zoom: 1 } };
+      const RS={hd:null,cam:{init:0,zoom:1}};
       function drawRec(T) {
         const entry = KD_MAPS["cv2"];
         if (entry && entry.routeKey) {
@@ -3011,26 +3001,24 @@
           entry.hasFit = false;
         }
         paint($("cv2"), T.pts || [], {
-          st: RS,
-          ended: true,
-          live: false,
+          st: RS, ended: true, live: false,
           fitRecorded: true,
-          msg: "No route recorded",
+          msg: "No route recorded"
         });
         requestAnimationFrame(() => {
           const mapEntry = KD_MAPS["cv2"];
           if (mapEntry) mapEntry.map.invalidateSize({ pan: false });
         });
       }
-      wireMapCanvas("cv2", RS);
+      wireMapCanvas("cv2",RS);
       if ("ResizeObserver" in window) {
-        const kdMapResizeObserver = new ResizeObserver((entries) => {
+        const kdMapResizeObserver = new ResizeObserver(entries => {
           for (const item of entries) {
             const entry = KD_MAPS[item.target.id];
             if (entry) entry.map.invalidateSize({ pan: false });
           }
         });
-        ["home-map", "cv", "cv2"].forEach((id) => {
+        ["home-map", "cv", "cv2"].forEach(id => {
           const el = $(id);
           if (el) kdMapResizeObserver.observe(el);
         });
@@ -3038,9 +3026,7 @@
 
       addEventListener("resize", () => {
         TS.cam.init = 0;
-        Object.values(KD_MAPS).forEach((entry) =>
-          entry.map.invalidateSize({ pan: false }),
-        );
+        Object.values(KD_MAPS).forEach(entry => entry.map.invalidateSize({ pan: false }));
         if ($("p-rec").classList.contains("on") && RT()) drawRec(RT());
       });
       /* ---------- end and receipt ---------- */
@@ -3052,6 +3038,8 @@
             cur: T.cur,
             startedAt: T.startedAt,
             endedAt: T.endedAt,
+            fromName: T.fromName || T.startName || T.originName || "",
+            toName: T.toName || T.endName || T.destinationName || "",
             km: T.km,
             gapKm: T.gapKm,
             sec: T.sec,
@@ -3086,8 +3074,7 @@
         const r = J("kd_hist", []).find((x) => x.id === id);
         if (!r) return;
         RV = r;
-        RS.hd = null;
-        RS.cam = { init: 0, zoom: 1 };
+        RS.hd=null; RS.cam={init:0,zoom:1};
         if (!r.pts || r.pts.length < 2)
           fetchRoute(r).then((p) => {
             if (p.length < 2) return;
