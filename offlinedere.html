@@ -2704,20 +2704,33 @@
           (p) => p && Number.isFinite(+p[0]) && Number.isFinite(+p[1]),
         );
         entry.lastPoints = valid;
-        entry.routeGroup.clearLayers();
 
         if (!valid.length) {
+          if (entry.routeKey) {
+            entry.routeGroup.clearLayers();
+            entry.routeKey = "";
+            entry.routeBase = null;
+            entry.routeSegments = [];
+            entry.startMarker = null;
+            entry.endMarker = null;
+            entry.liveMarker = null;
+            entry.renderedCount = 0;
+            entry.hasFit = false;
+          }
           if (
             o.idleArrow &&
             gps &&
             Number.isFinite(gps.lat) &&
             Number.isFinite(gps.lng)
           ) {
-            const here = L.marker([gps.lat, gps.lng], {
-              icon: kdIcon("", "live"),
-              keyboard: false,
-            });
-            here.addTo(entry.routeGroup);
+            if (!entry.liveMarker) {
+              entry.liveMarker = L.marker([gps.lat, gps.lng], {
+                icon: kdIcon("", "live"),
+                keyboard: false,
+              }).addTo(entry.routeGroup);
+            } else {
+              entry.liveMarker.setLatLng([gps.lat, gps.lng]);
+            }
             if (!entry.userMoved && !entry.hasFit) {
               entry.syncing = true;
               entry.map.setView([gps.lat, gps.lng], 16, { animate: false });
@@ -2728,90 +2741,139 @@
           return;
         }
 
-        // Kadere point format: [latitude, longitude, timestamp, estimatedFlag].
-        // Keep the route manually drawn from the driver's own recorded GPS points.
+        // Keep Leaflet layers alive between animation frames. Only append genuinely
+        // new recorded GPS points; never clear and redraw the whole route every frame.
+        const first = valid[0];
+        const last = valid[valid.length - 1];
+        const routeKey = (+first[0]).toFixed(6) + "," + (+first[1]).toFixed(6);
+        const isNewRoute =
+          entry.routeKey !== routeKey ||
+          valid.length < (entry.renderedCount || 0);
+
+        if (isNewRoute) {
+          entry.routeGroup.clearLayers();
+          entry.routeKey = routeKey;
+          entry.routeBase = null;
+          entry.routeSegments = [];
+          entry.startMarker = null;
+          entry.endMarker = null;
+          entry.liveMarker = null;
+          entry.renderedCount = 0;
+          entry.hasFit = false;
+          entry.userMoved = false;
+        }
+
+        const coords = valid.map((p) => [+p[0], +p[1]]);
         if (valid.length > 1) {
-          L.polyline(
-            valid.map((p) => [+p[0], +p[1]]),
-            {
+          if (!entry.routeBase) {
+            entry.routeBase = L.polyline(coords, {
               color: "#ffffff",
               weight: 8,
               opacity: 0.92,
               lineCap: "round",
               lineJoin: "round",
-            },
-          ).addTo(entry.routeGroup);
+            }).addTo(entry.routeGroup);
+          } else if (valid.length !== entry.renderedCount) {
+            entry.routeBase.setLatLngs(coords);
+          }
 
-          for (let i = 1; i < valid.length; i++) {
+          // Add only the newest segment(s), preserving all previously drawn pixels.
+          for (let i = entry.renderedCount || 1; i < valid.length; i++) {
             const a = valid[i - 1],
               b = valid[i];
             const estimated = Number(b[3]) === 1;
-            L.polyline(
-              [
-                [+a[0], +a[1]],
-                [+b[0], +b[1]],
-              ],
-              {
-                color: estimated ? "#f59e0b" : "#2563eb",
-                weight: 4,
-                opacity: 0.98,
-                dashArray: estimated ? "8 8" : null,
-                lineCap: "round",
-                lineJoin: "round",
-              },
-            ).addTo(entry.routeGroup);
+            entry.routeSegments.push(
+              L.polyline(
+                [
+                  [+a[0], +a[1]],
+                  [+b[0], +b[1]],
+                ],
+                {
+                  color: estimated ? "#f59e0b" : "#2563eb",
+                  weight: 4,
+                  opacity: 0.98,
+                  dashArray: estimated ? "8 8" : null,
+                  lineCap: "round",
+                  lineJoin: "round",
+                },
+              ).addTo(entry.routeGroup),
+            );
           }
         }
 
-        const first = valid[0],
-          last = valid[valid.length - 1];
-        L.marker([+first[0], +first[1]], { icon: kdIcon("A"), keyboard: false })
-          .addTo(entry.routeGroup)
-          .on("click", () =>
-            window.open(
-              "https://www.google.com/maps?q=" +
-                encodeURIComponent(first[0] + "," + first[1]),
-              "_blank",
-              "noopener",
-            ),
-          );
-
-        if (o.ended) {
-          L.marker([+last[0], +last[1]], {
-            icon: kdIcon("B", "end"),
+        if (!entry.startMarker) {
+          entry.startMarker = L.marker([+first[0], +first[1]], {
+            icon: kdIcon("A"),
             keyboard: false,
           })
             .addTo(entry.routeGroup)
             .on("click", () =>
               window.open(
                 "https://www.google.com/maps?q=" +
-                  encodeURIComponent(last[0] + "," + last[1]),
+                  encodeURIComponent(first[0] + "," + first[1]),
                 "_blank",
                 "noopener",
               ),
             );
+        }
+
+        if (o.ended) {
+          if (!entry.endMarker) {
+            entry.endMarker = L.marker([+last[0], +last[1]], {
+              icon: kdIcon("B", "end"),
+              keyboard: false,
+            })
+              .addTo(entry.routeGroup)
+              .on("click", () =>
+                window.open(
+                  "https://www.google.com/maps?q=" +
+                    encodeURIComponent(last[0] + "," + last[1]),
+                  "_blank",
+                  "noopener",
+                ),
+              );
+          } else {
+            entry.endMarker.setLatLng([+last[0], +last[1]]);
+          }
+          if (entry.liveMarker) {
+            entry.routeGroup.removeLayer(entry.liveMarker);
+            entry.liveMarker = null;
+          }
         } else {
-          L.marker([+last[0], +last[1]], {
-            icon: kdIcon("", "live"),
-            keyboard: false,
-          }).addTo(entry.routeGroup);
+          if (!entry.liveMarker) {
+            entry.liveMarker = L.marker([+last[0], +last[1]], {
+              icon: kdIcon("", "live"),
+              keyboard: false,
+            }).addTo(entry.routeGroup);
+          } else {
+            entry.liveMarker.setLatLng([+last[0], +last[1]]);
+          }
         }
 
         const pointKey = valid.length + ":" + last[0] + "," + last[1];
-        if (!entry.hasFit) fitKdRoute(entry, valid, true);
-        else if (
+        const routeNeedsFit =
+          !entry.hasFit ||
+          (o.fitRecorded && entry.lastFitRouteKey !== routeKey);
+        if (routeNeedsFit) {
+          // A receipt always frames the actual recorded trip, not the driver's
+          // current position or a previous trip's map viewport.
+          fitKdRoute(entry, valid, !!o.fitRecorded || isNewRoute);
+          if (o.fitRecorded) entry.lastFitRouteKey = routeKey;
+        } else if (
           !entry.userMoved &&
           !o.ended &&
           pointKey !== entry.lastPointKey
         ) {
-          // Follow the newest GPS fix without repeatedly zooming out to fit the full route.
           entry.syncing = true;
           entry.map.panTo([+last[0], +last[1]], {
             animate: true,
-            duration: 0.25,
+            duration: 0.45,
+            easeLinearity: 0.25,
           });
           entry.syncing = false;
         }
+
+        entry.renderedCount = valid.length;
         entry.lastPointKey = pointKey;
       }
 
@@ -2899,11 +2961,21 @@
       wireMapCanvas("cv", TS);
       const RS = { hd: null, cam: { init: 0, zoom: 1 } };
       function drawRec(T) {
+        const entry = KD_MAPS["cv2"];
+        if (entry && entry.routeKey) {
+          entry.userMoved = false;
+          entry.hasFit = false;
+        }
         paint($("cv2"), T.pts || [], {
           st: RS,
           ended: true,
           live: false,
+          fitRecorded: true,
           msg: "No route recorded",
+        });
+        requestAnimationFrame(() => {
+          const mapEntry = KD_MAPS["cv2"];
+          if (mapEntry) mapEntry.map.invalidateSize({ pan: false });
         });
       }
       wireMapCanvas("cv2", RS);
