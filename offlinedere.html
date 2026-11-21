@@ -2428,6 +2428,7 @@
         5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
       ];
       const TS = { hd: null, cam: { init: 0 }, id: null };
+      const HS = { hd: null, cam: { init: 0 }, id: null };
       let lastF = 0,
         loopOn = false;
       function paint(cv, pts, o) {
@@ -2666,12 +2667,29 @@
         const dt = Math.min(0.1, (t - lastF) / 1000 || 0.016);
         lastF = t;
         if (!document.hidden && $("p-home").classList.contains("on")) {
-          paint($("home-map"), [], {
+          /* Use the same original route renderer on the home map.
+             While a trip is running, draw its complete recorded route.
+             While idle, draw the phone's latest GPS fix as the live map position. */
+          const activeTrip =
+              trip && ["active", "paused"].includes(trip.status) && trip.pts
+                ? trip
+                : null,
+            homePts = activeTrip
+              ? activeTrip.pts
+              : gps
+                ? [[gps.lat, gps.lng, gps.ts, 0]]
+                : [];
+          if (HS.id !== (activeTrip && activeTrip.id)) {
+            HS.id = activeTrip && activeTrip.id;
+            HS.hd = null;
+            HS.cam = { init: 0 };
+          }
+          paint($("home-map"), homePts, {
             dt,
-            st: { hd: null, cam: { init: 0 } },
-            live: false,
+            st: HS,
+            live: !!(activeTrip && activeTrip.status === "active"),
             ended: false,
-            msg: "Your map will appear here",
+            msg: "Waiting for GPS location…",
           });
         }
         if (trip && !document.hidden && $("p-trip").classList.contains("on")) {
